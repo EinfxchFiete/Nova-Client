@@ -3,7 +3,8 @@ package dev.novaclient.module;
 public enum Category {
 	HUD("HUD"),
 	VISUAL("Visuals"),
-	UTILITY("Utility");
+	UTILITY("Utility"),
+	COSMETICS("Cosmetics");
 
 	private final String displayName;
 

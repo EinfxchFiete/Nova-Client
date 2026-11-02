@@ -20,6 +20,24 @@ import dev.novaclient.module.hud.ServerAddressModule;
 import dev.novaclient.module.hud.SpeedModule;
 import dev.novaclient.module.hud.ThemeModule;
 import dev.novaclient.util.CombatTracker;
+import dev.novaclient.util.Notifications;
+import dev.novaclient.module.cosmetics.CapeModule;
+import dev.novaclient.module.cosmetics.HitParticlesModule;
+import dev.novaclient.module.cosmetics.NametagModule;
+import dev.novaclient.module.cosmetics.TrailModule;
+import dev.novaclient.module.hud.CompassModule;
+import dev.novaclient.module.hud.DateModule;
+import dev.novaclient.module.hud.HudModule.Anchor;
+import dev.novaclient.module.hud.ItemCounterModule;
+import dev.novaclient.module.hud.LightLevelModule;
+import dev.novaclient.module.hud.SaturationModule;
+import dev.novaclient.module.hud.TargetHudModule;
+import dev.novaclient.module.utility.ChatTimestampsModule;
+import dev.novaclient.module.utility.DeathCoordsModule;
+import dev.novaclient.module.utility.DurabilityWarningModule;
+import dev.novaclient.module.utility.NotificationsModule;
+import dev.novaclient.module.visual.BlockOutlineModule;
+import dev.novaclient.module.visual.OverlaysModule;
 import dev.novaclient.module.utility.ToggleSneakModule;
 import dev.novaclient.module.utility.ToggleSprintModule;
 import dev.novaclient.module.visual.CrosshairModule;
@@ -63,6 +81,13 @@ public final class ModuleManager {
 		register(new SessionTimeModule());
 		register(new ReachModule());
 		register(new ComboModule());
+		register(new TargetHudModule());
+		register(new CompassModule());
+		register(new LightLevelModule());
+		register(new SaturationModule());
+		register(new DateModule());
+		register(new ItemCounterModule("Totem-Zähler", "Wie viele Totems du dabei hast", "Totems", Anchor.END, 2, Anchor.START, 160));
+		register(new ItemCounterModule("Item-Zähler", "Zählt das gehaltene Item im ganzen Inventar", "Gehaltenes Item", Anchor.START, 2, Anchor.START, 196));
 
 		zoom = register(new ZoomModule());
 		freelook = register(new FreelookModule());
@@ -72,9 +97,20 @@ public final class ModuleManager {
 		register(new LowFireModule());
 		register(new HudTweaksModule());
 		register(new NoWeatherModule());
+		register(new BlockOutlineModule());
+		register(new OverlaysModule());
 
 		register(new ToggleSprintModule());
 		register(new ToggleSneakModule());
+		register(new NotificationsModule());
+		register(new DeathCoordsModule());
+		register(new DurabilityWarningModule());
+		register(new ChatTimestampsModule());
+
+		register(new CapeModule());
+		register(new NametagModule());
+		register(new TrailModule());
+		register(new HitParticlesModule());
 	}
 
 	private <M extends Module> M register(M module) {
@@ -130,6 +166,7 @@ public final class ModuleManager {
 		for (Module m : modules) {
 			if (m.getKeybind() == key) {
 				m.toggle();
+				Notifications.push(m.getName() + (m.isEnabled() ? " aktiviert" : " deaktiviert"), m.isEnabled() ? 0 : 0xFF777788);
 			}
 		}
 	}

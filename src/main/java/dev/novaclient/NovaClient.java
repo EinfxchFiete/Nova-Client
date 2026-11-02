@@ -14,7 +14,13 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import dev.novaclient.module.visual.CrosshairModule;
 import dev.novaclient.module.visual.HudTweaksModule;
+import dev.novaclient.module.cosmetics.HitParticlesModule;
+import dev.novaclient.module.visual.FreelookModule;
 import dev.novaclient.util.CombatTracker;
+import dev.novaclient.util.KeyState;
+import dev.novaclient.util.Notifications;
+import dev.novaclient.util.Render;
+import dev.novaclient.module.hud.ThemeModule;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.player.LocalPlayer;
@@ -28,14 +34,12 @@ import org.slf4j.LoggerFactory;
 public class NovaClient implements ClientModInitializer {
 	public static final String MOD_ID = "novaclient";
 	public static final String NAME = "Nova Client";
-	public static final String VERSION = "1.1.0";
+	public static final String VERSION = "1.2.0";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static ModuleManager modules;
 	private static ConfigManager config;
 	private static KeyMapping openMenuKey;
-	private static KeyMapping zoomKey;
-	private static KeyMapping freelookKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -46,16 +50,11 @@ public class NovaClient implements ClientModInitializer {
 		KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
 		openMenuKey = KeyMappingHelper.registerKeyMapping(
 			new KeyMapping("key.novaclient.menu", InputConstants.KEY_RSHIFT, category));
-		zoomKey = KeyMappingHelper.registerKeyMapping(
-			new KeyMapping("key.novaclient.zoom", InputConstants.KEY_C, category));
-		modules.zoom.setKey(zoomKey);
-		freelookKey = KeyMappingHelper.registerKeyMapping(
-			new KeyMapping("key.novaclient.freelook", InputConstants.KEY_LALT, category));
-		modules.freelook.setKey(freelookKey);
 
 		AttackEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
 			if (level.isClientSide() && player instanceof LocalPlayer local) {
 				CombatTracker.onAttack(local, entity);
+				HitParticlesModule.onHit(entity);
 			}
 			return InteractionResult.PASS;
 		});
@@ -106,6 +105,10 @@ public class NovaClient implements ClientModInitializer {
 				mc.gui.setScreen(new ClickGuiScreen(null));
 			}
 		}
+		if (!mc.isWindowActive()) {
+			// key release events are lost while the window is not focused
+			KeyState.releaseAll();
+		}
 		modules.tick(mc);
 	}
 
@@ -124,6 +127,14 @@ public class NovaClient implements ClientModInitializer {
 				m.render(graphics, w, h, false);
 			}
 		}
+		if (FreelookModule.showIndicator()) {
+			String text = "Freelook";
+			int tw = mc.font.width(text) + 12;
+			int x = (w - tw) / 2;
+			Render.rounded(graphics, x, h / 2 - 34, x + tw, h / 2 - 22, 0xA0101016);
+			graphics.text(mc.font, text, x + 6, h / 2 - 32, ThemeModule.accent(), false);
+		}
+		Notifications.render(graphics);
 	}
 
 	public static ModuleManager modules() {

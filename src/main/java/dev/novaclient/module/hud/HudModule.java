@@ -27,6 +27,10 @@ public abstract class HudModule extends Module {
 		}
 	}
 
+	private final Anchor defaultAnchorX;
+	private final Anchor defaultAnchorY;
+	private final int defaultOffsetX;
+	private final int defaultOffsetY;
 	private Anchor anchorX;
 	private Anchor anchorY;
 	private int offsetX;
@@ -37,10 +41,23 @@ public abstract class HudModule extends Module {
 
 	protected HudModule(String name, String description, boolean enabledByDefault, Anchor anchorX, int offsetX, Anchor anchorY, int offsetY) {
 		super(name, description, Category.HUD, enabledByDefault);
-		this.anchorX = anchorX;
-		this.anchorY = anchorY;
-		this.offsetX = offsetX;
-		this.offsetY = offsetY;
+		this.anchorX = this.defaultAnchorX = anchorX;
+		this.anchorY = this.defaultAnchorY = anchorY;
+		this.offsetX = this.defaultOffsetX = offsetX;
+		this.offsetY = this.defaultOffsetY = offsetY;
+	}
+
+	@Override
+	public void resetToDefaults() {
+		super.resetToDefaults();
+		resetPosition();
+	}
+
+	public void resetPosition() {
+		anchorX = defaultAnchorX;
+		anchorY = defaultAnchorY;
+		offsetX = defaultOffsetX;
+		offsetY = defaultOffsetY;
 	}
 
 	protected static Font font() {

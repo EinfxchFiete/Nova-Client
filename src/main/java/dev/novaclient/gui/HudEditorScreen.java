@@ -73,9 +73,35 @@ public class HudEditorScreen extends Screen {
 		return null;
 	}
 
-	// top bar: [Elemente] [Fertig]
+	// top bar: [Elemente] [Anordnen] [Fertig], each 68 wide with 4px gap
+	private static final int BTN = 68;
+	private static final String[] BAR = {"Elemente", "Anordnen", "Fertig"};
+
 	private int barX() {
-		return width / 2 - 70;
+		return width / 2 - (BTN * 3 + 8) / 2;
+	}
+
+	private int buttonX(int i) {
+		return barX() + i * (BTN + 4);
+	}
+
+	/** Stacks all enabled elements per screen side so nothing overlaps. */
+	public void autoArrange() {
+		for (HudModule.Anchor side : new HudModule.Anchor[] {HudModule.Anchor.START, HudModule.Anchor.END}) {
+			List<HudModule> column = visible().stream()
+				.filter(m -> m.getAnchorX() == side && m.getAnchorY() != HudModule.Anchor.END)
+				.sorted(java.util.Comparator.comparingInt(m -> m.getScreenY(height, true)))
+				.toList();
+			int y = 2;
+			for (HudModule m : column) {
+				int w = m.getWidth(true);
+				int x = side == HudModule.Anchor.START ? 2 : width - w - 2;
+				m.setScreenPos(x, y, width, height, true);
+				// keep the side even if the element is wide
+				m.setPosition(side.name(), 2, m.getAnchorY().name(), m.getOffsetY());
+				y += m.getHeight(true) + 2;
+			}
+		}
 	}
 
 	private int barY() {
@@ -101,7 +127,7 @@ public class HudEditorScreen extends Screen {
 		g.fill(0, height / 2, width, height / 2 + 1, 0x18FFFFFF);
 
 		boolean overUi = listOpen && Render.inside(mouseX, mouseY, listX(), listY(), listX() + LIST_W, listY() + listH())
-			|| Render.inside(mouseX, mouseY, barX(), barY(), barX() + 140, barY() + 16);
+			|| Render.inside(mouseX, mouseY, barX(), barY(), buttonX(2) + BTN, barY() + 16);
 		HudModule hovered = dragging != null ? dragging : overUi ? null : at(mouseX, mouseY);
 		for (HudModule m : visible()) {
 			m.render(g, width, height, true);
@@ -117,12 +143,13 @@ public class HudEditorScreen extends Screen {
 		g.centeredText(font, "HUD-Editor", width / 2, 6, accent);
 		g.centeredText(font, "Ziehen = verschieben  ·  Rechtsklick = Einstellungen", width / 2, 17, 0xFFB0B0BC);
 
-		boolean hoverList = Render.inside(mouseX, mouseY, barX(), barY(), barX() + 68, barY() + 16);
-		boolean hoverDone = Render.inside(mouseX, mouseY, barX() + 72, barY(), barX() + 140, barY() + 16);
-		Render.rounded(g, barX(), barY(), barX() + 68, barY() + 16, listOpen || hoverList ? Render.alpha(accent, 0xC0) : 0xE0181820);
-		g.centeredText(font, "Elemente", barX() + 34, barY() + 4, 0xFFFFFFFF);
-		Render.rounded(g, barX() + 72, barY(), barX() + 140, barY() + 16, hoverDone ? Render.alpha(accent, 0xC0) : 0xE0181820);
-		g.centeredText(font, "Fertig", barX() + 106, barY() + 4, 0xFFFFFFFF);
+		for (int i = 0; i < BAR.length; i++) {
+			int bx = buttonX(i);
+			boolean hover = Render.inside(mouseX, mouseY, bx, barY(), bx + BTN, barY() + 16);
+			boolean on = hover || i == 0 && listOpen;
+			Render.rounded(g, bx, barY(), bx + BTN, barY() + 16, on ? Render.alpha(accent, 0xC0) : 0xE0181820);
+			g.centeredText(font, BAR[i], bx + BTN / 2, barY() + 4, 0xFFFFFFFF);
+		}
 
 		if (listOpen) {
 			int lx = listX();
@@ -152,11 +179,15 @@ public class HudEditorScreen extends Screen {
 		double mx = event.x();
 		double my = event.y();
 		int button = event.button();
-		if (button == LEFT && Render.inside(mx, my, barX(), barY(), barX() + 68, barY() + 16)) {
+		if (button == LEFT && Render.inside(mx, my, buttonX(0), barY(), buttonX(0) + BTN, barY() + 16)) {
 			listOpen = !listOpen;
 			return true;
 		}
-		if (button == LEFT && Render.inside(mx, my, barX() + 72, barY(), barX() + 140, barY() + 16)) {
+		if (button == LEFT && Render.inside(mx, my, buttonX(1), barY(), buttonX(1) + BTN, barY() + 16)) {
+			autoArrange();
+			return true;
+		}
+		if (button == LEFT && Render.inside(mx, my, buttonX(2), barY(), buttonX(2) + BTN, barY() + 16)) {
 			onClose();
 			return true;
 		}
@@ -247,6 +278,14 @@ public class HudEditorScreen extends Screen {
 			return true;
 		}
 		return super.keyPressed(event);
+	}
+
+	public int[] buttonCenter(int i) {
+		return new int[] {buttonX(i) + BTN / 2, barY() + 8};
+	}
+
+	public int[] listRowCenter(int index) {
+		return new int[] {listX() + 40, listY() + 3 + index * LIST_ROW - listScroll + LIST_ROW / 2};
 	}
 
 	public boolean isListOpen() {

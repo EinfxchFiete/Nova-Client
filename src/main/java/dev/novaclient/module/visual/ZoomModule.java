@@ -4,19 +4,20 @@ import dev.novaclient.module.Category;
 import dev.novaclient.module.Module;
 import dev.novaclient.setting.BoolSetting;
 import dev.novaclient.setting.NumberSetting;
-import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
+import dev.novaclient.setting.KeySetting;
 import net.minecraft.client.Minecraft;
 
 /** OptiFine-style zoom: hold the zoom key (default C), scroll to change the zoom level. */
 public class ZoomModule extends Module {
 	private static ZoomModule instance;
 
+	public final KeySetting zoomKey = add(new KeySetting("Zoom-Taste", InputConstants.KEY_C));
 	public final NumberSetting zoomFactor = add(new NumberSetting("Zoom-Stärke", 4, 1.5, 50, 0.5));
 	public final BoolSetting scrollToZoom = add(new BoolSetting("Mit Mausrad zoomen", true));
 	public final BoolSetting smooth = add(new BoolSetting("Weicher Zoom", true));
 	public final BoolSetting cinematic = add(new BoolSetting("Filmische Kamera", true));
 
-	private KeyMapping key;
 	private boolean zooming;
 	private double scrollFactor;
 	private boolean changedSmoothCamera;
@@ -25,12 +26,8 @@ public class ZoomModule extends Module {
 	private long lastFrame;
 
 	public ZoomModule() {
-		super("Zoom", "Halte die Zoom-Taste (Standard: C) zum Heranzoomen", Category.VISUAL, true);
+		super("Zoom", "Halte C zum Heranzoomen, Mausrad ändert die Stärke", Category.VISUAL, true);
 		instance = this;
-	}
-
-	public void setKey(KeyMapping key) {
-		this.key = key;
 	}
 
 	public static boolean isZooming() {
@@ -40,7 +37,7 @@ public class ZoomModule extends Module {
 	@Override
 	public void tick() {
 		Minecraft mc = mc();
-		boolean shouldZoom = isEnabled() && key != null && key.isDown() && mc.player != null && mc.gui.screen() == null;
+		boolean shouldZoom = isEnabled() && zoomKey.isDown() && mc.player != null && mc.gui.screen() == null;
 		if (shouldZoom && !zooming) {
 			scrollFactor = zoomFactor.get();
 			if (cinematic.isOn()) {

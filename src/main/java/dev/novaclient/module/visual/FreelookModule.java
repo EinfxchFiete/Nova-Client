@@ -1,40 +1,43 @@
 package dev.novaclient.module.visual;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.novaclient.module.Category;
 import dev.novaclient.module.Module;
 import dev.novaclient.setting.BoolSetting;
+import dev.novaclient.setting.KeySetting;
 import dev.novaclient.setting.ModeSetting;
 import net.minecraft.client.CameraType;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 
-/** Look around without turning your player (default key: Left Alt). */
+/** Look around without turning your player (default key: Left Alt, changeable in the menu). */
 public class FreelookModule extends Module {
 	private static FreelookModule instance;
 
+	public final KeySetting key = add(new KeySetting("Freelook-Taste", InputConstants.KEY_LALT));
 	public final ModeSetting mode = add(new ModeSetting("Modus", "Halten", "Halten", "Umschalten"));
 	public final BoolSetting thirdPerson = add(new BoolSetting("Dritte Person", true));
 	public final BoolSetting invertPitch = add(new BoolSetting("Y-Achse umkehren", false));
+	public final BoolSetting indicator = add(new BoolSetting("Anzeige auf dem Bildschirm", true));
 
-	private KeyMapping key;
 	private boolean active;
 	private boolean toggled;
+	private boolean wasDown;
 	private float yaw;
 	private float pitch;
 	private CameraType previousCamera;
 
 	public FreelookModule() {
-		super("Freelook", "Umsehen ohne dich zu drehen (Standard: Linke Alt-Taste)", Category.VISUAL, true);
+		super("Freelook", "Umsehen ohne dich zu drehen: Linke Alt-Taste halten", Category.VISUAL, true);
 		instance = this;
-	}
-
-	public void setKey(KeyMapping key) {
-		this.key = key;
 	}
 
 	public static boolean isActive() {
 		return instance != null && instance.active;
+	}
+
+	public static boolean showIndicator() {
+		return isActive() && instance.indicator.isOn();
 	}
 
 	public static float yaw() {
@@ -59,18 +62,17 @@ public class FreelookModule extends Module {
 	@Override
 	public void tick() {
 		Minecraft mc = mc();
-		if (key != null && mode.is("Umschalten")) {
-			while (key.consumeClick()) {
-				toggled = !toggled;
-			}
-		} else if (key != null) {
-			while (key.consumeClick()) {
-				// drain clicks so switching to toggle mode later does not fire old presses
-			}
+		boolean inGame = mc.player != null && mc.gui.screen() == null;
+		boolean down = inGame && key.isDown();
+		if (down && !wasDown && mode.is("Umschalten")) {
+			toggled = !toggled;
+		}
+		wasDown = down;
+		if (!mode.is("Umschalten")) {
 			toggled = false;
 		}
-		boolean pressed = mode.is("Halten") ? key != null && key.isDown() : toggled;
-		boolean shouldBeActive = isEnabled() && pressed && mc.player != null && (mc.gui.screen() == null || active);
+		boolean pressed = mode.is("Halten") ? down : toggled;
+		boolean shouldBeActive = isEnabled() && pressed && mc.player != null && (mc.gui.screen() == null || active && mode.is("Umschalten"));
 		if (shouldBeActive && !active) {
 			start(mc);
 		} else if (!shouldBeActive && active) {

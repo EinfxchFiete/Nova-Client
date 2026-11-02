@@ -14,6 +14,7 @@ public final class CombatTracker {
 	private static long lastHitTime;
 	private static int combo;
 	private static int lastHurtTime;
+	private static Entity lastTarget;
 
 	private CombatTracker() {
 	}
@@ -26,6 +27,7 @@ public final class CombatTracker {
 		double y = Math.max(box.minY, Math.min(eye.y, box.maxY));
 		double z = Math.max(box.minZ, Math.min(eye.z, box.maxZ));
 		lastReach = eye.distanceTo(new Vec3(x, y, z));
+		lastTarget = target;
 		long now = System.currentTimeMillis();
 		if (now - lastHitTime > COMBO_TIMEOUT_MS) {
 			combo = 0;
@@ -57,6 +59,14 @@ public final class CombatTracker {
 
 	public static long lastHitTime() {
 		return lastHitTime;
+	}
+
+	/** The last entity you hit within the last 6 seconds, or null. */
+	public static Entity lastTarget() {
+		if (lastTarget == null || lastTarget.isRemoved() || System.currentTimeMillis() - lastHitTime > 6000L) {
+			return null;
+		}
+		return lastTarget;
 	}
 
 	public static int combo() {

@@ -190,11 +190,11 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.waitForScreen(HudEditorScreen.class);
 			ctx.waitTicks(2);
 			ctx.takeScreenshot("09_hud_editor");
-			int[] listBtn = ctx.computeOnClient(mc -> new int[] {mc.getWindow().getGuiScaledWidth() / 2 - 70 + 34, 30 + 8});
+			int[] listBtn = ctx.computeOnClient(mc -> ((HudEditorScreen) mc.gui.screen()).buttonCenter(0));
 			click(ctx, listBtn, LMB);
 			check(ctx.computeOnClient(mc -> ((HudEditorScreen) mc.gui.screen()).isListOpen()), "Elemente list did not open");
 			int biomeIndex = ctx.computeOnClient(mc -> NovaClient.modules().getHudModules().indexOf((HudModule) module("Biom")));
-			int[] biomeRow = ctx.computeOnClient(mc -> new int[] {mc.getWindow().getGuiScaledWidth() / 2 - 40, 50 + 3 + biomeIndex * 14 + 7});
+			int[] biomeRow = ctx.computeOnClient(mc -> ((HudEditorScreen) mc.gui.screen()).listRowCenter(biomeIndex));
 			ctx.waitTick();
 			ctx.takeScreenshot("10_hud_editor_list");
 			if (biomeRow[1] < ctx.computeOnClient(mc -> mc.getWindow().getGuiScaledHeight()) - 10) {
@@ -232,7 +232,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			check(gui(ctx, s -> s.getSettingsModule()) == module("FPS"), "right click on HUD element did not open its settings");
 			ctx.setScreen(() -> null);
 			ctx.waitTicks(2);
-			Path cfg = FabricLoader.getInstance().getConfigDir().resolve("novaclient.json");
+			Path cfg = FabricLoader.getInstance().getConfigDir().resolve("novaclient/profiles/Standard.json");
 			check(Files.isRegularFile(cfg), "config file was not written");
 
 			// ---------------------------------------------------------------- Fullbright
@@ -402,6 +402,156 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.takeScreenshot("22_all_hud_rainbow");
 			ctx.runOnClient(mc -> ((ThemeModule) module("Theme")).rainbow.set(false));
 
+			// ---------------------------------------------------------------- auto arrange in the HUD editor
+			ctx.setScreen(() -> new HudEditorScreen(null));
+			ctx.waitTicks(2);
+			click(ctx, ctx.computeOnClient(mc -> ((HudEditorScreen) mc.gui.screen()).buttonCenter(1)), LMB);
+			boolean overlap = ctx.computeOnClient(mc -> {
+				int w = mc.getWindow().getGuiScaledWidth();
+				int h = mc.getWindow().getGuiScaledHeight();
+				java.util.List<HudModule> mods = NovaClient.modules().getHudModules().stream()
+					.filter(m -> m.isEnabled() && m.getWidth(true) > 0 && m.getAnchorX() != HudModule.Anchor.CENTER
+						&& m.getAnchorY() != HudModule.Anchor.END).toList();
+				for (HudModule a : mods) {
+					for (HudModule b : mods) {
+						if (a != b && a.getAnchorX() == b.getAnchorX()) {
+							int ay = a.getScreenY(h, true);
+							int by = b.getScreenY(h, true);
+							if (ay < by + b.getHeight(true) && by < ay + a.getHeight(true) && ay + a.getHeight(true) < h - 2
+								&& by + b.getHeight(true) < h - 2) {
+								return true;
+							}
+						}
+					}
+				}
+				return false;
+			});
+			check(!overlap, "auto arrange left overlapping elements");
+			ctx.takeScreenshot("23_auto_arranged");
+			ctx.setScreen(() -> null);
+			ctx.waitTicks(2);
+
+			// ---------------------------------------------------------------- notification on keybind toggle
+			ctx.runOnClient(mc -> module("Koordinaten").setKeybind(InputConstants.KEY_H));
+			input.pressKey(InputConstants.KEY_H);
+			ctx.waitTicks(2);
+			check(ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active().stream().anyMatch(t -> t.startsWith("Koordinaten"))),
+				"no notification after keybind toggle");
+			ctx.takeScreenshot("24_notification");
+			input.pressKey(InputConstants.KEY_H);
+			ctx.runOnClient(mc -> module("Koordinaten").setKeybind(0));
+
+			// ---------------------------------------------------------------- durability warning
+			sp.getServer().runCommand("item replace entity @a weapon.mainhand with minecraft:diamond_sword[damage=1550]");
+			ctx.waitTicks(5);
+			check(ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active().stream().anyMatch(t -> t.contains("Haltbarkeit"))),
+				"durability warning missing");
+			ctx.takeScreenshot("25_durability_warning");
+
+			// ---------------------------------------------------------------- cosmetics tab: cape via real clicks
+			input.pressKey(InputConstants.KEY_RSHIFT);
+			ctx.waitForScreen(ClickGuiScreen.class);
+			click(ctx, gui(ctx, s -> s.tabCenter(4)), LMB);
+			ctx.takeScreenshot("26_menu_cosmetics");
+			Module cape = ctx.computeOnClient(mc -> module("Cape"));
+			click(ctx, gui(ctx, s -> s.cardCenter(cape)), LMB);
+			check(enabled(ctx, "Cape"), "cape card click did not enable the cape");
+			String capeId = ctx.computeOnClient(mc -> {
+				var c = mc.player.getSkin().cape();
+				return c == null ? "none" : c.texturePath().toString();
+			});
+			check(capeId.equals("novaclient:textures/cape/nova.png"), "player cape texture is " + capeId);
+			enable(ctx, "Nametags", "Partikel-Spur");
+
+			// ---------------------------------------------------------------- design page: accent swatches
+			click(ctx, gui(ctx, s -> s.footerButtonCenter(2)), LMB);
+			check(gui(ctx, s -> s.getPage()) == ClickGuiScreen.Page.DESIGN, "design page did not open");
+			click(ctx, gui(ctx, s -> s.swatchCenter(1)), LMB);
+			double hue = ctx.computeOnClient(mc -> ((ThemeModule) module("Theme")).hue.get());
+			check(Math.abs(hue - 220) < 0.5, "clicking the blue swatch should set hue 220 but was " + hue);
+			ctx.takeScreenshot("27_design_blue");
+			click(ctx, gui(ctx, s -> s.swatchCenter(0)), LMB);
+
+			// ---------------------------------------------------------------- profiles page
+			click(ctx, gui(ctx, s -> s.footerButtonCenter(1)), LMB);
+			check(gui(ctx, s -> s.getPage()) == ClickGuiScreen.Page.PROFILES, "profiles page did not open");
+			ctx.takeScreenshot("28_profiles");
+			// preset "Minimal" is the right-most preset button
+			int presetsRow = gui(ctx, s -> s.rowIndexOf("presets"));
+			click(ctx, gui(ctx, s -> s.rowPointFromRight(presetsRow, 10)), LMB);
+			check(ctx.computeOnClient(mc -> NovaClient.config().getActiveProfile()).equals("Minimal"), "Minimal preset not active");
+			check(enabled(ctx, "FPS") && !enabled(ctx, "Koordinaten") && !enabled(ctx, "Cape"), "Minimal preset modules wrong");
+			ctx.takeScreenshot("29_profile_minimal");
+			// load "Standard" again with its "Laden" button
+			int[] widths = ctx.computeOnClient(mc -> new int[] {mc.font.width("Löschen") + 14, mc.font.width("Laden") + 14});
+			int standardRow = gui(ctx, s -> s.rowIndexOf(new ClickGuiScreen.ProfileRow("Standard")));
+			click(ctx, gui(ctx, s -> s.rowPointFromRight(standardRow, widths[0] + 4 + widths[1] / 2)), LMB);
+			check(ctx.computeOnClient(mc -> NovaClient.config().getActiveProfile()).equals("Standard"), "Standard not loaded");
+			check(enabled(ctx, "Cape") && enabled(ctx, "Koordinaten"), "Standard profile settings not restored");
+			// delete "Minimal"
+			int minimalRow = gui(ctx, s -> s.rowIndexOf(new ClickGuiScreen.ProfileRow("Minimal")));
+			click(ctx, gui(ctx, s -> s.rowPointFromRight(minimalRow, widths[0] / 2)), LMB);
+			check(!ctx.computeOnClient(mc -> NovaClient.config().listProfiles()).contains("Minimal"), "Minimal not deleted");
+			// create a named profile by typing
+			int newRow = gui(ctx, s -> s.rowIndexOf("newprofile"));
+			click(ctx, gui(ctx, s -> s.rowPoint(newRow, -1)), LMB);
+			click(ctx, gui(ctx, s -> s.rowPointFromRight(newRow, 200)), LMB);
+			input.typeChars("Mein Profil");
+			input.pressKey(InputConstants.KEY_RETURN);
+			ctx.waitTick();
+			check(ctx.computeOnClient(mc -> NovaClient.config().getActiveProfile()).equals("Mein Profil"), "typed profile not created");
+			ctx.takeScreenshot("30_profile_created");
+			ctx.runOnClient(mc -> {
+				NovaClient.config().switchTo("Standard");
+				NovaClient.config().delete("Mein Profil");
+			});
+
+			// ---------------------------------------------------------------- rebind freelook to V in its settings
+			click(ctx, gui(ctx, s -> s.tabCenter(2)), LMB);
+			Module freelookMod = ctx.computeOnClient(mc -> module("Freelook"));
+			click(ctx, gui(ctx, s -> s.cardCenter(freelookMod)), RMB);
+			click(ctx, gui(ctx, s -> s.rowPoint(0, -1)), LMB);
+			input.pressKey(InputConstants.KEY_V);
+			ctx.waitTick();
+			check(ctx.computeOnClient(mc -> ((FreelookModule) module("Freelook")).key.code()) == InputConstants.KEY_V, "freelook key not rebound");
+			ctx.setScreen(() -> null);
+			ctx.waitTicks(2);
+			input.holdKey(InputConstants.KEY_V);
+			ctx.waitTicks(4);
+			check(ctx.computeOnClient(mc -> FreelookModule.isActive()), "freelook does not react to the new key V");
+			ctx.takeScreenshot("31_freelook_indicator_cape_nametag");
+			input.releaseKey(InputConstants.KEY_V);
+			ctx.waitTicks(3);
+			ctx.runOnClient(mc -> ((FreelookModule) module("Freelook")).key.reset());
+
+			// ---------------------------------------------------------------- cape designs in third person front view
+			ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+			for (String design : new String[] {"Galaxie", "Feuer", "Regenbogen"}) {
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CapeModule) module("Cape")).design.set(design));
+				input.holdKey(o -> o.keyUp);
+				ctx.waitTicks(6);
+				input.releaseKey(o -> o.keyUp);
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("32_cape_" + design);
+			}
+			ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+			// ---------------------------------------------------------------- overlays + block outline
+			sp.getServer().runCommand("item replace entity @a armor.head with minecraft:carved_pumpkin");
+			ctx.waitTicks(3);
+			ctx.takeScreenshot("33_pumpkin_vanilla");
+			enable(ctx, "Overlays", "Blockumrandung");
+			input.lookAt(180.0F, 30.0F);
+			ctx.waitTicks(3);
+			ctx.takeScreenshot("34_pumpkin_hidden_outline");
+			sp.getServer().runCommand("item replace entity @a armor.head with minecraft:diamond_helmet");
+
+			// ---------------------------------------------------------------- chat timestamps
+			enable(ctx, "Chat-Zeitstempel");
+			ctx.runOnClient(mc -> mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Testnachricht")));
+			ctx.waitTicks(2);
+			ctx.takeScreenshot("35_chat_timestamp");
+
 			// ---------------------------------------------------------------- config round trip incl. mode setting
 			ctx.runOnClient(mc -> {
 				CrosshairModule c = (CrosshairModule) module("Custom Crosshair");
@@ -412,12 +562,17 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				int ox = f.getOffsetX();
 				f.setPosition("START", 0, "START", 0);
 				c.style.set("Punkt");
-				NovaClient.config().load();
+				NovaClient.config().reload();
 				check(f.getAnchorX().name().equals(ax) && f.getOffsetX() == ox, "config did not restore FPS position");
 				check(c.style.get().equals("Quadrat"), "config did not restore crosshair style");
 				ModeSetting mode = c.style;
 				check(mode.getModes().contains(mode.get()), "invalid mode after load");
 			});
+			// ---------------------------------------------------------------- death coordinates (last, the player dies)
+			sp.getServer().runCommand("gamerule show_death_messages true");
+			sp.getServer().runCommand("kill @a");
+			ctx.waitTicks(20);
+			ctx.takeScreenshot("36_death_coords");
 		}
 		NovaClient.LOGGER.info("NOVA GAMETEST PASSED");
 	}

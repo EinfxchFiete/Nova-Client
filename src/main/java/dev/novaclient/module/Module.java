@@ -11,6 +11,7 @@ public abstract class Module {
 	private final String description;
 	private final Category category;
 	private final List<Setting<?>> settings = new ArrayList<>();
+	private final boolean enabledByDefault;
 	private boolean enabled;
 	/** SDL scancode (InputConstants.KEY_*), 0 = not bound. */
 	private int keybind;
@@ -19,6 +20,7 @@ public abstract class Module {
 		this.name = name;
 		this.description = description;
 		this.category = category;
+		this.enabledByDefault = enabledByDefault;
 		this.enabled = enabledByDefault;
 	}
 
@@ -78,6 +80,15 @@ public abstract class Module {
 
 	public void setKeybind(int keybind) {
 		this.keybind = Math.max(0, keybind);
+	}
+
+	/** Restores enabled state, keybind and all settings to their defaults (with enable/disable side effects). */
+	public void resetToDefaults() {
+		for (Setting<?> s : settings) {
+			s.reset();
+		}
+		keybind = 0;
+		setEnabled(enabledByDefault);
 	}
 
 	protected void onEnable() {

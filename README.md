@@ -5,23 +5,28 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 ## Installation
 1. Fabric Loader **0.20.1+** für Minecraft 26.3 installieren
 2. **Fabric API** (26.3) in den `mods`-Ordner legen
-3. `nova-client-1.1.0.jar` in den `mods`-Ordner legen
+3. `nova-client-1.2.0.jar` in den `mods`-Ordner legen
 4. Java 25 (bringt der offizielle Launcher automatisch mit)
 
 ## Bedienung
-| Taste | Funktion |
+| Taste / Ort | Funktion |
 |---|---|
 | Rechte Umschalttaste | Menü öffnen: Karte anklicken = an/aus, Rechtsklick oder ☰ = Einstellungen, einfach lostippen = Suche |
 | C (halten) | Zoom, Mausrad = Zoomstärke |
-| Linke Alt-Taste (halten) | Freelook: umsehen, ohne dich zu drehen |
-| Menü → HUD-Editor | HUD-Elemente ziehen, „Elemente“ = alle HUD-Module an/aus, Rechtsklick = Einstellungen |
+| Linke Alt-Taste (halten) | Freelook – Taste im Menü änderbar (auch Maustaste 4/5) |
+| Menü → HUD-Editor | Elemente ziehen, „Elemente“ = HUD-Module an/aus, „Anordnen“ = automatisch ohne Überlappung |
+| Menü → Profile | Profile anlegen, laden, löschen; Vorlagen PvP / Survival / Minimal |
+| Menü → Design | Akzentfarbe per Farbfeld, Farbton, Sättigung, Helligkeit, Regenbogen, Menü-Deckkraft |
 
-Jedes Modul kann eine eigene Taste bekommen. Einstellungen landen in `config/novaclient.json`.
+Jedes Modul kann eine eigene An/Aus-Taste bekommen. Profile liegen in `config/novaclient/profiles/`.
 
-## Module
-- **HUD:** FPS, Ping, CPS, Koordinaten + Richtung, Keystrokes (mit CPS), Rüstungsstatus, Trankeffekte, Uhrzeit, Server-IP, Geschwindigkeit, RAM, Tag-Zähler, Biom, Pfeile, Spielzeit, Reichweite, Combo, Theme (Akzentfarbe/Regenbogen)
-- **Visuals:** Zoom, Freelook, Custom Crosshair (6 Stile, 9 Farben), Fullbright, No Hurt Cam, Low Fire, HUD-Tweaks (Scoreboard/Bossleiste/Titel ausblenden), Kein Regen
-- **Utility:** Toggle Sprint, Toggle Sneak
+## Module (45)
+- **HUD:** FPS, Ping, CPS, Koordinaten + Richtung, Keystrokes, Rüstungsstatus, Trankeffekte, Uhrzeit, Datum, Server-IP, Geschwindigkeit, RAM, Tag-Zähler, Biom, Lichtlevel, Sättigung, Pfeile, Totem-Zähler, Item-Zähler, Spielzeit, Reichweite, Combo, Ziel-HUD, Kompassleiste, Theme
+- **Visuals:** Zoom, Freelook, Custom Crosshair, Fullbright, No Hurt Cam, Low Fire, HUD-Tweaks, Kein Regen, Blockumrandung, Overlays (Kürbis/Pulverschnee/Vignette)
+- **Utility:** Toggle Sprint, Toggle Sneak, Benachrichtigungen, Todes-Koordinaten, Haltbarkeitswarnung, Chat-Zeitstempel
+- **Cosmetics:** Cape (10 Designs, auch auf Elytren), Nametags (eigener Name in F5 mit ✦), Partikel-Spur, Treffer-Partikel
+
+Cosmetics sind rein clientseitig: Nur du siehst sie.
 
 > Hinweis: Manche Server (z. B. Hypixel) verbieten Freelook oder Fullbright. Prüfe vorher die Serverregeln.
 

@@ -3,12 +3,18 @@
 	"package": "dev.novaclient.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"AbstractClientPlayerMixin",
 		"CameraMixin",
+		"ChatComponentMixin",
 		"EntityMixin",
+		"EntityRendererMixin",
 		"GameRendererMixin",
+		"HudMixin",
 		"KeyboardHandlerMixin",
 		"LevelMixin",
+		"LevelRendererMixin",
 		"LightmapRenderStateExtractorMixin",
+		"LivingEntityRendererMixin",
 		"MouseHandlerMixin",
 		"ScreenEffectRendererMixin"
 	],
