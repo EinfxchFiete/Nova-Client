@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' data:">
+  <title>Nova Launcher</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="logo" title="Nova Launcher">
+      <svg viewBox="0 0 24 24"><path d="M12 1.5c.6 5.2 3.3 7.9 10.5 10.5C15.3 14.6 12.6 17.3 12 22.5 11.4 17.3 8.7 14.6 1.5 12 8.7 9.4 11.4 6.7 12 1.5z"/></svg>
+    </div>
+    <nav>
+      <button class="nav active" data-page="play"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg><span>Spielen</span></button>
+      <button class="nav" data-page="profiles"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM7 9h5M7 13h10M7 16h6" fill="none" stroke-width="2"/></svg><span>Profile</span></button>
+      <button class="nav" data-page="skins"><svg viewBox="0 0 24 24"><path d="M8 3h8v6h3v12H5V9h3z" fill="none" stroke-width="2"/></svg><span>Skins</span></button>
+      <button class="nav" data-page="console"><svg viewBox="0 0 24 24"><path d="M4 6l6 6-6 6M12 18h8" fill="none" stroke-width="2"/></svg><span>Konsole</span></button>
+    </nav>
+    <button class="nav bottom" data-page="settings"><svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4z" fill="none" stroke-width="1.6"/></svg><span>Optionen</span></button>
+  </aside>
+
+  <header class="topbar">
+    <div class="title">
+      <div class="brand">NOVA LAUNCHER</div>
+      <div class="sub"><span class="dot"></span><span id="sub-version">Minecraft 26.3 · Fabric</span></div>
+    </div>
+    <div class="top-actions">
+      <div class="status-pill" id="status-pill">Bereit</div>
+      <button class="account" id="account-btn">
+        <canvas id="account-head" width="8" height="8"></canvas>
+        <span id="account-name">Anmelden</span>
+        <svg viewBox="0 0 24 24" class="chev"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="win-controls">
+        <button data-win="minimize" title="Minimieren"><svg viewBox="0 0 24 24"><path d="M5 12h14" stroke-width="2"/></svg></button>
+        <button data-win="maximize" title="Maximieren"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z" fill="none" stroke-width="2"/></svg></button>
+        <button data-win="close" title="Schließen" class="close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-width="2"/></svg></button>
+      </div>
+    </div>
+    <div class="account-menu hidden" id="account-menu"></div>
+  </header>
+
+  <main>
+    <!-- ======================= PLAY ======================= -->
+    <section class="page active" id="page-play">
+      <div class="stage">
+        <div class="grid-floor"></div>
+        <div class="nametag" id="nametag"><span class="star">✦</span><span id="nametag-name">Spieler</span></div>
+        <canvas id="play-skin"></canvas>
+        <div class="anim-toggle"><span>Animation</span><label class="switch"><input type="checkbox" id="anim-toggle" checked><i></i></label></div>
+        <div class="launch-area">
+          <div class="launch-box">
+            <button class="launch" id="launch-btn"><span class="big" id="launch-label">STARTEN</span><span class="small" id="launch-profile">Nova Standard</span></button>
+            <button class="launch-more" id="profile-pick"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+          </div>
+          <div class="progress hidden" id="progress"><div class="bar"><i id="progress-bar"></i></div><div class="progress-text" id="progress-text"></div></div>
+          <div class="profile-popover hidden" id="profile-popover"></div>
+        </div>
+      </div>
+      <aside class="news">
+        <div class="news-head"><svg viewBox="0 0 24 24"><path d="M4 5h13v14H4zM17 8h3v9a2 2 0 0 1-2 2M7 9h7M7 12h7M7 15h4" fill="none" stroke-width="1.8"/></svg>NEUIGKEITEN</div>
+        <div class="news-list" id="news-list"></div>
+      </aside>
+    </section>
+
+    <!-- ======================= PROFILES ======================= -->
+    <section class="page" id="page-profiles">
+      <div class="page-head"><h1>Profile</h1><p>Jedes Profil hat einen eigenen Spielordner mit Welten, Mods, Einstellungen und Nova-Config.</p></div>
+      <div class="profiles-layout">
+        <div class="profile-grid" id="profile-grid"></div>
+        <div class="panel profile-editor" id="profile-editor"></div>
+      </div>
+    </section>
+
+    <!-- ======================= SKINS ======================= -->
+    <section class="page" id="page-skins">
+      <div class="page-head"><h1>Skins</h1><p>Sammle Skins, schau sie dir in 3D an und lege sie mit einem Klick auf deinem Konto an.</p></div>
+      <div class="skins-layout">
+        <div class="panel skin-preview">
+          <canvas id="skins-skin"></canvas>
+          <div class="skin-preview-bar">
+            <div class="seg" id="variant-seg"><button data-variant="classic">Classic</button><button data-variant="slim">Slim</button></div>
+            <button class="btn primary" id="apply-skin">Auf Konto anwenden</button>
+          </div>
+          <div class="hint" id="skin-hint"></div>
+        </div>
+        <div class="skins-right">
+          <div class="panel">
+            <div class="panel-title">Bibliothek <button class="btn small" id="add-skin">+ Skin hinzufügen</button></div>
+            <div class="skin-grid" id="skin-grid"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Capes deines Kontos</div>
+            <div class="cape-list" id="cape-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= CONSOLE ======================= -->
+    <section class="page" id="page-console">
+      <div class="page-head row"><div><h1>Konsole</h1><p>Ausgabe des laufenden Spiels – hilfreich, wenn etwas nicht funktioniert.</p></div>
+        <div class="row-gap"><button class="btn" id="log-copy">Kopieren</button><button class="btn" id="log-clear">Leeren</button><button class="btn danger" id="game-kill">Spiel beenden</button></div></div>
+      <div class="panel log" id="log"></div>
+    </section>
+
+    <!-- ======================= SETTINGS ======================= -->
+    <section class="page" id="page-settings">
+      <div class="page-head"><h1>Optionen</h1><p>Launcher-Einstellungen und Microsoft-Login.</p></div>
+      <div class="settings-grid">
+        <div class="panel">
+          <div class="panel-title">Microsoft-Login</div>
+          <label class="field"><span>Azure Client-ID</span><input id="client-id" placeholder="z. B. 00000000-0000-0000-0000-000000000000" spellcheck="false"></label>
+          <ol class="guide">
+            <li>Öffne das <a href="#" data-link="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade">Azure-Portal → App-Registrierungen</a> und erstelle eine neue Registrierung („Persönliche Microsoft-Konten“).</li>
+            <li>Unter <b>Authentifizierung</b>: „Öffentliche Clientflows zulassen“ auf <b>Ja</b> stellen.</li>
+            <li>Kopiere die <b>Anwendungs-ID (Client-ID)</b> hier oben hinein.</li>
+            <li>Beantrage bei Mojang die Freischaltung für die Minecraft-API: <a href="#" data-link="https://aka.ms/mce-reviewappid">aka.ms/mce-reviewappid</a>. Erst danach funktioniert der Login.</li>
+          </ol>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Spiel</div>
+          <label class="field"><span>Standard-RAM für neue Profile: <b id="ram-default-label"></b></span><input type="range" id="ram-default" min="2048" max="16384" step="512"></label>
+          <label class="toggle-row"><span>Launcher beim Spielstart ausblenden</span><label class="switch"><input type="checkbox" id="close-on-launch"><i></i></label></label>
+          <label class="field"><span>Eigenes Java (leer = automatisch Java 25 von Mojang)</span><input id="java-path" placeholder="leer lassen" spellcheck="false"></label>
+          <div class="info" id="data-dir"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- login dialog -->
+  <div class="modal hidden" id="login-modal">
+    <div class="modal-card">
+      <h2>Mit Microsoft anmelden</h2>
+      <div id="login-body"></div>
+      <div class="modal-actions"><button class="btn" id="login-cancel">Abbrechen</button></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="../../node_modules/skinview3d/bundles/skinview3d.bundle.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
