@@ -11,6 +11,7 @@ import java.util.Set;
 public final class KeyState {
 	public static final int MOUSE_OFFSET = 1000;
 	private static final Set<Integer> DOWN = new HashSet<>();
+	private static final java.util.Map<Integer, Integer> PRESSES = new java.util.HashMap<>();
 
 	private KeyState() {
 	}
@@ -25,7 +26,9 @@ public final class KeyState {
 
 	private static void set(int code, boolean pressed) {
 		if (pressed) {
-			DOWN.add(code);
+			if (DOWN.add(code)) {
+				PRESSES.merge(code, 1, Integer::sum);
+			}
 		} else {
 			DOWN.remove(code);
 		}
@@ -33,6 +36,11 @@ public final class KeyState {
 
 	public static boolean isDown(int code) {
 		return code > 0 && DOWN.contains(code);
+	}
+
+	/** Total number of presses of a key since start (never misses short taps). */
+	public static int presses(int code) {
+		return PRESSES.getOrDefault(code, 0);
 	}
 
 	public static void releaseAll() {

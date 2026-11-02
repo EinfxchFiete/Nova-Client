@@ -21,7 +21,17 @@ import dev.novaclient.module.hud.SpeedModule;
 import dev.novaclient.module.hud.ThemeModule;
 import dev.novaclient.util.CombatTracker;
 import dev.novaclient.util.Notifications;
+import dev.novaclient.module.cosmetics.AuraModule;
 import dev.novaclient.module.cosmetics.CapeModule;
+import dev.novaclient.module.cosmetics.CompanionModule;
+import dev.novaclient.module.hud.BlockInfoModule;
+import dev.novaclient.module.hud.InventoryPreviewModule;
+import dev.novaclient.module.hud.OnlinePlayersModule;
+import dev.novaclient.module.hud.StopwatchModule;
+import dev.novaclient.module.hud.WaypointModule;
+import dev.novaclient.module.hud.WeatherModule;
+import dev.novaclient.module.utility.BackgroundFpsModule;
+import dev.novaclient.module.utility.ChatMacrosModule;
 import dev.novaclient.module.cosmetics.HitParticlesModule;
 import dev.novaclient.module.cosmetics.NametagModule;
 import dev.novaclient.module.cosmetics.TrailModule;
@@ -87,6 +97,12 @@ public final class ModuleManager {
 		register(new SaturationModule());
 		register(new DateModule());
 		register(new ItemCounterModule("Totem-Zähler", "Wie viele Totems du dabei hast", "Totems", Anchor.END, 2, Anchor.START, 160));
+		register(new BlockInfoModule());
+		register(new InventoryPreviewModule());
+		register(new OnlinePlayersModule());
+		register(new WeatherModule());
+		register(new StopwatchModule());
+		register(new WaypointModule());
 		register(new ItemCounterModule("Item-Zähler", "Zählt das gehaltene Item im ganzen Inventar", "Gehaltenes Item", Anchor.START, 2, Anchor.START, 196));
 
 		zoom = register(new ZoomModule());
@@ -106,11 +122,16 @@ public final class ModuleManager {
 		register(new DeathCoordsModule());
 		register(new DurabilityWarningModule());
 		register(new ChatTimestampsModule());
+		register(new ChatMacrosModule());
+		register(new BackgroundFpsModule());
 
 		register(new CapeModule());
 		register(new NametagModule());
 		register(new TrailModule());
 		register(new HitParticlesModule());
+		register(new CompanionModule());
+		register(new AuraModule(false));
+		register(new AuraModule(true));
 	}
 
 	private <M extends Module> M register(M module) {

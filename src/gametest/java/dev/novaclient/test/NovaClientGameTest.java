@@ -76,6 +76,17 @@ public class NovaClientGameTest implements FabricClientGameTest {
 		});
 	}
 
+	/** Reads TextInputManager.textInputEnabled: without it SDL sends no typed characters. */
+	private static boolean textInputEnabled(Minecraft mc) {
+		try {
+			java.lang.reflect.Field f = mc.textInputManager().getClass().getDeclaredField("textInputEnabled");
+			f.setAccessible(true);
+			return f.getBoolean(mc.textInputManager());
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		}
+	}
+
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
 		TestInput input = ctx.getInput();
@@ -106,6 +117,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			input.pressKey(InputConstants.KEY_RSHIFT);
 			ctx.waitForScreen(ClickGuiScreen.class);
 			ctx.waitTicks(2);
+			check(ctx.computeOnClient(mc -> textInputEnabled(mc)), "SDL text input must be on while the menu is open (search typing)");
 			ctx.takeScreenshot("03_menu_all");
 
 			// Visuals tab, then clicking a card toggles the module
@@ -551,6 +563,74 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.runOnClient(mc -> mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Testnachricht")));
 			ctx.waitTicks(2);
 			ctx.takeScreenshot("35_chat_timestamp");
+
+			// ---------------------------------------------------------------- text input is released when the menu closes
+			check(!ctx.computeOnClient(mc -> textInputEnabled(mc)), "text input should be off in game");
+
+			// ---------------------------------------------------------------- companion, aura, halo
+			enable(ctx, "Begleiter", "Aura", "Heiligenschein");
+			ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
+			ctx.waitTicks(15);
+			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042) != null), "companion entity missing");
+			ctx.takeScreenshot("37_companion_aura_halo");
+			ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set("Biene"));
+			ctx.waitTicks(10);
+			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042) instanceof net.minecraft.world.entity.animal.bee.Bee),
+				"companion did not change to a bee");
+			ctx.takeScreenshot("38_companion_bee");
+			ctx.runOnClient(mc -> {
+				module("Begleiter").setEnabled(false);
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+			});
+			ctx.waitTicks(2);
+			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042) == null), "companion not removed when disabled");
+
+			// ---------------------------------------------------------------- waypoint, stopwatch (real keys)
+			enable(ctx, "Wegpunkt", "Stoppuhr", "Block-Info", "Inventar-Vorschau", "Spieler online", "Wetter");
+			ctx.waitTick();
+			input.pressKey(InputConstants.KEY_B);
+			ctx.waitTicks(2);
+			check(ctx.computeOnClient(mc -> ((dev.novaclient.module.hud.WaypointModule) module("Wegpunkt")).hasWaypoint()), "waypoint not set by key B");
+			input.pressKey(InputConstants.KEY_NUMPAD0);
+			ctx.waitTicks(25);
+			input.pressKey(InputConstants.KEY_NUMPAD0);
+			ctx.waitTicks(2);
+			long elapsed = ctx.computeOnClient(mc -> ((dev.novaclient.module.hud.StopwatchModule) module("Stoppuhr")).elapsedMillis());
+			check(elapsed > 300, "stopwatch did not run: " + elapsed);
+			sp.getServer().runCommand("tp @a ~5 ~ ~5");
+			ctx.waitTicks(5);
+			ctx.takeScreenshot("39_waypoint_stopwatch_blockinfo");
+
+			// ---------------------------------------------------------------- chat macro: edit text in the menu, bind N, press N
+			input.pressKey(InputConstants.KEY_RSHIFT);
+			ctx.waitForScreen(ClickGuiScreen.class);
+			input.typeChars("makro");
+			ctx.waitTick();
+			Module macros = ctx.computeOnClient(mc -> module("Chat-Makros"));
+			check(gui(ctx, s -> s.cardCenter(macros)) != null, "search 'makro' did not find Chat-Makros");
+			ctx.takeScreenshot("39b_search_makro");
+			click(ctx, gui(ctx, s -> s.cardCenter(macros)), RMB);
+			click(ctx, gui(ctx, s -> s.rowPoint(1, -1)), LMB);
+			for (int i = 0; i < 10; i++) {
+				input.pressKey(InputConstants.KEY_BACKSPACE);
+			}
+			input.typeChars("Hallo Nova");
+			input.pressKey(InputConstants.KEY_RETURN);
+			ctx.waitTick();
+			String macroText = ctx.computeOnClient(mc -> ((dev.novaclient.module.utility.ChatMacrosModule) module("Chat-Makros")).text(0).get());
+			check(macroText.equals("Hallo Nova"), "macro text typed in the menu is '" + macroText + "'");
+			click(ctx, gui(ctx, s -> s.rowPoint(0, -1)), LMB);
+			input.pressKey(InputConstants.KEY_N);
+			ctx.waitTick();
+			ctx.takeScreenshot("40_macro_settings");
+			ctx.runOnClient(mc -> module("Chat-Makros").setEnabled(true));
+			ctx.setScreen(() -> null);
+			ctx.waitTicks(2);
+			input.pressKey(InputConstants.KEY_N);
+			ctx.waitTicks(5);
+			check(ctx.computeOnClient(mc -> ((dev.novaclient.module.utility.ChatMacrosModule) module("Chat-Makros")).getLastSent()).equals("Hallo Nova"),
+				"macro was not sent");
+			ctx.takeScreenshot("41_macro_sent");
 
 			// ---------------------------------------------------------------- config round trip incl. mode setting
 			ctx.runOnClient(mc -> {

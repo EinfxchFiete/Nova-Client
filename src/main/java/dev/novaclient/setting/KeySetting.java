@@ -14,6 +14,20 @@ public class KeySetting extends Setting<Integer> {
 		return value;
 	}
 
+	private int seenPresses = -1;
+
+	/** True once for every new press since the last call (only counts presses while no screen is open). */
+	public boolean consumePress(boolean inGame) {
+		int now = KeyState.presses(value);
+		if (seenPresses < 0) {
+			seenPresses = now;
+			return false;
+		}
+		boolean pressed = now != seenPresses && inGame;
+		seenPresses = now;
+		return pressed;
+	}
+
 	public boolean isDown() {
 		return KeyState.isDown(value);
 	}

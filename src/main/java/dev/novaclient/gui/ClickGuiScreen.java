@@ -12,6 +12,7 @@ import dev.novaclient.setting.KeySetting;
 import dev.novaclient.setting.ModeSetting;
 import dev.novaclient.setting.NumberSetting;
 import dev.novaclient.setting.Setting;
+import dev.novaclient.setting.TextSetting;
 import dev.novaclient.util.KeyState;
 import dev.novaclient.util.Notifications;
 import dev.novaclient.util.Render;
@@ -67,6 +68,7 @@ public class ClickGuiScreen extends Screen {
 	private @Nullable Module listening;
 	private @Nullable KeySetting listeningKey;
 	private @Nullable NumberSetting dragging;
+	private @Nullable TextSetting editingText;
 	private int dragSliderX;
 	private String search = "";
 	private boolean searchFocused;
@@ -101,6 +103,31 @@ public class ClickGuiScreen extends Screen {
 	public void onClose() {
 		NovaClient.config().save();
 		minecraft.gui.setScreen(parent);
+	}
+
+	/**
+	 * Minecraft 26.x (SDL) only delivers typed characters while text input is started.
+	 * The menu accepts typing anywhere (search, profile names), so it is on while the menu is open.
+	 */
+	@Override
+	public void added() {
+		super.added();
+		minecraft.textInputManager().startTextInput(this);
+	}
+
+	@Override
+	public void removed() {
+		minecraft.textInputManager().stopTextInput(this);
+		super.removed();
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		// another widget or screen may have stopped it (e.g. after a resize)
+		minecraft.textInputManager().startTextInput(this);
+		layout();
+		minecraft.textInputManager().setTextInputArea(searchX(), top + 8, searchX() + searchW(), top + 24);
 	}
 
 	// ------------------------------------------------------------------ layout helpers
@@ -265,6 +292,7 @@ public class ClickGuiScreen extends Screen {
 		listeningKey = null;
 		dragging = null;
 		nameFocused = false;
+		editingText = null;
 	}
 
 	// ------------------------------------------------------------------ rendering
@@ -533,6 +561,21 @@ public class ClickGuiScreen extends Screen {
 				g.text(font, "<", px + 5, ty, TEXT_DIM, false);
 				g.text(font, ">", right - 10, ty, TEXT_DIM, false);
 				g.centeredText(font, mode.get(), px + pw / 2, ty, TEXT);
+			} else if (row instanceof TextSetting t) {
+				g.text(font, t.getName(), x + 10, ty, TEXT, false);
+				int fw = Math.min(180, w / 2);
+				int fx = right - fw;
+				boolean editing = editingText == t;
+				Render.rounded(g, fx, ry + 4, right, ry + 18, 0xFF101016);
+				if (editing) {
+					Render.roundedOutline(g, fx, ry + 4, right, ry + 18, Render.alpha(accent, 0xC0));
+				}
+				String shown = t.get().isEmpty() && !editing ? "leer" : font.plainSubstrByWidth(t.get(), fw - 10, true);
+				g.text(font, shown, fx + 5, ty, t.get().isEmpty() && !editing ? TEXT_MUTED : TEXT, false);
+				if (editing && (System.currentTimeMillis() / 500) % 2 == 0) {
+					int cx = fx + 5 + font.width(shown);
+					g.fill(cx + 1, ry + 6, cx + 2, ry + 16, TEXT);
+				}
 			} else if (row instanceof KeySetting k) {
 				g.text(font, k.getName(), x + 10, ty, TEXT, false);
 				keyPill(g, right, ry, ty, listeningKey == k, k.display(), accent);
@@ -679,6 +722,7 @@ public class ClickGuiScreen extends Screen {
 		}
 
 		nameFocused = false;
+		editingText = null;
 		boolean handled = switch (page) {
 			case GRID -> my >= bodyTop() && my < bodyBottom() && clickGrid(mx, my, button);
 			case SETTINGS, PROFILES, DESIGN -> clickPage(mx, my, button);
@@ -753,6 +797,8 @@ public class ClickGuiScreen extends Screen {
 				updateSlider(mx);
 			} else if (row instanceof ModeSetting mode) {
 				mode.cycle(button == RIGHT ? -1 : 1);
+			} else if (row instanceof TextSetting t) {
+				editingText = t;
 			} else if (row instanceof KeySetting k) {
 				listeningKey = k;
 			} else if ("keybind".equals(row)) {
@@ -846,6 +892,10 @@ public class ClickGuiScreen extends Screen {
 		if (listening != null || listeningKey != null || !event.isAllowedChatCharacter()) {
 			return false;
 		}
+		if (editingText != null) {
+			editingText.set(editingText.get() + event.codepointAsString());
+			return true;
+		}
 		if (nameFocused) {
 			if (newProfileName.length() < 24) {
 				newProfileName += event.codepointAsString();
@@ -877,6 +927,18 @@ public class ClickGuiScreen extends Screen {
 			boolean clear = key == InputConstants.KEY_ESCAPE || key == InputConstants.KEY_BACKSPACE || key == InputConstants.KEY_DELETE;
 			listening.setKeybind(clear ? 0 : key);
 			listening = null;
+			return true;
+		}
+		if (editingText != null) {
+			String v = editingText.get();
+			if (key == InputConstants.KEY_BACKSPACE && !v.isEmpty()) {
+				editingText.set(v.substring(0, v.offsetByCodePoints(v.length(), -1)));
+				return true;
+			}
+			if (key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER || key == InputConstants.KEY_ESCAPE) {
+				editingText = null;
+				return true;
+			}
 			return true;
 		}
 		if (nameFocused) {

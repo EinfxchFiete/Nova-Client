@@ -5,7 +5,7 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 ## Installation
 1. Fabric Loader **0.20.1+** für Minecraft 26.3 installieren
 2. **Fabric API** (26.3) in den `mods`-Ordner legen
-3. `nova-client-1.2.0.jar` in den `mods`-Ordner legen
+3. `nova-client-1.3.0.jar` in den `mods`-Ordner legen
 4. Java 25 (bringt der offizielle Launcher automatisch mit)
 
 ## Bedienung
@@ -20,11 +20,11 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 
 Jedes Modul kann eine eigene An/Aus-Taste bekommen. Profile liegen in `config/novaclient/profiles/`.
 
-## Module (45)
-- **HUD:** FPS, Ping, CPS, Koordinaten + Richtung, Keystrokes, Rüstungsstatus, Trankeffekte, Uhrzeit, Datum, Server-IP, Geschwindigkeit, RAM, Tag-Zähler, Biom, Lichtlevel, Sättigung, Pfeile, Totem-Zähler, Item-Zähler, Spielzeit, Reichweite, Combo, Ziel-HUD, Kompassleiste, Theme
-- **Visuals:** Zoom, Freelook, Custom Crosshair, Fullbright, No Hurt Cam, Low Fire, HUD-Tweaks, Kein Regen, Blockumrandung, Overlays (Kürbis/Pulverschnee/Vignette)
-- **Utility:** Toggle Sprint, Toggle Sneak, Benachrichtigungen, Todes-Koordinaten, Haltbarkeitswarnung, Chat-Zeitstempel
-- **Cosmetics:** Cape (10 Designs, auch auf Elytren), Nametags (eigener Name in F5 mit ✦), Partikel-Spur, Treffer-Partikel
+## Module (56)
+- **HUD:** FPS, Ping, CPS, Koordinaten (+ Richtung, Nether-Umrechnung, Chunk), Keystrokes, Rüstungsstatus, Trankeffekte, Uhrzeit, Datum, Server-IP, Spieler online, Wetter, Geschwindigkeit, RAM, Tag-Zähler, Biom, Lichtlevel, Sättigung, Pfeile, Totem-Zähler, Item-Zähler, Spielzeit, Reichweite, Combo, Ziel-HUD, Kompassleiste, Block-Info, Inventar-Vorschau, Stoppuhr, Wegpunkt, Theme
+- **Visuals:** Zoom, Freelook, Custom Crosshair, Fullbright, No Hurt Cam, Low Fire, HUD-Tweaks, Kein Regen, Blockumrandung, Overlays (Kürbis/Pulverschnee/Unterwasser/Vignette)
+- **Utility:** Toggle Sprint, Toggle Sneak, Benachrichtigungen, Todes-Koordinaten, Haltbarkeitswarnung, Chat-Zeitstempel, Chat-Makros, Hintergrund-FPS
+- **Cosmetics:** Cape (14 Designs oder wechselnd, auch auf Elytren), Nametags (eigener Name in F5, ✦, Namensfarbe), Begleiter (Allay, Biene, Papagei, Vex), Aura, Heiligenschein, Partikel-Spur, Treffer-Partikel
 
 Cosmetics sind rein clientseitig: Nur du siehst sie.
 

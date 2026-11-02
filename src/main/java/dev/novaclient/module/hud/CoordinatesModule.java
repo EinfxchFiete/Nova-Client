@@ -6,6 +6,8 @@ import net.minecraft.client.player.LocalPlayer;
 
 public class CoordinatesModule extends HudModule {
 	public final BoolSetting showDirection = add(new BoolSetting("Richtung anzeigen", true));
+	public final BoolSetting showNether = add(new BoolSetting("Nether/Oberwelt umrechnen", false));
+	public final BoolSetting showChunk = add(new BoolSetting("Chunk anzeigen", false));
 
 	public CoordinatesModule() {
 		super("Koordinaten", "XYZ-Position und Blickrichtung", true, Anchor.START, 2, Anchor.START, 50);
@@ -17,10 +19,19 @@ public class CoordinatesModule extends HudModule {
 		String y = p == null ? "64" : Integer.toString(p.blockPosition().getY());
 		String z = p == null ? "0" : Integer.toString(p.blockPosition().getZ());
 		String dir = p == null ? "Norden (-Z)" : direction(p.getYRot());
+		java.util.List<String> out = new java.util.ArrayList<>(java.util.List.of("X: " + x, "Y: " + y, "Z: " + z));
 		if (showDirection.isOn()) {
-			return new String[] {"X: " + x, "Y: " + y, "Z: " + z, dir};
+			out.add(dir);
 		}
-		return new String[] {"X: " + x, "Y: " + y, "Z: " + z};
+		if (showNether.isOn() && p != null) {
+			boolean nether = p.level().dimension().identifier().getPath().equals("the_nether");
+			double f = nether ? 8.0 : 1.0 / 8.0;
+			out.add((nether ? "Oberwelt: " : "Nether: ") + (int) Math.floor(p.getX() * f) + ", " + (int) Math.floor(p.getZ() * f));
+		}
+		if (showChunk.isOn() && p != null) {
+			out.add("Chunk: " + (p.blockPosition().getX() >> 4) + ", " + (p.blockPosition().getZ() >> 4));
+		}
+		return out.toArray(new String[0]);
 	}
 
 	private static String direction(float yaw) {
