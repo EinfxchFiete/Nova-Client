@@ -6,19 +6,35 @@ import dev.novaclient.gui.ClickGuiScreen;
 import dev.novaclient.gui.HudEditorScreen;
 import dev.novaclient.module.Module;
 import dev.novaclient.module.hud.HudModule;
+import dev.novaclient.module.hud.ThemeModule;
+import dev.novaclient.module.visual.CrosshairModule;
+import dev.novaclient.module.visual.FreelookModule;
+import dev.novaclient.module.visual.LowFireModule;
 import dev.novaclient.module.visual.ZoomModule;
+import dev.novaclient.setting.ModeSetting;
+import dev.novaclient.util.CombatTracker;
+import dev.novaclient.util.CpsTracker;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Function;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.TestInput;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.CameraType;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.server.level.ServerPlayer;
 
-/** Drives the real game: opens a world, uses every feature and takes screenshots. */
+/**
+ * Drives the real game: opens a world, uses every feature with real key presses and mouse clicks
+ * and takes screenshots. Mouse buttons use the Minecraft 26.x (SDL) numbering: left = 1, right = 3.
+ */
 public class NovaClientGameTest implements FabricClientGameTest {
+	private static final int LMB = InputConstants.MOUSE_BUTTON_LEFT;
+	private static final int RMB = InputConstants.MOUSE_BUTTON_RIGHT;
+
 	private static void check(boolean condition, String message) {
 		if (!condition) {
 			throw new AssertionError(message);
@@ -39,13 +55,25 @@ public class NovaClientGameTest implements FabricClientGameTest {
 		});
 	}
 
-	/** Moves the real cursor to a GUI-scaled position and clicks. */
-	private static void click(ClientGameTestContext ctx, double guiX, double guiY, int button) {
+	private static boolean enabled(ClientGameTestContext ctx, String name) {
+		return ctx.computeOnClient(mc -> module(name).isEnabled());
+	}
+
+	/** Moves the real cursor to a GUI-scaled position and clicks with a real mouse button. */
+	private static void click(ClientGameTestContext ctx, int[] guiPos, int button) {
+		check(guiPos != null, "click target not visible");
 		int scale = ctx.computeOnClient(mc -> mc.getWindow().getGuiScale());
-		ctx.getInput().setCursorPos(guiX * scale, guiY * scale);
+		ctx.getInput().setCursorPos(guiPos[0] * scale + 0.5, guiPos[1] * scale + 0.5);
 		ctx.waitTick();
 		ctx.getInput().pressMouse(button);
 		ctx.waitTick();
+	}
+
+	private static <T> T gui(ClientGameTestContext ctx, Function<ClickGuiScreen, T> f) {
+		return ctx.computeOnClient(mc -> {
+			check(mc.gui.screen() instanceof ClickGuiScreen, "ClickGUI is not open but " + mc.gui.screen());
+			return f.apply((ClickGuiScreen) mc.gui.screen());
+		});
 	}
 
 	@Override
@@ -56,159 +84,268 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			.create()) {
 			sp.getServer().runCommand("time set noon");
 			sp.getServer().runCommand("gamerule advance_time false");
+			sp.getServer().runCommand("gamerule advance_weather false");
 			sp.getServer().runCommand("weather clear");
+			sp.getServer().runCommand("gamerule show_advancement_messages false");
+			sp.getServer().runCommand("tp @a 0 -60 0 180 0");
 			ctx.waitTicks(40);
 			ctx.takeScreenshot("01_hud_default");
 
-			// ---------------------------------------------------------------- HUD with all elements
-			enable(ctx, "Uhrzeit", "Server-IP", "Geschwindigkeit", "Arbeitsspeicher", "Tag-Zähler");
-			sp.getServer().runCommand("effect give @a minecraft:speed 120 1");
-			sp.getServer().runCommand("effect give @a minecraft:strength 60 0");
-			sp.getServer().runCommand("item replace entity @a armor.head with minecraft:diamond_helmet");
-			sp.getServer().runCommand("item replace entity @a armor.chest with minecraft:iron_chestplate");
-			sp.getServer().runCommand("item replace entity @a armor.legs with minecraft:golden_leggings");
-			sp.getServer().runCommand("item replace entity @a armor.feet with minecraft:leather_boots");
-			sp.getServer().runCommand("item replace entity @a weapon.mainhand with minecraft:diamond_sword");
-			ctx.waitTicks(10);
-			input.pressMouse(0);
-			input.pressMouse(0);
-			input.pressMouse(1);
+			// ---------------------------------------------------------------- CPS with real button numbers
+			input.pressMouse(LMB);
+			input.pressMouse(LMB);
+			input.pressMouse(RMB);
 			ctx.waitTicks(2);
-			int cps = ctx.computeOnClient(mc -> dev.novaclient.util.CpsTracker.left());
-			check(cps == 2, "CPS should count 2 left clicks but was " + cps);
-			ctx.takeScreenshot("02_hud_all");
+			int left = ctx.computeOnClient(mc -> CpsTracker.left());
+			int right = ctx.computeOnClient(mc -> CpsTracker.right());
+			check(left == 2, "left CPS should be 2 but was " + left);
+			check(right == 1, "right CPS should be 1 but was " + right);
+			ctx.takeScreenshot("02_keystrokes_cps");
 
-			// ---------------------------------------------------------------- ClickGUI via real key press
+			// ---------------------------------------------------------------- open menu with the real key
 			input.pressKey(InputConstants.KEY_RSHIFT);
 			ctx.waitForScreen(ClickGuiScreen.class);
 			ctx.waitTicks(2);
-			ctx.takeScreenshot("03_clickgui_hud");
+			ctx.takeScreenshot("03_menu_all");
 
-			// click the "Visuals" category (second entry of the sidebar)
-			int[] layout = ctx.computeOnClient(mc -> {
-				int w = mc.getWindow().getGuiScaledWidth();
-				int h = mc.getWindow().getGuiScaledHeight();
-				int winW = Math.min(420, w - 16);
-				int winH = Math.min(270, h - 16);
-				return new int[] {(w - winW) / 2, (h - winH) / 2, winW, winH};
-			});
-			int left = layout[0];
-			int top = layout[1];
-			int winW = layout[2];
-			click(ctx, left + 40, top + 32 + 22 + 9, 0);
-			ctx.takeScreenshot("04_clickgui_visuals");
+			// Visuals tab, then clicking a card toggles the module
+			click(ctx, gui(ctx, s -> s.tabCenter(2)), LMB);
+			Module fullbright = ctx.computeOnClient(mc -> module("Fullbright"));
+			check(!enabled(ctx, "Fullbright"), "Fullbright should start disabled");
+			click(ctx, gui(ctx, s -> s.cardCenter(fullbright)), LMB);
+			check(enabled(ctx, "Fullbright"), "left click on the Fullbright card did not enable it");
+			click(ctx, gui(ctx, s -> s.cardCenter(fullbright)), LMB);
+			check(!enabled(ctx, "Fullbright"), "second click did not disable Fullbright");
+			click(ctx, gui(ctx, s -> s.cardCenter(fullbright)), LMB);
 
-			// rows in Visuals: Zoom, Fullbright, No Hurt Cam, Low Fire (24px + 2px gap each)
-			int cx = left + 96 + 8;
-			int cw = winW - 96 - 16;
-			int rowFullbright = top + 30 + 26 + 12;
-			boolean before = ctx.computeOnClient(mc -> module("Fullbright").isEnabled());
-			click(ctx, cx + 40, rowFullbright, 0);
-			boolean after = ctx.computeOnClient(mc -> module("Fullbright").isEnabled());
-			check(before != after, "left click on Fullbright row did not toggle it");
-			check(after, "Fullbright should now be enabled");
+			ctx.takeScreenshot("04_menu_visuals");
 
-			// right click Zoom -> settings expand
-			click(ctx, cx + 40, top + 30 + 12, 1);
-			ctx.waitTicks(2);
-			ctx.takeScreenshot("05_clickgui_zoom_settings");
-
-			// drag the first slider (Zoom-Stärke) to the far right
-			int sliderRowY = top + 30 + 26 + 9;
-			int sliderX = cx + cw - 8 - 90;
-			click(ctx, sliderX + 89.9, sliderRowY, 0);
-			double zoomFactor = ctx.computeOnClient(mc -> ((ZoomModule) module("Zoom")).zoomFactor.get());
-			check(zoomFactor > 45, "slider click should set zoom factor near max but was " + zoomFactor);
-			ctx.runOnClient(mc -> ((ZoomModule) module("Zoom")).zoomFactor.set(4.0));
-
-			// keybind listening: click the "Tastenbelegung" row and press K
-			int settingsCount = ctx.computeOnClient(mc -> module("Zoom").getSettings().size());
-			int keyRowY = top + 30 + 26 + settingsCount * 20 + 9;
-			click(ctx, cx + 60, keyRowY, 0);
+			// right click Custom Crosshair -> settings page
+			Module crosshair = ctx.computeOnClient(mc -> module("Custom Crosshair"));
+			click(ctx, gui(ctx, s -> s.cardCenter(crosshair)), RMB);
+			check(gui(ctx, s -> s.getSettingsModule()) == crosshair, "right click did not open the crosshair settings");
+			check(!enabled(ctx, "Custom Crosshair"), "right click must not toggle the module");
+			// row 0 = Stil (mode): click cycles
+			click(ctx, gui(ctx, s -> s.rowPoint(0, -1)), LMB);
+			String style = ctx.computeOnClient(mc -> ((CrosshairModule) module("Custom Crosshair")).style.get());
+			check(style.equals("Kreuz + Punkt"), "mode click should cycle to 'Kreuz + Punkt' but is " + style);
+			// row 2 = Größe (slider): click at the far right
+			click(ctx, gui(ctx, s -> s.rowPoint(2, 1.0)), LMB);
+			int size = ctx.computeOnClient(mc -> ((CrosshairModule) module("Custom Crosshair")).size.getInt());
+			check(size == 12, "slider click should set size 12 but was " + size);
+			click(ctx, gui(ctx, s -> s.rowPoint(2, 0.4)), LMB);
+			// row 6 = Umrandung (bool) - scroll down first, like a player would on a small window
+			input.setCursorPos(10, 10);
+			ctx.waitTick();
+			input.scroll(-10);
+			ctx.waitTick();
+			boolean outlineBefore = ctx.computeOnClient(mc -> ((CrosshairModule) module("Custom Crosshair")).outline.isOn());
+			click(ctx, gui(ctx, s -> s.rowPoint(6, -1)), LMB);
+			check(outlineBefore != ctx.computeOnClient(mc -> ((CrosshairModule) module("Custom Crosshair")).outline.isOn()),
+				"bool setting click did not toggle");
+			click(ctx, gui(ctx, s -> s.rowPoint(6, -1)), LMB);
+			// keybind row: click, press K
+			int keyRow = ctx.computeOnClient(mc -> module("Custom Crosshair").getSettings().size());
+			click(ctx, gui(ctx, s -> s.rowPoint(keyRow, -1)), LMB);
+			ctx.takeScreenshot("05_settings_listening");
 			input.pressKey(InputConstants.KEY_K);
 			ctx.waitTick();
-			int bound = ctx.computeOnClient(mc -> module("Zoom").getKeybind());
-			check(bound == InputConstants.KEY_K, "keybind should be K but was " + bound);
-			ctx.takeScreenshot("06_clickgui_keybind");
-			ctx.runOnClient(mc -> module("Zoom").setKeybind(0));
-
-			// scrolling must not crash
-			input.scroll(-3);
-			ctx.waitTick();
-			input.scroll(3);
-			ctx.waitTick();
-
-			// Utility category
-			click(ctx, left + 40, top + 32 + 44 + 9, 0);
-			ctx.takeScreenshot("07_clickgui_utility");
-
-			// ESC closes and saves config
+			check(ctx.computeOnClient(mc -> module("Custom Crosshair").getKeybind()) == InputConstants.KEY_K, "keybind K not set");
+			ctx.takeScreenshot("06_settings_crosshair");
+			// ESC while listening removes the keybind
+			click(ctx, gui(ctx, s -> s.rowPoint(keyRow, -1)), LMB);
 			input.pressKey(InputConstants.KEY_ESCAPE);
-			ctx.waitFor(mc -> mc.gui.screen() == null);
+			ctx.waitTick();
+			check(ctx.computeOnClient(mc -> module("Custom Crosshair").getKeybind()) == 0, "ESC did not clear the keybind");
+			check(ctx.computeOnClient(mc -> mc.gui.screen() instanceof ClickGuiScreen), "ESC while binding must not close the menu");
+			// back button
+			click(ctx, gui(ctx, s -> s.backButtonCenter()), LMB);
+			check(gui(ctx, s -> s.getSettingsModule()) == null, "back button did not return to the grid");
+
+			// menu icon on the Zoom card opens settings
+			Module zoom = ctx.computeOnClient(mc -> module("Zoom"));
+			click(ctx, gui(ctx, s -> s.gearCenter(zoom)), LMB);
+			check(gui(ctx, s -> s.getSettingsModule()) == zoom, "menu icon did not open the Zoom settings");
+			check(enabled(ctx, "Zoom"), "menu icon must not toggle Zoom");
+			ctx.takeScreenshot("07_settings_zoom");
+			input.pressKey(InputConstants.KEY_ESCAPE);
+			ctx.waitTick();
+			check(gui(ctx, s -> s.getSettingsModule()) == null, "ESC should go back from settings to the grid");
+
+			// search
+			click(ctx, gui(ctx, s -> s.tabCenter(0)), LMB);
+			input.typeChars("free");
+			ctx.waitTicks(2);
+			check(gui(ctx, s -> s.getSearch()).equals("free"), "search text not typed");
+			Module freelook = ctx.computeOnClient(mc -> module("Freelook"));
+			check(gui(ctx, s -> s.cardCenter(freelook)) != null, "Freelook not found by search");
+			check(gui(ctx, s -> s.cardCenter(fullbright)) == null, "search should hide Fullbright");
+			ctx.takeScreenshot("08_menu_search");
+			input.pressKey(InputConstants.KEY_ESCAPE);
+			ctx.waitTick();
+			check(gui(ctx, s -> s.getSearch()).isEmpty(), "ESC should clear the search");
+
+			// HUD editor via footer button
+			click(ctx, gui(ctx, s -> s.hudEditorButtonCenter()), LMB);
+			ctx.waitForScreen(HudEditorScreen.class);
+			ctx.waitTicks(2);
+			ctx.takeScreenshot("09_hud_editor");
+			int[] listBtn = ctx.computeOnClient(mc -> new int[] {mc.getWindow().getGuiScaledWidth() / 2 - 70 + 34, 30 + 8});
+			click(ctx, listBtn, LMB);
+			check(ctx.computeOnClient(mc -> ((HudEditorScreen) mc.gui.screen()).isListOpen()), "Elemente list did not open");
+			int biomeIndex = ctx.computeOnClient(mc -> NovaClient.modules().getHudModules().indexOf((HudModule) module("Biom")));
+			int[] biomeRow = ctx.computeOnClient(mc -> new int[] {mc.getWindow().getGuiScaledWidth() / 2 - 40, 50 + 3 + biomeIndex * 14 + 7});
+			ctx.waitTick();
+			ctx.takeScreenshot("10_hud_editor_list");
+			if (biomeRow[1] < ctx.computeOnClient(mc -> mc.getWindow().getGuiScaledHeight()) - 10) {
+				click(ctx, biomeRow, LMB);
+				check(enabled(ctx, "Biom"), "clicking Biom in the element list did not enable it");
+			} else {
+				enable(ctx, "Biom");
+			}
+			click(ctx, listBtn, LMB);
+			// drag FPS with the real left button
+			int[] fps = ctx.computeOnClient(mc -> {
+				HudModule m = (HudModule) module("FPS");
+				return new int[] {m.getScreenX(mc.getWindow().getGuiScaledWidth(), true) + 4, m.getScreenY(mc.getWindow().getGuiScaledHeight(), true) + 4};
+			});
+			int scale = ctx.computeOnClient(mc -> mc.getWindow().getGuiScale());
+			input.setCursorPos(fps[0] * scale, fps[1] * scale);
+			ctx.waitTick();
+			input.holdMouse(LMB);
+			ctx.waitTick();
+			for (int i = 0; i < 10; i++) {
+				input.moveCursor(12 * scale, 8 * scale);
+				ctx.waitTick();
+			}
+			input.releaseMouse(LMB);
+			ctx.waitTick();
+			int fpsAfter = ctx.computeOnClient(mc -> ((HudModule) module("FPS")).getScreenX(mc.getWindow().getGuiScaledWidth(), true)) + 4;
+			check(fpsAfter - fps[0] > 60, "dragging FPS did not move it (" + fps[0] + " -> " + fpsAfter + ")");
+			ctx.takeScreenshot("11_hud_editor_dragged");
+			// right click element -> its settings
+			int[] fpsNow = ctx.computeOnClient(mc -> {
+				HudModule m = (HudModule) module("FPS");
+				return new int[] {m.getScreenX(mc.getWindow().getGuiScaledWidth(), true) + 4, m.getScreenY(mc.getWindow().getGuiScaledHeight(), true) + 4};
+			});
+			click(ctx, fpsNow, RMB);
+			check(gui(ctx, s -> s.getSettingsModule()) == module("FPS"), "right click on HUD element did not open its settings");
+			ctx.setScreen(() -> null);
+			ctx.waitTicks(2);
 			Path cfg = FabricLoader.getInstance().getConfigDir().resolve("novaclient.json");
 			check(Files.isRegularFile(cfg), "config file was not written");
 
-			// ---------------------------------------------------------------- HUD editor + dragging
-			ctx.setScreen(() -> new HudEditorScreen(null));
-			ctx.waitTicks(2);
-			ctx.takeScreenshot("08_hud_editor");
-			int[] fps = ctx.computeOnClient(mc -> {
-				HudModule m = (HudModule) module("FPS");
-				int w = mc.getWindow().getGuiScaledWidth();
-				int h = mc.getWindow().getGuiScaledHeight();
-				return new int[] {m.getScreenX(w, true) + 4, m.getScreenY(h, true) + 4};
-			});
-			int scale = ctx.computeOnClient(mc -> mc.getWindow().getGuiScale());
-			int fpsXBefore = fps[0];
-			input.setCursorPos(fps[0] * scale, fps[1] * scale);
-			ctx.waitTick();
-			input.holdMouse(0);
-			ctx.waitTick();
-			for (int i = 0; i < 10; i++) {
-				input.moveCursor(10 * scale, 6 * scale);
-				ctx.waitTick();
-			}
-			input.releaseMouse(0);
-			ctx.waitTick();
-			int fpsXAfter = ctx.computeOnClient(mc -> ((HudModule) module("FPS")).getScreenX(mc.getWindow().getGuiScaledWidth(), true)) + 4;
-			check(fpsXAfter - fpsXBefore > 50, "dragging FPS element did not move it (" + fpsXBefore + " -> " + fpsXAfter + ")");
-			ctx.takeScreenshot("09_hud_editor_dragged");
-			input.pressKey(InputConstants.KEY_ESCAPE);
-			ctx.waitFor(mc -> mc.gui.screen() == null);
-
-			// ---------------------------------------------------------------- Fullbright at midnight
+			// ---------------------------------------------------------------- Fullbright
 			sp.getServer().runCommand("time set midnight");
 			ctx.waitTicks(20);
-			ctx.takeScreenshot("10_fullbright_midnight");
-			ctx.runOnClient(mc -> module("Fullbright").setEnabled(false));
-			ctx.waitTicks(20);
-			ctx.takeScreenshot("11_no_fullbright_midnight");
+			ctx.takeScreenshot("12_fullbright_midnight");
 			sp.getServer().runCommand("time set noon");
 
-			// ---------------------------------------------------------------- Zoom (default key C) + scroll
-			sp.getServer().runCommand("tp @a 0 -60 0 180 0");
+			// ---------------------------------------------------------------- Zoom
 			sp.getServer().runCommand("fill -3 -60 -12 3 -54 -12 minecraft:gold_block");
 			sp.getServer().runCommand("fill -1 -59 -11 1 -57 -11 minecraft:diamond_block");
-			ctx.waitTicks(20);
-			ctx.takeScreenshot("12a_before_zoom");
+			sp.getServer().runCommand("tp @a 0 -60 0 180 0");
+			ctx.waitTicks(10);
 			float normalFov = ctx.computeOnClient(mc -> mc.gameRenderer.mainCamera().getFov());
 			input.holdKey(InputConstants.KEY_C);
 			ctx.waitTicks(15);
-			check(ctx.computeOnClient(mc -> ZoomModule.isZooming()), "zoom key did not start zooming");
 			float zoomFov = ctx.computeOnClient(mc -> mc.gameRenderer.mainCamera().getFov());
-			NovaClient.LOGGER.info("TEST fov normal={} zoomed={}", normalFov, zoomFov);
-			check(zoomFov < normalFov / 3.0F, "camera fov did not shrink while zooming: " + normalFov + " -> " + zoomFov);
-			int slotBefore = ctx.computeOnClient(mc -> mc.player.getInventory().getSelectedSlot());
+			check(zoomFov < normalFov / 3.0F, "fov did not shrink while zooming: " + normalFov + " -> " + zoomFov);
+			int slot = ctx.computeOnClient(mc -> mc.player.getInventory().getSelectedSlot());
 			input.scroll(2);
-			ctx.waitTicks(5);
-			int slotAfter = ctx.computeOnClient(mc -> mc.player.getInventory().getSelectedSlot());
-			check(slotBefore == slotAfter, "scrolling while zooming must not change hotbar slot");
-			ctx.takeScreenshot("12_zoom");
+			ctx.waitTicks(3);
+			check(slot == ctx.computeOnClient(mc -> mc.player.getInventory().getSelectedSlot()), "scroll while zooming changed hotbar slot");
+			ctx.takeScreenshot("13_zoom");
 			input.releaseKey(InputConstants.KEY_C);
 			ctx.waitTicks(20);
-			check(!ctx.computeOnClient(mc -> ZoomModule.isZooming()), "zoom did not stop");
-			float afterFov = ctx.computeOnClient(mc -> mc.gameRenderer.mainCamera().getFov());
-			check(Math.abs(afterFov - normalFov) < 1.0F, "fov not restored after zoom: " + afterFov);
+			check(Math.abs(ctx.computeOnClient(mc -> mc.gameRenderer.mainCamera().getFov()) - normalFov) < 1.0F, "fov not restored");
+
+			// ---------------------------------------------------------------- Freelook (hold Left Alt)
+			check(enabled(ctx, "Freelook"), "Freelook should be enabled by default");
+			float yawBefore = ctx.computeOnClient(mc -> mc.player.getYRot());
+			float pitchBefore = ctx.computeOnClient(mc -> mc.player.getXRot());
+			input.holdKey(InputConstants.KEY_LALT);
+			ctx.waitTicks(5);
+			check(ctx.computeOnClient(mc -> FreelookModule.isActive()), "freelook not active while holding Alt");
+			check(ctx.computeOnClient(mc -> mc.options.getCameraType() == CameraType.THIRD_PERSON_BACK), "freelook should switch to third person");
+			for (int i = 0; i < 10; i++) {
+				input.moveCursor(40, 10);
+				ctx.waitTick();
+			}
+			ctx.waitTicks(3);
+			float yawDuring = ctx.computeOnClient(mc -> mc.player.getYRot());
+			float pitchDuring = ctx.computeOnClient(mc -> mc.player.getXRot());
+			float camYaw = ctx.computeOnClient(mc -> mc.gameRenderer.mainCamera().yRot());
+			NovaClient.LOGGER.info("TEST freelook player yaw {} -> {}, camera yaw {}", yawBefore, yawDuring, camYaw);
+			check(Math.abs(yawDuring - yawBefore) < 0.01F && Math.abs(pitchDuring - pitchBefore) < 0.01F,
+				"player rotation changed during freelook");
+			check(Math.abs(camYaw - yawBefore) > 5.0F, "camera did not turn during freelook (camera yaw " + camYaw + ")");
+			ctx.takeScreenshot("14_freelook");
+			input.releaseKey(InputConstants.KEY_LALT);
+			ctx.waitTicks(5);
+			check(!ctx.computeOnClient(mc -> FreelookModule.isActive()), "freelook still active after release");
+			check(ctx.computeOnClient(mc -> mc.options.getCameraType() == CameraType.FIRST_PERSON), "camera not restored to first person");
+			// normal mouse look works again
+			input.moveCursor(40, 0);
+			ctx.waitTicks(3);
+			check(Math.abs(ctx.computeOnClient(mc -> mc.player.getYRot()) - yawBefore) > 1.0F, "mouse look broken after freelook");
+			sp.getServer().runCommand("tp @a 0 -60 0 180 0");
+			ctx.waitTicks(5);
+
+			// ---------------------------------------------------------------- Custom crosshair styles
+			enable(ctx, "Custom Crosshair");
+			for (String st : new String[] {"Kreuz + Punkt", "Kreis", "T-Form"}) {
+				ctx.runOnClient(mc -> {
+					CrosshairModule c = (CrosshairModule) module("Custom Crosshair");
+					c.style.set(st);
+					c.color.set(st.equals("Kreis") ? "Theme" : "Grün");
+				});
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("15_crosshair_" + st.replace(' ', '_').replace("+", "plus"));
+			}
+
+			// ---------------------------------------------------------------- Reach + combo on an armor stand
+			enable(ctx, "Reichweite", "Combo");
+			sp.getServer().runCommand("summon minecraft:armor_stand 0 -60 -2.5 {NoGravity:1b}");
+			sp.getServer().runCommand("tp @a 0 -60 0 180 0");
+			ctx.waitTicks(5);
+			input.lookAt(180.0F, 12.0F);
+			ctx.waitTicks(5);
+			String target = ctx.computeOnClient(mc -> mc.hitResult == null ? "null" : mc.hitResult.getType() + " " + mc.hitResult.getLocation());
+			int stands = sp.getServer().computeOnServer(server -> server.overworld().getEntities(net.minecraft.world.entity.EntityTypes.ARMOR_STAND, e -> true).size());
+			NovaClient.LOGGER.info("TEST before attack: hitResult={} armorStands={}", target, stands);
+			ctx.takeScreenshot("16a_before_attack");
+			input.pressMouse(LMB);
+			ctx.waitTicks(3);
+			int combo = ctx.computeOnClient(mc -> CombatTracker.combo());
+			double reach = ctx.computeOnClient(mc -> CombatTracker.lastReach());
+			NovaClient.LOGGER.info("TEST combo={} reach={}", combo, reach);
+			check(combo == 1, "combo should be 1 after one hit but was " + combo);
+			check(reach > 1.0 && reach < 3.5, "reach out of range: " + reach);
+			ctx.takeScreenshot("16_reach_combo");
+
+			// ---------------------------------------------------------------- No weather
+			sp.getServer().runCommand("weather rain");
+			ctx.waitTicks(60);
+			ctx.takeScreenshot("17_rain");
+			enable(ctx, "Kein Regen");
+			ctx.waitTicks(5);
+			check(ctx.computeOnClient(mc -> mc.level.getRainLevel(1.0F)) == 0.0F, "client rain level should be 0");
+			check(sp.getServer().computeOnServer(server -> server.overworld().getRainLevel(1.0F)) > 0.0F, "server weather must stay");
+			ctx.takeScreenshot("18_no_rain");
+			sp.getServer().runCommand("weather clear");
+			// rain fades out over a few seconds and would extinguish the fire test below
+			sp.getServer().waitFor(server -> server.overworld().getRainLevel(1.0F) == 0.0F, 400);
+
+			// ---------------------------------------------------------------- HUD tweaks: scoreboard
+			sp.getServer().runCommand("scoreboard objectives add nova dummy \"Nova Test\"");
+			sp.getServer().runCommand("scoreboard objectives setdisplay sidebar nova");
+			sp.getServer().runCommand("scoreboard players set Spieler nova 7");
+			ctx.waitTicks(5);
+			ctx.takeScreenshot("19_scoreboard");
+			enable(ctx, "HUD-Tweaks");
+			ctx.waitTicks(2);
+			ctx.takeScreenshot("20_scoreboard_hidden");
 
 			// ---------------------------------------------------------------- Low fire + no hurt cam
 			sp.getServer().runCommand("effect give @a minecraft:fire_resistance 60 0");
@@ -217,38 +354,24 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					p.setRemainingFireTicks(400);
 				}
 			});
-			ctx.waitTicks(10);
-			check(ctx.computeOnClient(mc -> mc.player.isOnFire()), "player should be burning for the fire test");
-			ctx.takeScreenshot("13a_fire_vanilla");
-			sp.getServer().runCommand("effect clear @a minecraft:fire_resistance");
-			sp.getServer().runCommand("effect give @a minecraft:regeneration 60 4");
-			sp.getServer().runCommand("effect give @a minecraft:resistance 60 4");
-			ctx.waitTicks(3);
-			ctx.takeScreenshot("13b_fire_vanilla_no_resistance");
 			enable(ctx, "Low Fire", "No Hurt Cam");
-			for (double off : new double[] {0.1, 0.2, 0.3}) {
-				ctx.runOnClient(mc -> ((dev.novaclient.module.visual.LowFireModule) module("Low Fire")).offset.set(off));
-				ctx.waitTicks(2);
-				ctx.takeScreenshot("13c_fire_low_" + (int) (off * 100));
-			}
-			check(ctx.computeOnClient(mc -> mc.player.isOnFire()), "player should still burn");
-			sp.getServer().runCommand("damage @p 2 minecraft:generic");
-			ctx.waitTicks(3);
-			ctx.takeScreenshot("14_no_hurt_cam");
-			sp.getServer().runCommand("effect clear @a minecraft:fire_resistance");
+			ctx.waitTicks(5);
+			check(ctx.computeOnClient(mc -> mc.player.isOnFire()), "player should burn");
+			check(ctx.computeOnClient(mc -> LowFireModule.activeOffset()) > 0, "low fire inactive");
+			ctx.takeScreenshot("21_low_fire");
 			sp.getServer().runOnServer(server -> {
 				for (ServerPlayer p : server.getPlayerList().getPlayers()) {
 					p.setRemainingFireTicks(0);
 				}
 			});
 
-			// ---------------------------------------------------------------- Toggle sprint / sneak
+			// ---------------------------------------------------------------- toggle sprint / sneak
 			enable(ctx, "Toggle Sprint", "Toggle Sneak");
 			input.holdKey(o -> o.keyUp);
 			ctx.waitTicks(20);
 			boolean sprinting = ctx.computeOnClient(mc -> mc.player.isSprinting());
 			input.releaseKey(o -> o.keyUp);
-			check(sprinting, "Toggle Sprint: player should sprint while walking forward");
+			check(sprinting, "Toggle Sprint: player should sprint");
 			check(ctx.computeOnClient(mc -> mc.options.toggleCrouch().get()), "Toggle Sneak should enable toggle crouch");
 			ctx.runOnClient(mc -> {
 				module("Toggle Sprint").setEnabled(false);
@@ -257,32 +380,43 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.waitTicks(2);
 			check(!ctx.computeOnClient(mc -> mc.options.toggleCrouch().get()), "Toggle Sneak should restore vanilla option");
 
-			// ---------------------------------------------------------------- module keybind toggles a module
+			// ---------------------------------------------------------------- module keybind (event based)
 			ctx.runOnClient(mc -> module("FPS").setKeybind(InputConstants.KEY_J));
-			boolean fpsBefore = ctx.computeOnClient(mc -> module("FPS").isEnabled());
+			boolean fpsBefore = enabled(ctx, "FPS");
 			input.pressKey(InputConstants.KEY_J);
 			ctx.waitTicks(2);
-			check(fpsBefore != ctx.computeOnClient(mc -> module("FPS").isEnabled()), "module keybind did not toggle FPS");
+			check(fpsBefore != enabled(ctx, "FPS"), "module keybind did not toggle FPS");
 			ctx.runOnClient(mc -> {
 				module("FPS").setEnabled(true);
 				module("FPS").setKeybind(0);
 			});
 
-			// ---------------------------------------------------------------- theme rainbow + F1 hide
-			ctx.runOnClient(mc -> ((dev.novaclient.module.hud.ThemeModule) module("Theme")).rainbow.set(true));
-			ctx.waitTicks(5);
-			ctx.takeScreenshot("15_rainbow_theme");
-			ctx.runOnClient(mc -> ((dev.novaclient.module.hud.ThemeModule) module("Theme")).rainbow.set(false));
-
-			// ---------------------------------------------------------------- config round trip
+			// ---------------------------------------------------------------- all HUD modules at once
 			ctx.runOnClient(mc -> {
+				for (HudModule h : NovaClient.modules().getHudModules()) {
+					h.setEnabled(true);
+				}
+				((ThemeModule) module("Theme")).rainbow.set(true);
+			});
+			ctx.waitTicks(5);
+			ctx.takeScreenshot("22_all_hud_rainbow");
+			ctx.runOnClient(mc -> ((ThemeModule) module("Theme")).rainbow.set(false));
+
+			// ---------------------------------------------------------------- config round trip incl. mode setting
+			ctx.runOnClient(mc -> {
+				CrosshairModule c = (CrosshairModule) module("Custom Crosshair");
+				c.style.set("Quadrat");
 				NovaClient.config().save();
 				HudModule f = (HudModule) module("FPS");
 				String ax = f.getAnchorX().name();
 				int ox = f.getOffsetX();
 				f.setPosition("START", 0, "START", 0);
+				c.style.set("Punkt");
 				NovaClient.config().load();
-				check(f.getAnchorX().name().equals(ax) && f.getOffsetX() == ox, "config load did not restore FPS position");
+				check(f.getAnchorX().name().equals(ax) && f.getOffsetX() == ox, "config did not restore FPS position");
+				check(c.style.get().equals("Quadrat"), "config did not restore crosshair style");
+				ModeSetting mode = c.style;
+				check(mode.getModes().contains(mode.get()), "invalid mode after load");
 			});
 		}
 		NovaClient.LOGGER.info("NOVA GAMETEST PASSED");

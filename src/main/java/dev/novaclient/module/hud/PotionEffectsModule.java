@@ -13,7 +13,7 @@ public class PotionEffectsModule extends HudModule {
 	public final BoolSetting hideVanilla = add(new BoolSetting("Vanilla-Anzeige ausblenden", true));
 
 	public PotionEffectsModule() {
-		super("Trankeffekte", "Aktive Effekte mit Restzeit", true, Anchor.END, 2, Anchor.START, 84);
+		super("Trankeffekte", "Aktive Effekte mit Restzeit", true, Anchor.END, 2, Anchor.START, 140);
 	}
 
 	private record Line(String name, String time, int color) {

@@ -74,8 +74,20 @@ public class ArmorStatusModule extends HudModule {
 		return 0xFFFF5555;
 	}
 
+	private boolean empty(boolean editor) {
+		for (ItemStack s : stacks(editor)) {
+			if (!s.isEmpty()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	@Override
 	public int getWidth(boolean editor) {
+		if (empty(editor)) {
+			return 0;
+		}
 		int w = 0;
 		for (ItemStack s : stacks(editor)) {
 			w = Math.max(w, font().width(info(s)));
@@ -85,6 +97,9 @@ public class ArmorStatusModule extends HudModule {
 
 	@Override
 	public int getHeight(boolean editor) {
+		if (empty(editor)) {
+			return 0;
+		}
 		return stacks(editor).length * ROW + PADDING * 2 - 1;
 	}
 

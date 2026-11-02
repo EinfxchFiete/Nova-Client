@@ -1,5 +1,6 @@
 {
 	"key.category.novaclient.main": "Nova Client",
 	"key.novaclient.menu": "Open Nova menu",
-	"key.novaclient.zoom": "Zoom"
+	"key.novaclient.zoom": "Zoom",
+	"key.novaclient.freelook": "Freelook"
 }

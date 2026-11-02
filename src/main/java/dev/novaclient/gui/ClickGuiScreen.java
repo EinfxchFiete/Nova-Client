@@ -4,49 +4,73 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.novaclient.NovaClient;
 import dev.novaclient.module.Category;
 import dev.novaclient.module.Module;
+import dev.novaclient.module.hud.HudModule;
 import dev.novaclient.module.hud.ThemeModule;
 import dev.novaclient.setting.BoolSetting;
+import dev.novaclient.setting.ModeSetting;
 import dev.novaclient.setting.NumberSetting;
 import dev.novaclient.setting.Setting;
+import dev.novaclient.util.Render;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
-/** The main menu of the client (default key: Right Shift). */
+/**
+ * Main menu (default key: Right Shift).
+ * Grid page: click a card to toggle the module, right click or the menu icon opens its settings.
+ */
 public class ClickGuiScreen extends Screen {
-	private static final int SIDEBAR = 96;
-	private static final int MODULE_ROW = 24;
-	private static final int SETTING_ROW = 18;
-	private static final int ROW_GAP = 2;
+	private static final int LEFT = InputConstants.MOUSE_BUTTON_LEFT;
+	private static final int RIGHT = InputConstants.MOUSE_BUTTON_RIGHT;
 
-	private static Category lastCategory = Category.HUD;
+	private static final int HEADER = 32;
+	private static final int FOOTER = 26;
+	private static final int CARD_H = 46;
+	private static final int CARD_GAP = 6;
+	private static final int ROW_H = 22;
+	private static final int ROW_GAP = 4;
+	private static final int SLIDER_W = 110;
+	private static final int SEARCH_W = 110;
+
+	private static final int BG = 0xF00E0E14;
+	private static final int CARD = 0xFF181820;
+	private static final int CARD_HOVER = 0xFF20202B;
+	private static final int TEXT = 0xFFFFFFFF;
+	private static final int TEXT_DIM = 0xFF8A8A9A;
+	private static final int TEXT_MUTED = 0xFF5E5E6E;
+
+	private static @Nullable Category lastCategory;
 
 	private final @Nullable Screen parent;
-	private Category category = lastCategory;
-	private @Nullable Module expanded;
+	private @Nullable Category category = lastCategory;
+	private @Nullable Module settingsModule;
 	private @Nullable Module listening;
 	private @Nullable NumberSetting dragging;
-	private int draggingSliderX;
-	private int draggingSliderW;
+	private int dragSliderX;
+	private String search = "";
+	private boolean searchFocused;
 	private double scroll;
 
-	// layout, recomputed every frame
 	private int left;
 	private int top;
 	private int winW;
 	private int winH;
 
-	private record Row(int y, int height, Module module, @Nullable Setting<?> setting, boolean keybind) {
+	public ClickGuiScreen(@Nullable Screen parent) {
+		this(parent, null);
 	}
 
-	public ClickGuiScreen(@Nullable Screen parent) {
+	public ClickGuiScreen(@Nullable Screen parent, @Nullable Module openSettings) {
 		super(Component.literal(NovaClient.NAME));
 		this.parent = parent;
+		this.settingsModule = openSettings;
 	}
 
 	@Override
@@ -60,55 +84,129 @@ public class ClickGuiScreen extends Screen {
 		minecraft.gui.setScreen(parent);
 	}
 
+	// ------------------------------------------------------------------ layout helpers
+
 	private void layout() {
-		winW = Math.min(420, width - 16);
-		winH = Math.min(270, height - 16);
+		winW = Math.min(460, width - 24);
+		winH = Math.min(300, height - 24);
 		left = (width - winW) / 2;
 		top = (height - winH) / 2;
 	}
 
-	private int contentX() {
-		return left + SIDEBAR + 8;
+	private int bodyX() {
+		return left + 12;
 	}
 
-	private int contentW() {
-		return winW - SIDEBAR - 16;
+	private int bodyW() {
+		return winW - 24;
 	}
 
-	private int contentTop() {
-		return top + 30;
+	private int bodyTop() {
+		return top + HEADER + 8;
 	}
 
-	private int contentBottom() {
-		return top + winH - 8;
+	private int bodyBottom() {
+		return top + winH - FOOTER - 4;
 	}
 
-	private List<Row> rows() {
-		List<Row> rows = new ArrayList<>();
-		int y = contentTop() - (int) scroll;
-		for (Module m : NovaClient.modules().getModules(category)) {
-			rows.add(new Row(y, MODULE_ROW, m, null, false));
-			y += MODULE_ROW + ROW_GAP;
-			if (m == expanded) {
-				for (Setting<?> s : m.getSettings()) {
-					rows.add(new Row(y, SETTING_ROW, m, s, false));
-					y += SETTING_ROW + ROW_GAP;
-				}
-				rows.add(new Row(y, SETTING_ROW, m, null, true));
-				y += SETTING_ROW + ROW_GAP;
+	private static String[] tabNames() {
+		Category[] cats = Category.values();
+		String[] out = new String[cats.length + 1];
+		out[0] = "Alle";
+		for (int i = 0; i < cats.length; i++) {
+			out[i + 1] = cats[i].getDisplayName();
+		}
+		return out;
+	}
+
+	/** x positions of the tabs: [x0, x1] per tab. */
+	private int[][] tabBounds() {
+		String[] names = tabNames();
+		int[][] out = new int[names.length][2];
+		int x = left + 12 + font.width("NOVA CLIENT") + 16;
+		for (int i = 0; i < names.length; i++) {
+			int w = font.width(names[i]) + 14;
+			out[i][0] = x;
+			out[i][1] = x + w;
+			x += w + 4;
+		}
+		return out;
+	}
+
+	private int searchX() {
+		return left + winW - 12 - SEARCH_W;
+	}
+
+	private List<Module> visibleModules() {
+		String q = search.trim().toLowerCase(Locale.ROOT);
+		List<Module> out = new ArrayList<>();
+		for (Module m : NovaClient.modules().getModules()) {
+			if (category != null && m.getCategory() != category) {
+				continue;
 			}
+			if (!q.isEmpty() && !m.getName().toLowerCase(Locale.ROOT).contains(q)
+				&& !m.getDescription().toLowerCase(Locale.ROOT).contains(q)) {
+				continue;
+			}
+			out.add(m);
+		}
+		return out;
+	}
+
+	private int columns() {
+		return bodyW() >= 400 ? 3 : 2;
+	}
+
+	private int cardW() {
+		int cols = columns();
+		return (bodyW() - CARD_GAP * (cols - 1)) / cols;
+	}
+
+	private int cardX(int index) {
+		return bodyX() + (index % columns()) * (cardW() + CARD_GAP);
+	}
+
+	private int cardY(int index) {
+		return bodyTop() + (index / columns()) * (CARD_H + CARD_GAP) - (int) scroll;
+	}
+
+	/** Settings rows of the open module, including the extra keybind/HUD rows. */
+	private List<Object> settingRows() {
+		List<Object> rows = new ArrayList<>(settingsModule.getSettings());
+		rows.add("keybind");
+		if (settingsModule instanceof HudModule) {
+			rows.add("hudeditor");
 		}
 		return rows;
 	}
 
+	private int settingsListTop() {
+		return bodyTop() + 40;
+	}
+
+	private int rowY(int index) {
+		return settingsListTop() + index * (ROW_H + ROW_GAP) - (int) scroll;
+	}
+
 	private double maxScroll() {
-		List<Row> rows = rows();
-		if (rows.isEmpty()) {
-			return 0;
+		int contentH;
+		int viewH;
+		if (settingsModule != null) {
+			contentH = settingRows().size() * (ROW_H + ROW_GAP);
+			viewH = bodyBottom() - settingsListTop();
+		} else {
+			int rows = (visibleModules().size() + columns() - 1) / columns();
+			contentH = rows * (CARD_H + CARD_GAP);
+			viewH = bodyBottom() - bodyTop();
 		}
-		Row last = rows.get(rows.size() - 1);
-		int contentHeight = (int) (last.y() + last.height() + scroll) - contentTop();
-		return Math.max(0, contentHeight - (contentBottom() - contentTop()));
+		return Math.max(0, contentH - viewH);
+	}
+
+	private void openSettings(@Nullable Module m) {
+		settingsModule = m;
+		scroll = 0;
+		listening = null;
+		dragging = null;
 	}
 
 	// ------------------------------------------------------------------ rendering
@@ -119,134 +217,220 @@ public class ClickGuiScreen extends Screen {
 		scroll = Math.max(0, Math.min(scroll, maxScroll()));
 		int accent = ThemeModule.accent();
 
-		g.fill(left - 1, top - 1, left + winW + 1, top + winH + 1, (accent & 0x00FFFFFF) | 0x80000000);
-		g.fill(left, top, left + winW, top + winH, 0xF0101016);
-		g.fill(left, top, left + SIDEBAR, top + winH, 0xF016161E);
+		Render.rounded(g, left, top, left + winW, top + winH, BG);
+		Render.roundedOutline(g, left, top, left + winW, top + winH, Render.alpha(accent, 0x70));
 
-		g.text(font, "NOVA", left + 10, top + 10, accent, true);
-		g.text(font, "CLIENT", left + 10 + font.width("NOVA "), top + 10, 0xFFFFFFFF, true);
-
-		Category[] cats = Category.values();
-		for (int i = 0; i < cats.length; i++) {
-			int y = top + 32 + i * 22;
-			boolean selected = cats[i] == category;
-			boolean hover = inside(mouseX, mouseY, left + 6, y, left + SIDEBAR - 6, y + 18);
+		// header
+		g.text(font, "NOVA", left + 12, top + 12, accent, true);
+		g.text(font, "CLIENT", left + 12 + font.width("NOVA "), top + 12, TEXT, true);
+		String[] names = tabNames();
+		int[][] tabs = tabBounds();
+		for (int i = 0; i < names.length; i++) {
+			Category c = i == 0 ? null : Category.values()[i - 1];
+			boolean selected = settingsModule == null && c == category;
+			boolean hover = Render.inside(mouseX, mouseY, tabs[i][0], top + 8, tabs[i][1], top + 24);
 			if (selected) {
-				g.fill(left + 6, y, left + SIDEBAR - 6, y + 18, (accent & 0x00FFFFFF) | 0x40000000);
-				g.fill(left + 6, y, left + 8, y + 18, accent);
+				Render.rounded(g, tabs[i][0], top + 8, tabs[i][1], top + 24, Render.alpha(accent, 0x55));
 			} else if (hover) {
-				g.fill(left + 6, y, left + SIDEBAR - 6, y + 18, 0x20FFFFFF);
+				Render.rounded(g, tabs[i][0], top + 8, tabs[i][1], top + 24, 0x22FFFFFF);
 			}
-			g.text(font, cats[i].getDisplayName(), left + 14, y + 5, selected ? 0xFFFFFFFF : 0xFFB0B0BC, false);
+			g.text(font, names[i], tabs[i][0] + 7, top + 12, selected ? TEXT : TEXT_DIM, false);
 		}
+		renderSearch(g, accent);
+		g.fill(left + 8, top + HEADER, left + winW - 8, top + HEADER + 1, 0x18FFFFFF);
 
-		int by = top + winH - 26;
-		boolean hoverEditor = inside(mouseX, mouseY, left + 6, by, left + SIDEBAR - 6, by + 18);
-		g.fill(left + 6, by, left + SIDEBAR - 6, by + 18, hoverEditor ? (accent & 0x00FFFFFF) | 0x70000000 : (accent & 0x00FFFFFF) | 0x38000000);
-		g.centeredText(font, "HUD-Editor", left + SIDEBAR / 2, by + 5, 0xFFFFFFFF);
-
-		int cx = contentX();
-		int cw = contentW();
-		g.text(font, category.getDisplayName(), cx, top + 11, 0xFFFFFFFF, true);
-		String hint = "Linksklick: an/aus  ·  Rechtsklick: Einstellungen";
-		g.text(font, hint, cx + cw - font.width(hint), top + 11, 0xFF6C6C7A, false);
-
-		g.enableScissor(cx, contentTop(), cx + cw, contentBottom());
-		for (Row row : rows()) {
-			if (row.y() + row.height() < contentTop() || row.y() > contentBottom()) {
-				continue;
-			}
-			boolean hover = mouseY >= contentTop() && mouseY < contentBottom()
-				&& inside(mouseX, mouseY, cx, row.y(), cx + cw, row.y() + row.height());
-			if (row.setting() == null && !row.keybind()) {
-				renderModuleRow(g, row, cx, cw, hover, accent);
-			} else {
-				renderSettingRow(g, row, cx, cw, hover, accent, mouseX);
-			}
+		// body
+		if (settingsModule == null) {
+			g.enableScissor(left + 1, bodyTop() - 2, left + winW - 1, bodyBottom() + 2);
+			renderGrid(g, mouseX, mouseY, accent);
+		} else {
+			renderSettingsHeader(g, mouseX, mouseY, accent);
+			g.enableScissor(left + 1, settingsListTop() - 2, left + winW - 1, bodyBottom() + 2);
+			renderSettings(g, mouseX, mouseY, accent);
 		}
 		g.disableScissor();
 
 		double max = maxScroll();
 		if (max > 0) {
-			int trackH = contentBottom() - contentTop();
-			int barH = Math.max(20, (int) (trackH * trackH / (trackH + max)));
-			int barY = contentTop() + (int) ((trackH - barH) * (scroll / max));
-			g.fill(left + winW - 5, barY, left + winW - 3, barY + barH, 0x80FFFFFF);
+			int trackTop = settingsModule == null ? bodyTop() : settingsListTop();
+			int trackH = bodyBottom() - trackTop;
+			int barH = Math.max(18, (int) (trackH * trackH / (trackH + max)));
+			int barY = trackTop + (int) ((trackH - barH) * (scroll / max));
+			Render.rounded(g, left + winW - 6, barY, left + winW - 3, barY + barH, 0x60FFFFFF);
 		}
+
+		// footer
+		int fy = top + winH - FOOTER;
+		g.fill(left + 8, fy, left + winW - 8, fy + 1, 0x18FFFFFF);
+		boolean hoverEditor = Render.inside(mouseX, mouseY, left + 12, fy + 5, left + 92, fy + 21);
+		Render.rounded(g, left + 12, fy + 5, left + 92, fy + 21, Render.alpha(accent, hoverEditor ? 0x90 : 0x45));
+		g.centeredText(font, "HUD-Editor", left + 52, fy + 9, TEXT);
+		long active = NovaClient.modules().getModules().stream().filter(Module::isEnabled).count();
+		String info = active + "/" + NovaClient.modules().getModules().size() + " aktiv  ·  v" + NovaClient.VERSION;
+		g.text(font, info, left + winW - 12 - font.width(info), fy + 9, TEXT_MUTED, false);
 	}
 
-	private void renderModuleRow(GuiGraphicsExtractor g, Row row, int cx, int cw, boolean hover, int accent) {
-		Module m = row.module();
-		int y = row.y();
-		g.fill(cx, y, cx + cw, y + MODULE_ROW, hover ? 0xFF24242E : 0xFF1B1B23);
-		if (m.isEnabled()) {
-			g.fill(cx, y, cx + 2, y + MODULE_ROW, accent);
+	private void renderSearch(GuiGraphicsExtractor g, int accent) {
+		int x = searchX();
+		int y = top + 8;
+		Render.rounded(g, x, y, x + SEARCH_W, y + 16, 0xFF1A1A24);
+		if (searchFocused) {
+			Render.roundedOutline(g, x, y, x + SEARCH_W, y + 16, Render.alpha(accent, 0xC0));
 		}
-		g.text(font, m.getName(), cx + 8, y + 3, m.isEnabled() ? 0xFFFFFFFF : 0xFFB8B8C4, false);
-		String desc = font.plainSubstrByWidth(m.getDescription(), cw - 70);
-		g.text(font, desc, cx + 8, y + 13, 0xFF787886, false);
-		g.text(font, m == expanded ? "-" : "+", cx + cw - 44, y + 8, 0xFF9090A0, false);
-		drawSwitch(g, cx + cw - 30, y + 7, m.isEnabled(), accent);
-	}
-
-	private void renderSettingRow(GuiGraphicsExtractor g, Row row, int cx, int cw, boolean hover, int accent, int mouseX) {
-		int y = row.y();
-		int x0 = cx + 12;
-		g.fill(x0, y, cx + cw, y + SETTING_ROW, hover ? 0xFF1E1E27 : 0xFF15151C);
-		int ty = y + 5;
-		if (row.keybind()) {
-			g.text(font, "Tastenbelegung", x0 + 6, ty, 0xFFD0D0DA, false);
-			String label;
-			if (listening == row.module()) {
-				label = "> Taste drücken <";
-			} else if (row.module().getKeybind() <= 0) {
-				label = "Keine";
-			} else {
-				label = keyName(row.module().getKeybind());
+		// magnifier icon
+		g.outline(x + 5, y + 4, 6, 6, TEXT_DIM);
+		g.fill(x + 10, y + 10, x + 12, y + 12, TEXT_DIM);
+		int tx = x + 16;
+		if (search.isEmpty() && !searchFocused) {
+			g.text(font, "Suchen…", tx, y + 4, TEXT_MUTED, false);
+		} else {
+			String shown = font.plainSubstrByWidth(search, SEARCH_W - 24, true);
+			g.text(font, shown, tx, y + 4, TEXT, false);
+			if (searchFocused && (System.currentTimeMillis() / 500) % 2 == 0) {
+				int cx = tx + font.width(shown);
+				g.fill(cx + 1, y + 3, cx + 2, y + 13, TEXT);
 			}
-			int bw = font.width(label) + 10;
-			int bx = cx + cw - 8 - bw;
-			g.fill(bx, y + 2, bx + bw, y + SETTING_ROW - 2, listening == row.module() ? (accent & 0x00FFFFFF) | 0x60000000 : 0xFF2A2A34);
-			g.text(font, label, bx + 5, ty, 0xFFFFFFFF, false);
+		}
+	}
+
+	private void renderGrid(GuiGraphicsExtractor g, int mouseX, int mouseY, int accent) {
+		List<Module> mods = visibleModules();
+		if (mods.isEmpty()) {
+			g.centeredText(font, "Keine Module gefunden", left + winW / 2, bodyTop() + 40, TEXT_DIM);
 			return;
 		}
-		Setting<?> s = row.setting();
-		g.text(font, s.getName(), x0 + 6, ty, 0xFFD0D0DA, false);
-		if (s instanceof BoolSetting b) {
-			drawSwitch(g, cx + cw - 30, y + 4, b.isOn(), accent);
-		} else if (s instanceof NumberSetting n) {
-			int sx = sliderX(cx, cw);
-			int sw = sliderW();
-			double t = (n.get() - n.getMin()) / (n.getMax() - n.getMin());
-			int fillTo = sx + (int) Math.round(sw * t);
-			g.fill(sx, y + 8, sx + sw, y + 10, 0xFF33333F);
-			g.fill(sx, y + 8, fillTo, y + 10, accent);
-			g.fill(fillTo - 2, y + 5, fillTo + 2, y + 13, 0xFFFFFFFF);
-			String v = n.format();
-			g.text(font, v, sx - 6 - font.width(v), ty, 0xFF9A9AA8, false);
+		int w = cardW();
+		boolean mouseInBody = mouseY >= bodyTop() && mouseY < bodyBottom();
+		for (int i = 0; i < mods.size(); i++) {
+			Module m = mods.get(i);
+			int x = cardX(i);
+			int y = cardY(i);
+			if (y + CARD_H < bodyTop() - 2 || y > bodyBottom() + 2) {
+				continue;
+			}
+			boolean hover = mouseInBody && Render.inside(mouseX, mouseY, x, y, x + w, y + CARD_H);
+			boolean on = m.isEnabled();
+			int bg = hover ? CARD_HOVER : CARD;
+			if (on) {
+				bg = Render.mix(bg, accent, 0.16F);
+			}
+			Render.rounded(g, x, y, x + w, y + CARD_H, bg);
+			if (on) {
+				Render.roundedOutline(g, x, y, x + w, y + CARD_H, Render.alpha(accent, 0xB0));
+			}
+			g.text(font, font.plainSubstrByWidth(m.getName(), w - 16), x + 8, y + 7, TEXT, false);
+			String desc = m.getDescription();
+			if (font.width(desc) > w - 16) {
+				desc = font.plainSubstrByWidth(desc, w - 16 - font.width("…")) + "…";
+			}
+			g.text(font, desc, x + 8, y + 19, TEXT_DIM, false);
+			g.text(font, on ? "AN" : "AUS", x + 8, y + 33, on ? accent : TEXT_MUTED, false);
+			// settings icon (three lines) and toggle
+			boolean hoverGear = hover && Render.inside(mouseX, mouseY, x + w - 46, y + 29, x + w - 32, y + 43);
+			int ic = hoverGear ? TEXT : TEXT_DIM;
+			int gx = x + w - 43;
+			g.fill(gx, y + 32, gx + 8, y + 33, ic);
+			g.fill(gx, y + 35, gx + 8, y + 36, ic);
+			g.fill(gx, y + 38, gx + 8, y + 39, ic);
+			Render.toggle(g, x + w - 28, y + 31, on, accent);
+			if (m.getKeybind() > 0) {
+				String key = keyName(m.getKeybind());
+				int kw = font.width(key) + 6;
+				Render.rounded(g, x + w - 8 - kw, y + 5, x + w - 8, y + 16, 0xFF2A2A36);
+				g.text(font, key, x + w - 5 - kw, y + 7, TEXT_DIM, false);
+			}
 		}
 	}
 
-	private void drawSwitch(GuiGraphicsExtractor g, int x, int y, boolean on, int accent) {
-		g.fill(x, y, x + 22, y + 10, on ? accent : 0xFF3A3A46);
-		int knobX = on ? x + 13 : x + 1;
-		g.fill(knobX, y + 1, knobX + 8, y + 9, 0xFFFFFFFF);
+	private void renderSettingsHeader(GuiGraphicsExtractor g, int mouseX, int mouseY, int accent) {
+		Module m = settingsModule;
+		int x = bodyX();
+		int w = bodyW();
+		int y = bodyTop();
+		boolean hoverBack = Render.inside(mouseX, mouseY, x, y, x + 58, y + 16);
+		Render.rounded(g, x, y, x + 58, y + 16, hoverBack ? 0xFF2A2A36 : 0xFF1E1E28);
+		g.text(font, "< Zurück", x + 6, y + 4, TEXT, false);
+		g.text(font, m.getName(), x + 68, y + 1, TEXT, true);
+		int descW = w - 68 - (30 + font.width("Deaktiviert")) - 8;
+		String desc = m.getDescription();
+		if (font.width(desc) > descW) {
+			desc = font.plainSubstrByWidth(desc, descW - font.width("…")) + "…";
+		}
+		g.text(font, desc, x + 68, y + 12, TEXT_DIM, false);
+		g.text(font, m.isEnabled() ? "Aktiviert" : "Deaktiviert", x + w - 30 - font.width("Deaktiviert"), y + 4,
+			m.isEnabled() ? accent : TEXT_MUTED, false);
+		Render.toggle(g, x + w - 22, y + 3, m.isEnabled(), accent);
+		g.fill(x, settingsListTop() - 6, x + w, settingsListTop() - 5, 0x18FFFFFF);
 	}
 
-	private int sliderX(int cx, int cw) {
-		return cx + cw - 8 - sliderW();
+	private void renderSettings(GuiGraphicsExtractor g, int mouseX, int mouseY, int accent) {
+		Module m = settingsModule;
+		int x = bodyX();
+		int w = bodyW();
+		List<Object> rows = settingRows();
+		boolean mouseInList = mouseY >= settingsListTop() && mouseY < bodyBottom();
+		for (int i = 0; i < rows.size(); i++) {
+			int ry = rowY(i);
+			if (ry + ROW_H < settingsListTop() - 2 || ry > bodyBottom() + 2) {
+				continue;
+			}
+			boolean hover = mouseInList && Render.inside(mouseX, mouseY, x, ry, x + w, ry + ROW_H);
+			Render.rounded(g, x, ry, x + w, ry + ROW_H, hover ? CARD_HOVER : CARD);
+			int ty = ry + 7;
+			Object row = rows.get(i);
+			int right = x + w - 8;
+			if (row instanceof BoolSetting b) {
+				g.text(font, b.getName(), x + 10, ty, TEXT, false);
+				Render.toggle(g, right - 20, ry + 6, b.isOn(), accent);
+			} else if (row instanceof NumberSetting n) {
+				g.text(font, n.getName(), x + 10, ty, TEXT, false);
+				int sx = right - SLIDER_W;
+				double t = (n.get() - n.getMin()) / (n.getMax() - n.getMin());
+				int fill = sx + (int) Math.round(SLIDER_W * t);
+				Render.rounded(g, sx, ry + 9, sx + SLIDER_W, ry + 13, 0xFF2E2E3A);
+				if (fill - sx >= 4) {
+					Render.rounded(g, sx, ry + 9, fill, ry + 13, accent);
+				}
+				Render.rounded(g, fill - 3, ry + 6, fill + 3, ry + 16, TEXT);
+				String v = n.format();
+				g.text(font, v, sx - 8 - font.width(v), ty, TEXT_DIM, false);
+			} else if (row instanceof ModeSetting mode) {
+				g.text(font, mode.getName(), x + 10, ty, TEXT, false);
+				int pw = modePillWidth(mode);
+				int px = right - pw;
+				Render.rounded(g, px, ry + 4, right, ry + 18, 0xFF2A2A36);
+				g.text(font, "<", px + 5, ty, TEXT_DIM, false);
+				g.text(font, ">", right - 10, ty, TEXT_DIM, false);
+				g.centeredText(font, mode.get(), px + pw / 2, ty, TEXT);
+			} else if ("keybind".equals(row)) {
+				g.text(font, "Tastenbelegung", x + 10, ty, TEXT, false);
+				String label = listening == m ? "Drücke eine Taste…" : m.getKeybind() <= 0 ? "Keine" : keyName(m.getKeybind());
+				int pw = font.width(label) + 14;
+				Render.rounded(g, right - pw, ry + 4, right, ry + 18, listening == m ? Render.alpha(accent, 0x80) : 0xFF2A2A36);
+				g.text(font, label, right - pw + 7, ty, TEXT, false);
+				if (listening == m) {
+					g.text(font, "ESC = entfernen", right - pw - 8 - font.width("ESC = entfernen"), ty, TEXT_MUTED, false);
+				}
+			} else if ("hudeditor".equals(row)) {
+				g.text(font, "Position", x + 10, ty, TEXT, false);
+				String label = "Im HUD-Editor verschieben";
+				int pw = font.width(label) + 14;
+				Render.rounded(g, right - pw, ry + 4, right, ry + 18, Render.alpha(accent, hover ? 0x90 : 0x45));
+				g.text(font, label, right - pw + 7, ty, TEXT, false);
+			}
+		}
 	}
 
-	private static int sliderW() {
-		return 90;
+	private int modePillWidth(ModeSetting mode) {
+		int max = 0;
+		for (String s : mode.getModes()) {
+			max = Math.max(max, font.width(s));
+		}
+		return max + 30;
 	}
 
 	private static String keyName(int key) {
 		return InputConstants.Type.KEYBOARD.getOrCreate(key).getDisplayName().getString();
-	}
-
-	private static boolean inside(double mx, double my, int x0, int y0, int x1, int y1) {
-		return mx >= x0 && mx < x1 && my >= y0 && my < y1;
 	}
 
 	// ------------------------------------------------------------------ input
@@ -263,61 +447,117 @@ public class ClickGuiScreen extends Screen {
 			return true;
 		}
 
-		Category[] cats = Category.values();
-		for (int i = 0; i < cats.length; i++) {
-			int y = top + 32 + i * 22;
-			if (inside(mx, my, left + 6, y, left + SIDEBAR - 6, y + 18)) {
-				category = cats[i];
-				lastCategory = category;
-				expanded = null;
-				scroll = 0;
-				return true;
+		// search box
+		int sx = searchX();
+		searchFocused = Render.inside(mx, my, sx, top + 8, sx + SEARCH_W, top + 24);
+		if (searchFocused) {
+			if (button == RIGHT) {
+				search = "";
 			}
-		}
-		int by = top + winH - 26;
-		if (inside(mx, my, left + 6, by, left + SIDEBAR - 6, by + 18)) {
-			NovaClient.config().save();
-			minecraft.gui.setScreen(new HudEditorScreen(this));
+			openSettings(null);
 			return true;
 		}
 
-		int cx = contentX();
-		int cw = contentW();
-		if (my >= contentTop() && my < contentBottom()) {
-			for (Row row : rows()) {
-				if (!inside(mx, my, cx, row.y(), cx + cw, row.y() + row.height())) {
-					continue;
-				}
-				Module m = row.module();
-				if (row.keybind()) {
-					listening = m;
-				} else if (row.setting() == null) {
-					boolean onPlus = mx >= cx + cw - 48 && mx < cx + cw - 34;
-					if (button == 1 || onPlus) {
-						expanded = expanded == m ? null : m;
-					} else if (button == 0) {
-						m.toggle();
-					}
-				} else if (row.setting() instanceof BoolSetting b) {
-					b.toggle();
-				} else if (row.setting() instanceof NumberSetting n) {
-					dragging = n;
-					draggingSliderX = sliderX(cx, cw);
-					draggingSliderW = sliderW();
-					updateSlider(mx);
-				}
+		// tabs
+		int[][] tabs = tabBounds();
+		for (int i = 0; i < tabs.length; i++) {
+			if (Render.inside(mx, my, tabs[i][0], top + 8, tabs[i][1], top + 24)) {
+				category = i == 0 ? null : Category.values()[i - 1];
+				lastCategory = category;
+				openSettings(null);
 				return true;
 			}
 		}
+
+		// footer: HUD editor
+		int fy = top + winH - FOOTER;
+		if (Render.inside(mx, my, left + 12, fy + 5, left + 92, fy + 21)) {
+			openHudEditor();
+			return true;
+		}
+
+		if (settingsModule == null) {
+			if (my >= bodyTop() && my < bodyBottom() && clickGrid(mx, my, button)) {
+				return true;
+			}
+		} else if (clickSettings(mx, my, button)) {
+			return true;
+		}
 		return super.mouseClicked(event, doubleClick);
+	}
+
+	private void openHudEditor() {
+		NovaClient.config().save();
+		minecraft.gui.setScreen(new HudEditorScreen(this));
+	}
+
+	private boolean clickGrid(double mx, double my, int button) {
+		List<Module> mods = visibleModules();
+		int w = cardW();
+		for (int i = 0; i < mods.size(); i++) {
+			int x = cardX(i);
+			int y = cardY(i);
+			if (!Render.inside(mx, my, x, y, x + w, y + CARD_H)) {
+				continue;
+			}
+			Module m = mods.get(i);
+			boolean onGear = Render.inside(mx, my, x + w - 46, y + 29, x + w - 32, y + 43);
+			if (button == RIGHT || (button == LEFT && onGear)) {
+				openSettings(m);
+			} else if (button == LEFT) {
+				m.toggle();
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private boolean clickSettings(double mx, double my, int button) {
+		Module m = settingsModule;
+		int x = bodyX();
+		int w = bodyW();
+		int y = bodyTop();
+		if (Render.inside(mx, my, x, y, x + 58, y + 16)) {
+			openSettings(null);
+			return true;
+		}
+		if (Render.inside(mx, my, x + w - 30 - font.width("Deaktiviert"), y, x + w, y + 16)) {
+			m.toggle();
+			return true;
+		}
+		if (my < settingsListTop() || my >= bodyBottom()) {
+			return false;
+		}
+		List<Object> rows = settingRows();
+		for (int i = 0; i < rows.size(); i++) {
+			int ry = rowY(i);
+			if (!Render.inside(mx, my, x, ry, x + w, ry + ROW_H)) {
+				continue;
+			}
+			Object row = rows.get(i);
+			if (row instanceof BoolSetting b) {
+				b.toggle();
+			} else if (row instanceof NumberSetting n) {
+				dragging = n;
+				dragSliderX = x + w - 8 - SLIDER_W;
+				updateSlider(mx);
+			} else if (row instanceof ModeSetting mode) {
+				mode.cycle(button == RIGHT ? -1 : 1);
+			} else if ("keybind".equals(row)) {
+				listening = m;
+			} else if ("hudeditor".equals(row)) {
+				openHudEditor();
+			}
+			return true;
+		}
+		return false;
 	}
 
 	private void updateSlider(double mx) {
 		if (dragging == null) {
 			return;
 		}
-		double t = (mx - draggingSliderX) / draggingSliderW;
-		t = Math.max(0, Math.min(1, t));
+		double t = Math.max(0, Math.min(1, (mx - dragSliderX) / SLIDER_W));
 		dragging.set(dragging.getMin() + t * (dragging.getMax() - dragging.getMin()));
 	}
 
@@ -342,14 +582,28 @@ public class ClickGuiScreen extends Screen {
 	@Override
 	public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
 		layout();
-		scroll = Math.max(0, Math.min(maxScroll(), scroll - scrollY * 18));
+		scroll = Math.max(0, Math.min(maxScroll(), scroll - scrollY * 20));
+		return true;
+	}
+
+	@Override
+	public boolean charTyped(CharacterEvent event) {
+		if (listening != null || !event.isAllowedChatCharacter()) {
+			return false;
+		}
+		if (search.length() < 32) {
+			search += event.codepointAsString();
+			searchFocused = true;
+			scroll = 0;
+			settingsModule = null;
+		}
 		return true;
 	}
 
 	@Override
 	public boolean keyPressed(KeyEvent event) {
+		int key = event.key();
 		if (listening != null) {
-			int key = event.key();
 			if (key == InputConstants.KEY_ESCAPE || key == InputConstants.KEY_BACKSPACE || key == InputConstants.KEY_DELETE) {
 				listening.setKeybind(0);
 			} else {
@@ -358,10 +612,74 @@ public class ClickGuiScreen extends Screen {
 			listening = null;
 			return true;
 		}
-		if (event.key() == InputConstants.KEY_RSHIFT) {
+		if (key == InputConstants.KEY_BACKSPACE && !search.isEmpty()) {
+			search = search.substring(0, search.offsetByCodePoints(search.length(), -1));
+			scroll = 0;
+			return true;
+		}
+		if (key == InputConstants.KEY_ESCAPE) {
+			if (settingsModule != null) {
+				openSettings(null);
+				return true;
+			}
+			if (!search.isEmpty() || searchFocused) {
+				search = "";
+				searchFocused = false;
+				return true;
+			}
+		}
+		if (key == InputConstants.KEY_RSHIFT) {
 			onClose();
 			return true;
 		}
 		return super.keyPressed(event);
+	}
+
+	// ------------------------------------------------------------------ positions (used by the automated tests)
+
+	/** Centre of the card body of a module on the grid page, or null if not visible. */
+	public int @Nullable [] cardCenter(Module m) {
+		layout();
+		int i = visibleModules().indexOf(m);
+		return i < 0 ? null : new int[] {cardX(i) + 30, cardY(i) + 12};
+	}
+
+	/** Centre of the settings (menu) icon of a card. */
+	public int @Nullable [] gearCenter(Module m) {
+		layout();
+		int i = visibleModules().indexOf(m);
+		return i < 0 ? null : new int[] {cardX(i) + cardW() - 39, cardY(i) + 35};
+	}
+
+	/** Centre of tab i (0 = "Alle"). */
+	public int[] tabCenter(int i) {
+		layout();
+		int[][] tabs = tabBounds();
+		return new int[] {(tabs[i][0] + tabs[i][1]) / 2, top + 16};
+	}
+
+	/** Centre of settings row i of the open settings page; for sliders pass the wanted fraction. */
+	public int[] rowPoint(int i, double sliderFraction) {
+		layout();
+		int x = sliderFraction >= 0 ? bodyX() + bodyW() - 8 - SLIDER_W + (int) Math.round(SLIDER_W * sliderFraction) : bodyX() + 40;
+		return new int[] {x, rowY(i) + ROW_H / 2};
+	}
+
+	public int[] backButtonCenter() {
+		layout();
+		return new int[] {bodyX() + 29, bodyTop() + 8};
+	}
+
+	public int[] hudEditorButtonCenter() {
+		layout();
+		return new int[] {left + 52, top + winH - FOOTER + 13};
+	}
+
+	public @Nullable Module getSettingsModule() {
+		return settingsModule;
+	}
+
+	public String getSearch() {
+		return search;
 	}
 }

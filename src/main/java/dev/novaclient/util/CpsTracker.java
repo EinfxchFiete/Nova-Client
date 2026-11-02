@@ -1,9 +1,13 @@
 package dev.novaclient.util;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/** Counts mouse clicks of the last second. Only accessed from the render/main thread. */
+/**
+ * Counts mouse clicks of the last second. Only accessed from the main thread.
+ * Note: since Minecraft 26.x (SDL input) the left button is 1 and the right button is 3.
+ */
 public final class CpsTracker {
 	private static final Deque<Long> LEFT = new ArrayDeque<>();
 	private static final Deque<Long> RIGHT = new ArrayDeque<>();
@@ -13,9 +17,9 @@ public final class CpsTracker {
 
 	public static void onClick(int button) {
 		long now = System.currentTimeMillis();
-		if (button == 0) {
+		if (button == InputConstants.MOUSE_BUTTON_LEFT) {
 			LEFT.addLast(now);
-		} else if (button == 1) {
+		} else if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
 			RIGHT.addLast(now);
 		}
 	}

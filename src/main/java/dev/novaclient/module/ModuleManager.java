@@ -1,6 +1,11 @@
 package dev.novaclient.module;
 
 import dev.novaclient.module.hud.ArmorStatusModule;
+import dev.novaclient.module.hud.ArrowCounterModule;
+import dev.novaclient.module.hud.BiomeModule;
+import dev.novaclient.module.hud.ComboModule;
+import dev.novaclient.module.hud.ReachModule;
+import dev.novaclient.module.hud.SessionTimeModule;
 import dev.novaclient.module.hud.ClockModule;
 import dev.novaclient.module.hud.CoordinatesModule;
 import dev.novaclient.module.hud.CpsModule;
@@ -14,9 +19,14 @@ import dev.novaclient.module.hud.PotionEffectsModule;
 import dev.novaclient.module.hud.ServerAddressModule;
 import dev.novaclient.module.hud.SpeedModule;
 import dev.novaclient.module.hud.ThemeModule;
+import dev.novaclient.util.CombatTracker;
 import dev.novaclient.module.utility.ToggleSneakModule;
 import dev.novaclient.module.utility.ToggleSprintModule;
+import dev.novaclient.module.visual.CrosshairModule;
+import dev.novaclient.module.visual.FreelookModule;
 import dev.novaclient.module.visual.FullbrightModule;
+import dev.novaclient.module.visual.HudTweaksModule;
+import dev.novaclient.module.visual.NoWeatherModule;
 import dev.novaclient.module.visual.LowFireModule;
 import dev.novaclient.module.visual.NoHurtCamModule;
 import dev.novaclient.module.visual.ZoomModule;
@@ -30,6 +40,8 @@ public final class ModuleManager {
 
 	public final ThemeModule theme;
 	public final ZoomModule zoom;
+	public final FreelookModule freelook;
+	public final CrosshairModule crosshair;
 	public final PotionEffectsModule potionEffects;
 
 	public ModuleManager() {
@@ -46,11 +58,20 @@ public final class ModuleManager {
 		register(new SpeedModule());
 		register(new MemoryModule());
 		register(new DayCounterModule());
+		register(new BiomeModule());
+		register(new ArrowCounterModule());
+		register(new SessionTimeModule());
+		register(new ReachModule());
+		register(new ComboModule());
 
 		zoom = register(new ZoomModule());
+		freelook = register(new FreelookModule());
+		crosshair = register(new CrosshairModule());
 		register(new FullbrightModule());
 		register(new NoHurtCamModule());
 		register(new LowFireModule());
+		register(new HudTweaksModule());
+		register(new NoWeatherModule());
 
 		register(new ToggleSprintModule());
 		register(new ToggleSneakModule());
@@ -95,6 +116,7 @@ public final class ModuleManager {
 	}
 
 	public void tick(Minecraft mc) {
+		CombatTracker.tick(mc);
 		for (Module m : modules) {
 			m.tick();
 		}

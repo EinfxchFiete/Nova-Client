@@ -1,23 +1,35 @@
 package dev.novaclient.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.novaclient.NovaClient;
 import dev.novaclient.module.hud.HudModule;
 import dev.novaclient.module.hud.ThemeModule;
+import dev.novaclient.util.Render;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
-/** Drag HUD elements around with the mouse. */
+/**
+ * Drag HUD elements with the left mouse button. Right click an element to open its settings.
+ * The "Elemente" button lists every HUD module so it can be switched on/off with one click.
+ */
 public class HudEditorScreen extends Screen {
+	private static final int LEFT = InputConstants.MOUSE_BUTTON_LEFT;
+	private static final int RIGHT = InputConstants.MOUSE_BUTTON_RIGHT;
 	private static final int SNAP = 4;
+	private static final int LIST_ROW = 14;
+	private static final int LIST_W = 150;
 
 	private final @Nullable Screen parent;
 	private @Nullable HudModule dragging;
 	private int offsetX;
 	private int offsetY;
+	private boolean listOpen;
+	private int listScroll;
 
 	public HudEditorScreen(@Nullable Screen parent) {
 		super(Component.literal("HUD-Editor"));
@@ -40,8 +52,12 @@ public class HudEditorScreen extends Screen {
 		g.fill(0, 0, width, height, 0x30000000);
 	}
 
+	private List<HudModule> all() {
+		return NovaClient.modules().getHudModules();
+	}
+
 	private List<HudModule> visible() {
-		return NovaClient.modules().getHudModules().stream().filter(HudModule::isEnabled).toList();
+		return all().stream().filter(HudModule::isEnabled).toList();
 	}
 
 	private @Nullable HudModule at(double mx, double my) {
@@ -57,13 +73,36 @@ public class HudEditorScreen extends Screen {
 		return null;
 	}
 
+	// top bar: [Elemente] [Fertig]
+	private int barX() {
+		return width / 2 - 70;
+	}
+
+	private int barY() {
+		return 30;
+	}
+
+	private int listX() {
+		return width / 2 - LIST_W / 2;
+	}
+
+	private int listY() {
+		return barY() + 20;
+	}
+
+	private int listH() {
+		return Math.min(all().size() * LIST_ROW + 6, height - listY() - 6);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
 		int accent = ThemeModule.accent();
-		g.fill(width / 2, 0, width / 2 + 1, height, 0x20FFFFFF);
-		g.fill(0, height / 2, width, height / 2 + 1, 0x20FFFFFF);
+		g.fill(width / 2, 0, width / 2 + 1, height, 0x18FFFFFF);
+		g.fill(0, height / 2, width, height / 2 + 1, 0x18FFFFFF);
 
-		HudModule hovered = dragging != null ? dragging : at(mouseX, mouseY);
+		boolean overUi = listOpen && Render.inside(mouseX, mouseY, listX(), listY(), listX() + LIST_W, listY() + listH())
+			|| Render.inside(mouseX, mouseY, barX(), barY(), barX() + 140, barY() + 16);
+		HudModule hovered = dragging != null ? dragging : overUi ? null : at(mouseX, mouseY);
 		for (HudModule m : visible()) {
 			m.render(g, width, height, true);
 			int x = m.getScreenX(width, true);
@@ -71,27 +110,83 @@ public class HudEditorScreen extends Screen {
 			int w = m.getWidth(true);
 			int h = m.getHeight(true);
 			if (w > 0 && h > 0) {
-				g.outline(x - 1, y - 1, w + 2, h + 2, m == hovered ? accent : 0x60FFFFFF);
+				g.outline(x - 1, y - 1, w + 2, h + 2, m == hovered ? accent : 0x50FFFFFF);
 			}
 		}
-		if (hovered != null) {
+
+		g.centeredText(font, "HUD-Editor", width / 2, 6, accent);
+		g.centeredText(font, "Ziehen = verschieben  ·  Rechtsklick = Einstellungen", width / 2, 17, 0xFFB0B0BC);
+
+		boolean hoverList = Render.inside(mouseX, mouseY, barX(), barY(), barX() + 68, barY() + 16);
+		boolean hoverDone = Render.inside(mouseX, mouseY, barX() + 72, barY(), barX() + 140, barY() + 16);
+		Render.rounded(g, barX(), barY(), barX() + 68, barY() + 16, listOpen || hoverList ? Render.alpha(accent, 0xC0) : 0xE0181820);
+		g.centeredText(font, "Elemente", barX() + 34, barY() + 4, 0xFFFFFFFF);
+		Render.rounded(g, barX() + 72, barY(), barX() + 140, barY() + 16, hoverDone ? Render.alpha(accent, 0xC0) : 0xE0181820);
+		g.centeredText(font, "Fertig", barX() + 106, barY() + 4, 0xFFFFFFFF);
+
+		if (listOpen) {
+			int lx = listX();
+			int ly = listY();
+			Render.rounded(g, lx, ly, lx + LIST_W, ly + listH(), 0xF0101016);
+			Render.roundedOutline(g, lx, ly, lx + LIST_W, ly + listH(), Render.alpha(accent, 0x70));
+			g.enableScissor(lx, ly, lx + LIST_W, ly + listH());
+			List<HudModule> mods = all();
+			for (int i = 0; i < mods.size(); i++) {
+				HudModule m = mods.get(i);
+				int ry = ly + 3 + i * LIST_ROW - listScroll;
+				if (Render.inside(mouseX, mouseY, lx + 2, ry, lx + LIST_W - 2, ry + LIST_ROW)) {
+					g.fill(lx + 2, ry, lx + LIST_W - 2, ry + LIST_ROW, 0x20FFFFFF);
+				}
+				g.text(font, m.getName(), lx + 8, ry + 3, m.isEnabled() ? 0xFFFFFFFF : 0xFF8A8A9A, false);
+				Render.toggle(g, lx + LIST_W - 28, ry + 2, m.isEnabled(), accent);
+			}
+			g.disableScissor();
+		}
+		if (hovered != null && dragging == null) {
 			g.setTooltipForNextFrame(font, Component.literal(hovered.getName()), mouseX, mouseY);
 		}
-
-		g.centeredText(font, "HUD-Editor", width / 2, 8, accent);
-		g.centeredText(font, "Ziehe die Elemente mit der Maus  ·  ESC = zurück", width / 2, 20, 0xFFC0C0C0);
 	}
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (event.button() == 0) {
-			HudModule m = at(event.x(), event.y());
-			if (m != null) {
-				dragging = m;
-				offsetX = (int) event.x() - m.getScreenX(width, true);
-				offsetY = (int) event.y() - m.getScreenY(height, true);
-				return true;
+		double mx = event.x();
+		double my = event.y();
+		int button = event.button();
+		if (button == LEFT && Render.inside(mx, my, barX(), barY(), barX() + 68, barY() + 16)) {
+			listOpen = !listOpen;
+			return true;
+		}
+		if (button == LEFT && Render.inside(mx, my, barX() + 72, barY(), barX() + 140, barY() + 16)) {
+			onClose();
+			return true;
+		}
+		if (listOpen && Render.inside(mx, my, listX(), listY(), listX() + LIST_W, listY() + listH())) {
+			int i = (int) Math.floor((my - listY() - 3 + listScroll) / LIST_ROW);
+			List<HudModule> mods = all();
+			if (i >= 0 && i < mods.size()) {
+				if (button == RIGHT) {
+					minecraft.gui.setScreen(new ClickGuiScreen(this, mods.get(i)));
+				} else {
+					mods.get(i).toggle();
+				}
 			}
+			return true;
+		}
+		HudModule m = at(mx, my);
+		if (m != null && button == LEFT) {
+			dragging = m;
+			offsetX = (int) mx - m.getScreenX(width, true);
+			offsetY = (int) my - m.getScreenY(height, true);
+			return true;
+		}
+		if (m != null && button == RIGHT) {
+			NovaClient.config().save();
+			minecraft.gui.setScreen(new ClickGuiScreen(this, m));
+			return true;
+		}
+		if (listOpen) {
+			listOpen = false;
+			return true;
 		}
 		return super.mouseClicked(event, doubleClick);
 	}
@@ -134,5 +229,27 @@ public class HudEditorScreen extends Screen {
 			return true;
 		}
 		return super.mouseReleased(event);
+	}
+
+	@Override
+	public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+		if (listOpen) {
+			int max = Math.max(0, all().size() * LIST_ROW + 6 - listH());
+			listScroll = (int) Math.max(0, Math.min(max, listScroll - scrollY * LIST_ROW));
+		}
+		return true;
+	}
+
+	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (event.key() == InputConstants.KEY_ESCAPE && listOpen) {
+			listOpen = false;
+			return true;
+		}
+		return super.keyPressed(event);
+	}
+
+	public boolean isListOpen() {
+		return listOpen;
 	}
 }

@@ -4,8 +4,10 @@
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"CameraMixin",
-		"KeyboardHandlerMixin",
+		"EntityMixin",
 		"GameRendererMixin",
+		"KeyboardHandlerMixin",
+		"LevelMixin",
 		"LightmapRenderStateExtractorMixin",
 		"MouseHandlerMixin",
 		"ScreenEffectRendererMixin"
