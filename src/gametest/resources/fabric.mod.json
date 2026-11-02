@@ -1,0 +1,12 @@
+{
+	"schemaVersion": 1,
+	"id": "novaclient-gametest",
+	"version": "1.0.0",
+	"name": "Nova Client Game Tests",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": ["dev.novaclient.test.NovaClientGameTest"]
+	},
+	"mixins": ["novaclient-gametest.mixins.json"],
+	"depends": { "novaclient": "*" }
+}

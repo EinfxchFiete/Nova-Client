@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "novaclient",
+	"version": "${version}",
+	"name": "Nova Client",
+	"description": "Ein PvP- und Quality-of-Life-Client: HUD-Module, Zoom, Fullbright, ClickGUI (Rechte Umschalttaste) und mehr.",
+	"authors": [
+		"Nova"
+	],
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.novaclient.NovaClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"mixins": [
+		"novaclient.mixins.json"
+	],
+	"icon": "assets/novaclient/icon.png"
+}

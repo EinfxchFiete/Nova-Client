@@ -1,0 +1,7 @@
+{
+	"required": true,
+	"package": "dev.novaclient.test.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": ["HeadlessGlBackendMixin"],
+	"injectors": { "defaultRequire": 1 }
+}
