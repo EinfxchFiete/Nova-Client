@@ -466,6 +466,7 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 6. Frage an den Nutzer: E-Mail aus der Git-Historie entfernen (Force-Push nötig)?
 
 ### Ideen (erwähnt/angedacht, nicht umgesetzt)
+- Aus dem allerersten Angebot, nie umgesetzt: **Performance-Optimierungen über Mixins**, eigene Render-/Shader-Effekte.
 - Discord Rich Presence (braucht Discord-App-ID), Zeit-Wechsler (in 26.x schwierig), Minimap, Item-Physik, Motion Blur,
   Treffer-Farbe, Schadenszahlen, Auto-GG, kompakter Chat / längerer Chat-Verlauf, Gegenstand-in-der-Hand-Größe,
   Scoreboard-Zahlen ausblenden, mehrere Wegpunkte mit Markierung in der Welt, Song-Fortschrittsbalken (Spotify-HUD wie NoRisk),
@@ -478,7 +479,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 
 ## 9. WICHTIGE CODE-SCHNIPSEL (aus dem Chat, die nicht Teil des Mod-/Launcher-Codes sind)
 
-Alle diese Skripte liegen jetzt **unverändert** im Repo unter `tools/` (vorher nur im temporären Arbeitsordner des Chats):
+Alle diese Skripte liegen jetzt im Repo unter `tools/` (vorher nur im temporären Arbeitsordner des Chats), **inhaltlich unverändert**.
+Einzige Ausnahme: `SdlGlTest.java` hieß im Chat `T.java` (Klasse `T`), nur der Klassenname wurde angepasst.
 
 | Datei | Zweck | Aufruf |
 |---|---|---|
@@ -490,9 +492,11 @@ Alle diese Skripte liegen jetzt **unverändert** im Repo unter `tools/` (vorher 
 | `tools/testing/build-headless-mod.sh` | Test-Hilfsmod für Launcher-Starttests | `tools/testing/build-headless-mod.sh /tmp/headless.jar` |
 | `tools/testing/fake-playerctl` | Fake-Song für den Linux-Musiktest | `PATH=$PWD/tools/testing:$PATH NOVA_FAKE_PLAYERCTL=1 …` |
 | `tools/testing/SdlGlTest.java` | Mini-Programm zur Diagnose von SDL/OpenGL unter Xvfb (zeigte das sRGB-Problem) | `java -cp "<lwjgl+lwjgl-sdl jars>" SdlGlTest.java` |
+| `tools/testing/glx.py` | Mini-Diagnose per ctypes: X-Display öffnen, GLX-Erweiterung und `glXChooseVisual` prüfen (erster Schritt der Xvfb-Fehlersuche) | `LIBGL_DEBUG=verbose xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX" python3 tools/testing/glx.py` |
 | `tools/dev-setup.sh` | Java 25 + XDG_RUNTIME_DIR für Cloud-Sessions | `source tools/dev-setup.sh` |
 
-Geprüft: `mod_icon.py`, `launcher_assets.py` und `make_ico.py` erzeugen **bytegleich** die Dateien im Repo.
+Geprüft: `mod_icon.py`, `launcher_assets.py` und `make_ico.py` erzeugen **bytegleich** die Dateien im Repo. `capes.py`,
+`cosmetic_assets.py`, `fake-playerctl` und `glx.py` sind bytegleich mit den Originalen aus dem Arbeitsordner des Chats.
 `cosmetic_assets.py` nutzt bei Cape-Frames `hash(name)` für einen (ungenutzten) Zufallsgenerator – Ausgabe trotzdem deterministisch [UNSICHER, nicht bytegenau verglichen].
 
 **Test-Hilfsmod (Inhalt von `build-headless-mod.sh`, Kern):**
@@ -512,6 +516,26 @@ nova-headless.mixins.json: {"required":true,"package":"dev.novaclient.test.mixin
   > This is a personal hobby project, currently used by me and a few friends. The Azure app is registered for personal Microsoft accounts only, with public client flows enabled for the device code login. No redirect URIs are used. The source code is available at the URL above.
   (Der Nutzer ergänzte „The Client and Texts are fully AI Generated :D“; vorgeschlagen war sachlicher: „The client, the launcher and these texts were created with the help of an AI coding assistant (Claude).“ [UNSICHER welche Fassung abgeschickt wurde])
 
+**Erste Formular-Hilfe** (allgemein, bevor der Nutzer die echten Felder per Screenshot zeigte):
+
+| Feld | Vorschlag |
+|---|---|
+| Name / E-Mail | Name + E-Mail des Microsoft-Kontos des Nutzers |
+| Company / Organization | eigener Name oder `Nova Client (private project)` |
+| Application name | `Nova Launcher` |
+| Application (Client) ID | Client-ID der Azure-App (hier bewusst nicht notiert) |
+| Tenant ID / Directory ID (falls gefragt) | „Verzeichnis-ID (Mandant)“ aus Azure (hier bewusst nicht notiert) |
+| Website | nur Echtes. Der Nutzer hatte zuerst „none“ → empfohlen: Repo öffentlich machen und Repo-URL eintragen (so gemacht) |
+
+- Erste Beschreibung („How will you use the API?“), später durch die Justification oben ersetzt:
+  > Nova Launcher is a small, non-commercial Minecraft: Java Edition launcher for my own client mod "Nova Client" (Fabric, Minecraft 26.3). It uses the Microsoft device code login to authenticate players with their own Microsoft account, checks that they own Minecraft, launches the official game files from Mojang's servers, and lets players change their own skin and select their own capes via the Minecraft Services API. Tokens are stored only locally and encrypted on the user's PC. The launcher is free, contains no ads or payments, and does not let anyone play without owning the game.
+- Ja/Nein-Fragen: kommerziell → **Nein**; öffentlich verfügbar → ehrlich („privat / kleine Nutzergruppe“); Usage Guidelines/EULA → **Ja**.
+- Mitgegebene Regeln: nur Wahres schreiben (keine erfundenen Nutzerzahlen, Firma oder Website), sich nicht als NoRisk oder Mojang
+  ausgeben; nutzt nur der Nutzer selbst den Launcher, „currently only used by me“ statt „used by me and a few friends“ schreiben.
+  Mojang antwortet per E-Mail nach Tagen bis Wochen; Ablehnung oder späterer Entzug der Freischaltung ist möglich.
+- Letzter Stand im Chat: „Das Formular passt so, du kannst es absenden.“ Dazu der Tipp, im privaten Browserfenster zu prüfen, ob das
+  Repo ohne Login erreichbar ist.
+
 ---
 
 ## 10. SONSTIGES
@@ -526,9 +550,30 @@ nova-headless.mixins.json: {"required":true,"package":"dev.novaclient.test.mixin
   Azure-Portal (App-Registrierungen → „Nova Launcher“ → Übersicht) und in den Launcher-Optionen des Nutzers. Die Client-ID ist
   technisch kein Geheimnis, aber der Nutzer fragte ausdrücklich, ob „die Azure-ID“ im Repo sichtbar ist (Antwort damals: nein)
   → nur nach Rückfrage ins Repo schreiben. Keine Umleitungs-URIs, kein Client-Geheimnis.
+- **Azure-Einrichtung (Ablauf aus dem Chat, falls der Nutzer nochmal Hilfe braucht):** Private Microsoft-Konten haben kein eigenes
+  Azure-Verzeichnis mehr, ohne Verzeichnis gibt es keine App-Registrierung. Lösung: kostenloses Azure-Konto („sich für Azure
+  registrieren“; verlangt Handynummer und Kreditkarte nur zur Identitätsprüfung, evtl. kurze Reservierung von ca. 1 €).
+  Ausgabenschutz aktiv, **nie auf „Pay-as-you-go“ upgraden**; nach 30 Tagen verfällt nur das Startguthaben, Verzeichnis und App bleiben.
+  Das M365-Entwicklerprogramm hilft nicht (Testumgebung nur noch mit bezahltem Visual-Studio-Abo).
+  Klickweg: Suchleiste „App-Registrierungen“ → „+ Neue Registrierung“ (Name `Nova Launcher`, „Nur persönliche Microsoft-Konten“,
+  Umleitungs-URI leer) → „Registrieren“ → Verwalten → „Authentifizierung“ (im neuen Design ggf. Registerkarte „Einstellungen“) →
+  „Öffentliche Clientflows zulassen“ = Ja/Aktiviert → „Speichern“ → „Übersicht“ → „Anwendungs-ID (Client)“ kopieren →
+  Nova Launcher → Optionen → „Azure Client-ID“. Danach das Mojang-Formular (Abschnitt 9). Bis zur Freischaltung meldet der Launcher
+  „Mojang hat diese Client-ID noch nicht freigeschaltet“, das ist normal.
 - **Render.com**: noch kein Konto/Deploy [Stand Übergabe].
 - **Monocraft**: <https://github.com/IdreesInc/Monocraft> (OFL 1.1), Datei `dist/Monocraft-ttf/Monocraft.ttf`.
 - **Steve-Textur**: `https://textures.minecraft.net/texture/31f477eb1a7beee631c2ca64d06f8f68fa93a3386d04452ab27f43acdf1b60cb`.
+
+### Hinweise, die dem Nutzer gegeben wurden
+- **Installation der Jar:** Fabric Loader ≥ 0.20.1 für 26.3, **Fabric API** (für 26.3) und `nova-client-<version>.jar` in den
+  `mods`-Ordner, alte Nova-Jar löschen, mit dem Fabric-Profil starten. Menü: Rechte Umschalttaste, Zoom: C.
+- **Spielen bis zur Mojang-Freischaltung:** Nova-Jar + Fabric API in ein Fabric-26.3-Profil im offiziellen Launcher, im **Prism
+  Launcher** oder in der **Modrinth App** legen, dort geht der normale Microsoft-Login sofort. Ob der NoRisk-Launcher eigene Mods
+  neben seinem Client erlaubt, sollte der Nutzer selbst prüfen [UNSICHER].
+- **Freelook** ist auf **Hypixel** und manchen anderen Servern verboten → vorher die Serverregeln prüfen.
+- **Windows SmartScreen:** Beim ersten Start der unsignierten `.exe` erscheint „Der Computer wurde durch Windows geschützt“ →
+  „Weitere Informationen“ → „Trotzdem ausführen“.
+- Bei Problemen unter Windows soll der Nutzer einen Screenshot oder den Text aus der Launcher-Konsole schicken.
 
 ### Nützliche Links
 - Azure App-Registrierungen: <https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade>
@@ -593,3 +638,13 @@ Beim zweiten Durchgehen ergänzt:
 - Der Nutzer will bei Gelegenheit **„den Server-Dings“ (Render-URL) schicken**, wenn er wieder Tokens hat und zu Hause ist –
   das ist der nächste konkrete Schritt (To-do 1).
 - `tools/` und diese Datei wurden im Übergabe-Commit ergänzt; die Release-Jar enthält davon nichts.
+
+### Dritter Durchgang (nach dem Neustart der Sitzung)
+Der Verlauf wurde noch einmal automatisch durchsucht (alle Antworten, alle im Chat erstellten Dateien). Ergänzt wurden:
+- `tools/testing/glx.py` (GLX-Diagnose aus der Xvfb-Fehlersuche), das noch fehlte, und der Hinweis, dass `SdlGlTest.java` im Chat `T.java` hieß.
+- Die erste, allgemeine Formular-Hilfe für Mojang mit Feldern, Ja/Nein-Antworten und Regeln (Abschnitt 9).
+- Der Azure-Ablauf mit Kosten-Hinweisen und Klickweg (Abschnitt 10).
+- Hinweise an den Nutzer (Abschnitt 10): Installation, Spielen bis zur Freischaltung (Prism/Modrinth App), Freelook-Verbot auf
+  Hypixel, SmartScreen.
+- Ideen aus dem ersten Angebot (Performance-Mixins, Render-/Shader-Effekte).
+- Die Azure-Client-ID wurde aus dieser Datei entfernt, weil das Repo öffentlich ist und der Nutzer danach gefragt hatte (siehe Abschnitt 10).
