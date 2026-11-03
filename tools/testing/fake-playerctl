@@ -1,0 +1,2 @@
+#!/bin/sh
+printf 'Fake Song\tFake Artist\tPlaying\tspotify\n'
