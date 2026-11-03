@@ -1,11 +1,10 @@
 package dev.novaclient.module.hud;
 
-import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.client.multiplayer.PlayerInfo;
+import dev.novaclient.util.PingTracker;
 
 public class PingModule extends TextHudModule {
 	public PingModule() {
-		super("Ping", "Zeigt deine Latenz zum Server", true, Anchor.START, 2, Anchor.START, 18);
+		super("Ping", "Zeigt deine echte Latenz zum Server (gemessen, nicht der Tab-Wert)", true, Anchor.START, 2, Anchor.START, 18);
 	}
 
 	@Override
@@ -15,11 +14,10 @@ public class PingModule extends TextHudModule {
 
 	@Override
 	protected String value() {
-		ClientPacketListener connection = mc().getConnection();
-		if (connection == null || mc().player == null) {
-			return "0 ms";
+		if (mc().getConnection() == null || mc().player == null) {
+			return "-";
 		}
-		PlayerInfo info = connection.getPlayerInfo(mc().player.getUUID());
-		return (info == null ? 0 : info.getLatency()) + " ms";
+		int ms = PingTracker.current(mc());
+		return ms < 0 ? "misst…" : ms + " ms";
 	}
 }

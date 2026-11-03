@@ -1,2 +1,2 @@
 #!/bin/sh
-printf 'Fake Song\tFake Artist\tPlaying\tspotify\n'
+printf 'Fake Song\tFake Artist\tPlaying\tspotify\t61000000\t200000000\n'

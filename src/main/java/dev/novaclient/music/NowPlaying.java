@@ -14,7 +14,37 @@ import java.util.concurrent.TimeUnit;
  * with Spotify's window title as fallback. Linux: playerctl (MPRIS). macOS: Spotify / Music via osascript.
  */
 public final class NowPlaying {
-	public record Song(String title, String artist, boolean playing, String source) {
+	/**
+	 * A song. {@code positionMs}/{@code lengthMs} are -1 if unknown; the position was measured at {@code sampledAt}
+	 * (System.currentTimeMillis) and moves on while the song is playing, see {@link #positionNow()}.
+	 */
+	public record Song(String title, String artist, boolean playing, String source, long positionMs, long lengthMs, long sampledAt) {
+		public Song(String title, String artist, boolean playing, String source) {
+			this(title, artist, playing, source, -1, -1, System.currentTimeMillis());
+		}
+
+		public boolean hasTimeline() {
+			return lengthMs > 0 && positionMs >= 0;
+		}
+
+		/** Current position in ms (extrapolated), -1 if unknown. */
+		public long positionNow() {
+			if (!hasTimeline()) {
+				return -1;
+			}
+			long p = positionMs + (playing ? System.currentTimeMillis() - sampledAt : 0);
+			return Math.max(0, Math.min(lengthMs, p));
+		}
+
+		/** "1:23 / 3:45", or "" if unknown. */
+		public String timestamp() {
+			return hasTimeline() ? time(positionNow()) + " / " + time(lengthMs) : "";
+		}
+
+		public static String time(long ms) {
+			long s = ms / 1000;
+			return s >= 3600 ? String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60) : String.format("%d:%02d", s / 60, s % 60);
+		}
 	}
 
 	private static volatile Song current;
@@ -24,7 +54,7 @@ public final class NowPlaying {
 	private static Thread thread;
 	private static Process process;
 
-	/** Windows PowerShell 5.1 script: prints "title<TAB>artist<TAB>status<TAB>source" every 3 seconds. */
+	/** Windows PowerShell 5.1 script: prints "title<TAB>artist<TAB>status<TAB>source<TAB>positionMs<TAB>lengthMs" every 2 seconds. */
 	private static final String WINDOWS_SCRIPT = String.join("\n",
 		"$ErrorActionPreference = 'SilentlyContinue'",
 		"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
@@ -44,7 +74,15 @@ public final class NowPlaying {
 		"      if ($s -ne $null) {",
 		"        $p = Await ($s.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])",
 		"        $st = $s.GetPlaybackInfo().PlaybackStatus",
-		"        if ($p -ne $null -and $p.Title) { $line = $p.Title + \"`t\" + $p.Artist + \"`t\" + $st + \"`t\" + $s.SourceAppUserModelId }",
+		"        $pos = -1; $len = -1",
+		"        try {",
+		"          $tl = $s.GetTimelineProperties()",
+		"          $len = [long]($tl.EndTime - $tl.StartTime).TotalMilliseconds",
+		"          $pos = [long]$tl.Position.TotalMilliseconds",
+		"          if ($st -eq 'Playing') { $pos += [long]([DateTimeOffset]::Now - $tl.LastUpdatedTime).TotalMilliseconds }",
+		"          if ($len -le 0) { $pos = -1; $len = -1 } elseif ($pos -gt $len) { $pos = $len }",
+		"        } catch { $pos = -1; $len = -1 }",
+		"        if ($p -ne $null -and $p.Title) { $line = $p.Title + \"`t\" + $p.Artist + \"`t\" + $st + \"`t\" + $s.SourceAppUserModelId + \"`t\" + $pos + \"`t\" + $len }",
 		"      }",
 		"    }",
 		"  } catch { $line = '' }",
@@ -54,7 +92,7 @@ public final class NowPlaying {
 		"  }",
 		"  # stop as soon as Minecraft no longer reads our output (game closed)",
 		"  try { [Console]::Out.WriteLine($line); [Console]::Out.Flush() } catch { break }",
-		"  Start-Sleep -Seconds 3",
+		"  Start-Sleep -Seconds 2",
 		"}");
 
 	private NowPlaying() {
@@ -118,9 +156,11 @@ public final class NowPlaying {
 				if (os.contains("win")) {
 					runWindows();
 				} else if (os.contains("mac")) {
-					poll(new String[] {"osascript", "-e", MAC_SCRIPT});
+					poll(new String[] {"osascript", "-e", MAC_SCRIPT}, 1);
 				} else {
-					poll(new String[] {"playerctl", "metadata", "--format", "{{title}}\t{{artist}}\t{{status}}\t{{playerName}}"});
+					// position and mpris:length are in microseconds
+					poll(new String[] {"playerctl", "metadata", "--format",
+						"{{title}}\t{{artist}}\t{{status}}\t{{playerName}}\t{{position}}\t{{mpris:length}}"}, 1000);
 				}
 			} catch (InterruptedException e) {
 				return;
@@ -133,9 +173,9 @@ public final class NowPlaying {
 	}
 
 	private static final String MAC_SCRIPT = "if application \"Spotify\" is running then\n"
-		+ "tell application \"Spotify\" to return (name of current track) & tab & (artist of current track) & tab & (player state as string) & tab & \"Spotify\"\n"
+		+ "tell application \"Spotify\" to return (name of current track) & tab & (artist of current track) & tab & (player state as string) & tab & \"Spotify\" & tab & ((player position * 1000) as integer) & tab & (duration of current track)\n"
 		+ "else if application \"Music\" is running then\n"
-		+ "tell application \"Music\" to return (name of current track) & tab & (artist of current track) & tab & (player state as string) & tab & \"Music\"\n"
+		+ "tell application \"Music\" to return (name of current track) & tab & (artist of current track) & tab & (player state as string) & tab & \"Music\" & tab & ((player position * 1000) as integer) & tab & ((duration of current track * 1000) as integer)\n"
 		+ "end if";
 
 	private static void runWindows() throws Exception {
@@ -150,7 +190,7 @@ public final class NowPlaying {
 		try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
 			String line;
 			while (running && (line = r.readLine()) != null) {
-				current = parse(line);
+				current = parse(line, 1);
 			}
 		} finally {
 			p.destroy();
@@ -163,7 +203,8 @@ public final class NowPlaying {
 		}
 	}
 
-	private static void poll(String[] command) throws Exception {
+	/** {@code unitsPerMs}: how many units of the position/length fields are one millisecond (playerctl: microseconds). */
+	private static void poll(String[] command, long unitsPerMs) throws Exception {
 		status = "Aktiv";
 		while (running) {
 			Process p = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
@@ -174,13 +215,13 @@ public final class NowPlaying {
 			if (!p.waitFor(5, TimeUnit.SECONDS)) {
 				p.destroyForcibly();
 			}
-			current = line == null ? null : parse(line);
-			Thread.sleep(3000L);
+			current = line == null ? null : parse(line, unitsPerMs);
+			Thread.sleep(2000L);
 		}
 	}
 
-	/** Parses "title<TAB>artist<TAB>status<TAB>source". */
-	static Song parse(String line) {
+	/** Parses "title<TAB>artist<TAB>status<TAB>source[<TAB>position<TAB>length]". */
+	static Song parse(String line, long unitsPerMs) {
 		if (line == null || line.isBlank()) {
 			return null;
 		}
@@ -193,7 +234,24 @@ public final class NowPlaying {
 		String state = p.length > 2 ? p[2].trim().toLowerCase(Locale.ROOT) : "playing";
 		boolean playing = state.startsWith("play") || state.equals("4");
 		String source = p.length > 3 ? sourceName(p[3]) : "";
-		return new Song(title, artist, playing, source);
+		long pos = p.length > 5 ? number(p[4]) : -1;
+		long len = p.length > 5 ? number(p[5]) : -1;
+		if (pos < 0 || len <= 0) {
+			pos = -1;
+			len = -1;
+		} else {
+			pos /= unitsPerMs;
+			len /= unitsPerMs;
+		}
+		return new Song(title, artist, playing, source, Math.min(pos, len), len, System.currentTimeMillis());
+	}
+
+	private static long number(String s) {
+		try {
+			return (long) Double.parseDouble(s.trim().replace(',', '.'));
+		} catch (NumberFormatException e) {
+			return -1;
+		}
 	}
 
 	private static String sourceName(String id) {

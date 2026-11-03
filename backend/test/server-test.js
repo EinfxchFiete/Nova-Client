@@ -62,8 +62,9 @@ async function login(port, name, joinIt = true) {
     const longTitle = 'x'.repeat(200);
     let r = await post(port, '/v1/sync', {
       status: {
-        cosmetics: { cape: 'anim:galaxy', head: 'crown', headColor: 'Rot', wings: 'hacker', wingsColor: '§cevil' },
-        song: { title: `§4${longTitle}\n`, artist: 'Nova' },
+        cosmetics: { cape: 'anim:aurora', head: 'crown', headColor: 'Rot', wings: 'hacker', wingsColor: '§cevil',
+          minimee: { name: 'Flipp1009', mode: 'neck' } },
+        song: { title: `§4${longTitle}\n`, artist: 'Nova', pos: 61000, len: 200000, playing: true },
         emote: { id: 'wave', age: 100 },
       },
       players: [],
@@ -74,7 +75,11 @@ async function login(port, name, joinIt = true) {
     assert.strictEqual(r.status, 200);
     const seen = r.json.players[a.json.uuid];
     assert.ok(seen, 'B should see A');
-    assert.strictEqual(seen.cosmetics.cape, 'anim:galaxy');
+    assert.strictEqual(seen.cosmetics.cape, 'anim:aurora');
+    assert.deepStrictEqual(seen.cosmetics.minimee, { name: 'Flipp1009', mode: 'neck' });
+    assert.strictEqual(seen.song.len, 200000);
+    assert.ok(seen.song.pos >= 61000 && seen.song.pos < 66000, 'song position must be extrapolated: ' + seen.song.pos);
+    assert.strictEqual(seen.song.at, undefined, 'internal timestamp must not leak');
     assert.strictEqual(seen.cosmetics.head, 'crown');
     assert.strictEqual(seen.cosmetics.wings, '', 'unknown wings must be dropped');
     assert.strictEqual(seen.cosmetics.wingsColor, '', 'invalid colour must be dropped');
@@ -82,6 +87,11 @@ async function login(port, name, joinIt = true) {
     assert.ok(!seen.song.title.includes('§') && !seen.song.title.includes('\n'), 'formatting/control chars must be removed');
     assert.strictEqual(seen.emote.id, 'wave');
     assert.ok(seen.emote.age >= 100 && seen.emote.age < 5000);
+
+    r = await post(port, '/v1/sync', { status: { cosmetics: { minimee: { name: '§bad name!', mode: 'neck' } }, song: { title: 'x', pos: 'a', len: -5 } }, players: [] }, a.json.token);
+    r = await post(port, '/v1/sync', { status: {}, players: [a.json.uuid] }, b.json.token);
+    assert.strictEqual(r.json.players[a.json.uuid].cosmetics.minimee, undefined, 'invalid minimee must be dropped');
+    assert.strictEqual(r.json.players[a.json.uuid].song.len, undefined, 'invalid song length must be dropped');
 
     // wrong token, dev endpoint disabled
     r = await post(port, '/v1/sync', { status: {} }, 'f'.repeat(64));

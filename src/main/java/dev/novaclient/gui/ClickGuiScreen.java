@@ -203,11 +203,18 @@ public class ClickGuiScreen extends Screen {
 		return false;
 	}
 
+	/** Test helper: how many cards of this category the grid shows right now. */
+	public int visibleCardCount(Category c) {
+		return (int) visibleModules().stream().filter(m -> m.getCategory() == c).count();
+	}
+
 	private List<Module> visibleModules() {
 		String q = search.trim().toLowerCase(Locale.ROOT);
 		List<Module> out = new ArrayList<>();
 		for (Module m : NovaClient.modules().getModules()) {
-			if ((category == null || m.getCategory() == category || !q.isEmpty()) && matches(m, q)) {
+			// cosmetics are only in the cosmetics menu (except when searching)
+			boolean hiddenCosmetic = m.getCategory() == Category.COSMETICS && q.isEmpty();
+			if (!hiddenCosmetic && (category == null || m.getCategory() == category || !q.isEmpty()) && matches(m, q)) {
 				out.add(m);
 			}
 		}
@@ -700,6 +707,12 @@ public class ClickGuiScreen extends Screen {
 		int[][] tabs = tabBounds();
 		for (int i = 0; i < tabs.length; i++) {
 			if (Render.inside(mx, my, tabs[i][0], top + 8, tabs[i][1], top + 24)) {
+				if (i > 0 && Category.values()[i - 1] == Category.COSMETICS) {
+					// all cosmetics live in one place: the wardrobe with the 3D preview
+					NovaClient.config().save();
+					minecraft.gui.setScreen(new CosmeticsScreen(this));
+					return true;
+				}
 				category = i == 0 ? null : Category.values()[i - 1];
 				lastCategory = category;
 				search = "";

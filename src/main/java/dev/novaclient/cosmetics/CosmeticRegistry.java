@@ -15,6 +15,9 @@ public final class CosmeticRegistry {
 	/** animated cape id -> display name */
 	public static final Map<String, String> ANIMATED_CAPES = new LinkedHashMap<>();
 
+	/** minimee position id -> display name */
+	public static final Map<String, String> MINIMEE_MODES = new LinkedHashMap<>();
+
 	public static final int CAPE_FRAMES = 16;
 
 	static {
@@ -47,6 +50,17 @@ public final class CosmeticRegistry {
 		ANIMATED_CAPES.put("anim:ocean", "Ozean (animiert)");
 		ANIMATED_CAPES.put("anim:rainbow", "Regenbogen (animiert)");
 		ANIMATED_CAPES.put("anim:matrix", "Matrix (animiert)");
+		ANIMATED_CAPES.put("anim:aurora", "Polarlicht (animiert)");
+		ANIMATED_CAPES.put("anim:lava", "Magma (animiert)");
+		ANIMATED_CAPES.put("anim:storm", "Gewitter (animiert)");
+		ANIMATED_CAPES.put("anim:sakura", "Blütenregen (animiert)");
+		ANIMATED_CAPES.put("anim:ender", "Ender (animiert)");
+		ANIMATED_CAPES.put("anim:snow", "Schneefall (animiert)");
+		ANIMATED_CAPES.put("anim:neon", "Neon (animiert)");
+
+		MINIMEE_MODES.put("neck", "Kette");
+		MINIMEE_MODES.put("pocket", "Hosentasche");
+		MINIMEE_MODES.put("head", "Auf dem Kopf");
 	}
 
 	private CosmeticRegistry() {
@@ -83,6 +97,15 @@ public final class CosmeticRegistry {
 
 	public static String validColor(String name) {
 		return COLORS.containsKey(name) ? name : "";
+	}
+
+	/** Minecraft user names: 1-16 letters, digits or underscores. */
+	public static String validName(String name) {
+		return name != null && name.matches("[A-Za-z0-9_]{1,16}") ? name : "";
+	}
+
+	public static String validMinimeeMode(String id) {
+		return MINIMEE_MODES.containsKey(id) ? id : "";
 	}
 
 	/** Cape ids: static texture names (e.g. "galaxy") or "anim:galaxy". */

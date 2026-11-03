@@ -22,6 +22,7 @@ import dev.novaclient.module.hud.ThemeModule;
 import dev.novaclient.util.CombatTracker;
 import dev.novaclient.util.Notifications;
 import dev.novaclient.module.cosmetics.AuraModule;
+import dev.novaclient.module.cosmetics.MinimeeModule;
 import dev.novaclient.module.cosmetics.CapeModule;
 import dev.novaclient.module.cosmetics.EmotesModule;
 import dev.novaclient.module.cosmetics.HeadCosmeticModule;
@@ -36,6 +37,15 @@ import dev.novaclient.module.hud.InventoryPreviewModule;
 import dev.novaclient.module.hud.OnlinePlayersModule;
 import dev.novaclient.module.hud.StopwatchModule;
 import dev.novaclient.module.hud.WaypointModule;
+import dev.novaclient.module.hud.GameTimeModule;
+import dev.novaclient.module.hud.MoonPhaseModule;
+import dev.novaclient.module.hud.RotationModule;
+import dev.novaclient.module.hud.ExperienceModule;
+import dev.novaclient.module.hud.HeldDurabilityModule;
+import dev.novaclient.module.utility.AutoGgModule;
+import dev.novaclient.module.utility.WindowTitleModule;
+import dev.novaclient.module.visual.HandSizeModule;
+import dev.novaclient.module.cosmetics.KillEffectModule;
 import dev.novaclient.module.hud.WeatherModule;
 import dev.novaclient.module.utility.BackgroundFpsModule;
 import dev.novaclient.module.utility.ChatMacrosModule;
@@ -110,6 +120,11 @@ public final class ModuleManager {
 		register(new WeatherModule());
 		register(new StopwatchModule());
 		register(new WaypointModule());
+		register(new GameTimeModule());
+		register(new MoonPhaseModule());
+		register(new RotationModule());
+		register(new ExperienceModule());
+		register(new HeldDurabilityModule());
 		register(new MusicModule());
 		register(new ItemCounterModule("Item-Zähler", "Zählt das gehaltene Item im ganzen Inventar", "Gehaltenes Item", Anchor.START, 2, Anchor.START, 196));
 
@@ -123,6 +138,7 @@ public final class ModuleManager {
 		register(new NoWeatherModule());
 		register(new BlockOutlineModule());
 		register(new OverlaysModule());
+		register(new HandSizeModule());
 
 		register(new ToggleSprintModule());
 		register(new ToggleSneakModule());
@@ -135,6 +151,8 @@ public final class ModuleManager {
 		register(new NetworkModule());
 		register(new TabPingModule());
 		register(new CoordsShareModule());
+		register(new AutoGgModule());
+		register(new WindowTitleModule());
 
 		register(new CapeModule());
 		register(new HeadCosmeticModule());
@@ -144,8 +162,9 @@ public final class ModuleManager {
 		register(new TrailModule());
 		register(new HitParticlesModule());
 		register(new CompanionModule());
-		register(new AuraModule(false));
-		register(new AuraModule(true));
+		register(new AuraModule());
+		register(new MinimeeModule());
+		register(new KillEffectModule());
 	}
 
 	private <M extends Module> M register(M module) {

@@ -62,6 +62,15 @@ public final class CombatTracker {
 	}
 
 	/** The last entity you hit within the last 6 seconds, or null. */
+	/** The last entity you hit and when (also if it is dead/removed now), for kill effects. */
+	public static Entity lastHitEntity() {
+		return lastTarget;
+	}
+
+	public static long lastHitMillis() {
+		return lastHitTime;
+	}
+
 	public static Entity lastTarget() {
 		if (lastTarget == null || lastTarget.isRemoved() || System.currentTimeMillis() - lastHitTime > 6000L) {
 			return null;

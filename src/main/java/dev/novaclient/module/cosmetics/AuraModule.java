@@ -8,17 +8,14 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 
-/** Rotating particle ring: around you (aura) or above your head (halo). */
+/** Rotating particle ring above your head. (The "Aura" around the whole body was removed in 1.5.0.) */
 public class AuraModule extends Module {
 	public final ModeSetting particle = add(new ModeSetting("Partikel", "Endstab", "Endstab", "Seelenflammen", "Flammen", "Glitzer", "Funken", "Noten"));
-	private final boolean halo;
+	private static final boolean halo = true;
 	private float angle;
 
-	public AuraModule(boolean halo) {
-		super(halo ? "Partikel-Ring" : "Aura",
-			halo ? "Ein leuchtender Partikelring über deinem Kopf" : "Ein Partikelring, der um dich kreist",
-			Category.COSMETICS, false);
-		this.halo = halo;
+	public AuraModule() {
+		super("Partikel-Ring", "Ein leuchtender Partikelring über deinem Kopf", Category.COSMETICS, false);
 	}
 
 	private SimpleParticleType type() {

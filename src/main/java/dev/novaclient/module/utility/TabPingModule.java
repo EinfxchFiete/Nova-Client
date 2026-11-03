@@ -19,12 +19,17 @@ public class TabPingModule extends Module {
 		return instance != null && instance.isEnabled();
 	}
 
+	/** Extra slot width so the number never overlaps the name (vanilla reserves 13 px for the bars). */
+	public static final int SLOT_EXTRA = 26;
+
 	/** Draws the ping text right-aligned in the tab list slot. */
 	public static void draw(GuiGraphicsExtractor g, int slotWidth, int xo, int yo, PlayerInfo info) {
-		int ms = info.getLatency();
+		Minecraft mc = Minecraft.getInstance();
+		boolean self = mc.player != null && info.getProfile().id().equals(mc.player.getUUID());
+		int ms = self ? dev.novaclient.util.PingTracker.current(mc) : info.getLatency();
 		String text = ms < 0 ? "?" : ms + "ms";
 		int color = ms < 0 ? 0xFFAAAAAA : ms < 80 ? 0xFF55FF55 : ms < 150 ? 0xFFA0E040 : ms < 300 ? 0xFFFFDD44 : 0xFFFF5555;
-		var font = Minecraft.getInstance().font;
+		var font = mc.font;
 		g.pose().pushMatrix();
 		g.pose().translate(xo + slotWidth - 1, yo + 1.5F);
 		g.pose().scale(0.75F, 0.75F);

@@ -1,7 +1,7 @@
 """Generates all Nova cosmetic textures (own designs, no Mojang assets)."""
 import zlib, struct, math, random, colorsys, os, sys
 
-OUT = sys.argv[1]  # .../assets/novaclient/textures
+OUT = sys.argv[1] if len(sys.argv) > 1 else None  # .../assets/novaclient/textures
 
 def save(path, w, h, px):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -241,8 +241,9 @@ def nova_pulse(u, v, x, y, t, rnd):
         c = lerp((255, 255, 255), (200, 170, 255), (dx + dy) / 6)
     return c
 
-badges(); bandana(); crown(); tophat(); horns(); catears(); halo()
-wing_texture('angel', angel); wing_texture('dragon', dragon); wing_texture('butterfly', butterfly)
-for n, fn in (('galaxy', galaxy_anim), ('fire', fire_anim), ('rainbow', rainbow_anim), ('ocean', ocean_anim), ('matrix', matrix_anim), ('nova', nova_pulse)):
-    cape_frames(n, fn)
-print('ok')
+if __name__ == '__main__':
+    badges(); bandana(); crown(); tophat(); horns(); catears(); halo()
+    wing_texture('angel', angel); wing_texture('dragon', dragon); wing_texture('butterfly', butterfly)
+    for n, fn in (('galaxy', galaxy_anim), ('fire', fire_anim), ('rainbow', rainbow_anim), ('ocean', ocean_anim), ('matrix', matrix_anim), ('nova', nova_pulse)):
+        cape_frames(n, fn)
+    print('ok')

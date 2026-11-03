@@ -18,7 +18,8 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.4.1**, **Nova Launcher 1.1.1**, Nova-Server 1.0.0 (online: `https://nova-server-ifqq.onrender.com`).
+- Aktuelle Versionen: **Nova Client 1.5.0** (72 Module), **Nova Launcher 1.2.0**, Nova-Server 1.1 (online: `https://nova-server-ifqq.onrender.com`,
+  deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
 ### Tech-Stack
@@ -52,8 +53,10 @@ Den Quellcode von Minecraft zum Nachschlagen erzeugen (sehr hilfreich, Minecraft
 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX" ./gradlew runClientGameTest
 ```
 - Braucht `node` im PATH (der Test startet `backend/server.js` lokal mit `NOVA_DEV=1` auf Port 18765).
-- Optional echte Musikerkennung unter Linux testen: `PATH=<repo>/tools/testing:$PATH NOVA_FAKE_PLAYERCTL=1`
-  (dann liefert `tools/testing/fake-playerctl` einen Fake-Song).
+- Optional echte Musikerkennung unter Linux testen: `tools/testing/fake-playerctl` als **`playerctl`** in einen Ordner kopieren
+  (z. B. `<scratchpad>/fakebin/playerctl`, `chmod +x`), diesen Ordner vorne in den `PATH` und `NOVA_FAKE_PLAYERCTL=1` setzen.
+  Der Fake liefert Titel, Interpret, Status, Player, Position 61 s und Länge 200 s (Mikrosekunden wie playerctl).
+- Die Testumgebung läuft langsamer als Echtzeit: Zeitprüfungen im Test mit `System.nanoTime()` messen, nicht über Ticks.
 - Erfolg = Logzeile `NOVA GAMETEST PASSED` und `BUILD SUCCESSFUL`.
 - Screenshots danach **immer ansehen** (Read-Tool), viele Fehler sieht man nur im Bild.
 
@@ -121,7 +124,12 @@ src/main/java/dev/novaclient/
   music/NowPlaying.java      Song-Erkennung (Windows PowerShell/SMTC, Linux playerctl, macOS osascript)
   network/NovaNetwork.java   Client für den Nova-Server (Auth über Mojang joinServer, Sync alle 3 s)
   util/                      KeyState (Tasten/Maus-Zustand + Druckzähler), CpsTracker, CombatTracker, Notifications, Render
-  mixin/                     17 Mixins (Liste unten)
+  mixin/                     20 Mixins (Liste unten)
+  world/                     WorldId (Schlüssel sp:<Ordner> / mp:<ip>), Playtime (playtime.json), Waypoints (waypoints.json)
+  command/NovaCommands.java  Client-Befehle /playtime [alle] und /wegpunkt [liste|setzen <Name>|entfernen [Name]|alleentfernen]
+  music/CoverArt.java        Song-Cover über die iTunes-Suche (Titel+Interpret), 64×64 DynamicTexture, Cache im RAM
+  cosmetics/Minimees.java    Mini-Spieler (Skin per Name über playerSkinRenderCache), eigenes Modell pro Modus, Kette
+  util/PingTracker.java      echte Ping-Messung per ServerboundPingRequestPacket alle 20 Ticks
 src/main/resources/
   fabric.mod.json, novaclient.mixins.json, assets/novaclient/{icon.png, lang/de_de.json, en_us.json}
   assets/novaclient/textures/cape/*.png (14 statische Capes), cape/anim/<name>_<0..15>.png (6×16 Frames)
@@ -182,9 +190,17 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 | PlayerModelMixin | `setupAnim(AvatarRenderState)` TAIL | Emotes (Arme/Kopf/Beine) |
 | PlayerTabOverlayMixin | `getNameForDisplay` RETURN, `extractPingIcon` HEAD | Abzeichen in Tab-Liste, Ping in ms |
 | ScreenEffectRendererMixin | `submitFire` HEAD/RETURN, `submitWater` HEAD | Low Fire (Pose absenken), Unterwasser-Overlay aus |
+| ClientPacketListenerMixin | `handlePongResponse` HEAD | Pong-Zeit → `PingTracker` (echter Ping statt Tab-Wert) |
+| FirstPersonHandsMixin | `FirstPersonHandsAndItemsRenderer.submitArmWithItem` HEAD push / RETURN pop | Hand-Größe (Skalierung um die Handposition) |
+| MinecraftTitleMixin | `Minecraft.createTitle` RETURN | Fenstertitel „Nova Client 1.5.0 · Minecraft 26.3 · Server“ |
+| PlayerTabOverlayMixin (neu) | `extractRenderState` ModifyConstant 13 → 26 | breitere Ping-Spalte, damit „35ms“ den Namen nicht überlappt |
 | *(Test)* HeadlessGlBackendMixin | `GlBackend.createWindow` vor `SDL_CreateWindow` | setzt SDL-GL-Attribut 22 (sRGB) auf 0, weil Xvfb kein sRGB kann – **nur im Gametest** |
 
-### Alle 63 Module (Name = Config-Schlüssel, Standard an/aus)
+### Alle 72 Module (Name = Config-Schlüssel, Standard an/aus)
+- **Neu in 1.5.0:** HUD: Ingame-Zeit, Mondphase, Blickrichtung, Erfahrung, Item-Haltbarkeit; Visuals: Hand-Größe;
+  Utility: Auto-GG (nur System-Nachrichten, 15 s Abklingzeit), Fenstertitel (an); Cosmetics: Minimee, Kill-Effekt.
+  **Entfernt:** „Aura“ (Partikel um den ganzen Körper, auf Wunsch des Nutzers). „Wegpunkt“ ist jetzt standardmäßig **an**.
+  Spielzeit-Modul hat Setting „Anzeige“ (Diese Sitzung / Gesamt in dieser Welt).
 - **HUD:** Theme (an), FPS (an), Ping (an), CPS (an), Koordinaten (an; Settings: Richtung, Nether/Oberwelt umrechnen, Chunk),
   Keystrokes (an), Rüstungsstatus (an), Trankeffekte (an; „Vanilla-Anzeige ausblenden“), Uhrzeit, Server-IP, Geschwindigkeit,
   Arbeitsspeicher, Tag-Zähler, Biom, Pfeile, Spielzeit, Reichweite, Combo, Ziel-HUD, Kompassleiste, Lichtlevel, Sättigung,
@@ -194,8 +210,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
   Kein Regen, Blockumrandung, Overlays
 - **Utility:** Toggle Sprint, Toggle Sneak, Benachrichtigungen (an), Todes-Koordinaten (an), Haltbarkeitswarnung (an),
   Chat-Zeitstempel, Chat-Makros, Hintergrund-FPS, Nova-Netzwerk (an), Tab-Ping in ms (an), Koordinaten teilen
-- **Cosmetics:** Cape, Kopfschmuck, Flügel, Emotes (an, V), Nametags, Partikel-Spur, Treffer-Partikel, Begleiter, Aura,
-  Partikel-Ring
+- **Cosmetics:** Cape, Kopfschmuck, Flügel, Emotes (an, V), Nametags, Partikel-Spur, Treffer-Partikel, Begleiter,
+  Partikel-Ring, Minimee, Kill-Effekt (Liste oben ist der Stand 1.4; siehe „Neu in 1.5.0“)
 - Menü-Taste: **Rechte Umschalttaste** (einzige Vanilla-KeyMapping `key.novaclient.menu`, Kategorie `key.category.novaclient.main`).
 
 ### Wichtige Klassen / Schnittstellen
@@ -208,10 +224,13 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 - `KeySetting.consumePress(inGame)`: true einmal pro neuem Druck.
 - `ConfigManager`: `load()` (Start), `save()`, `reload()`, `switchTo(name)`, `createCopy(name)`, `createFromPreset(preset)`,
   `delete(name)`, `listProfiles()`, `sanitize(name)`.
-- `Loadout(cape, head, headColor, wings, wingsColor)` + `toJson/fromJson` (validiert über `CosmeticRegistry`).
+- `Loadout(cape, head, headColor, wings, wingsColor, minimee, minimeeMode)` + `toJson/fromJson` (validiert über `CosmeticRegistry`;
+  minimee = Minecraft-Name `[A-Za-z0-9_]{1,16}`, Modus `neck`/`pocket`/`head`, im JSON als `minimee:{name,mode}`).
 - `CosmeticRegistry`: `HEADS` (bandana, crown, tophat, horns, catears, halo), `WINGS` (angel, dragon, butterfly),
   `COLORS` (Normal, Rot, Orange, Gelb, Grün, Türkis, Blau, Lila, Pink, Schwarz, Regenbogen=animiert),
-  `ANIMATED_CAPES` (anim:nova, anim:galaxy, anim:fire, anim:ocean, anim:rainbow, anim:matrix), `CAPE_FRAMES = 16`.
+  `ANIMATED_CAPES` (anim:nova, galaxy, fire, ocean, rainbow, matrix + seit 1.5: aurora, lava, storm, sakura, ender, snow, neon),
+  `MINIMEE_MODES` (neck=Kette, pocket=Hosentasche, head=Auf dem Kopf), `CAPE_FRAMES = 16`.
+- **Neue Cape-IDs/Cosmetics immer auch in `backend/server.js` (CAPES, …) eintragen**, sonst filtert der Server sie heraus.
 - `CapeModule`: `idFor(design)`, `texture(id)` (Frame bei animierten Capes: `millis/100 % 16`), `texturePath(id)` (für GUI-blit),
   `withCape(skin, id, elytra)`, `apply(skin)`.
 - `Badges`: `OWNERS` (UUIDs), `decorate(uuid, local, name, forNametag)`, `ownerIcon()`, `novaIcon()`.
@@ -219,7 +238,12 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
   `localActive()`, `apply(PlayerModel, AvatarRenderState)`.
 - `NovaNetwork`: `start()`, `clientTick(mc)`, `requestSync()`, `isNovaUser(uuid)`, `loadout(uuid)`, `song(uuid)`, `status(uuid)`,
   `isConnected()`, `lastError()`, `knownPlayers()`, Test-Hook `setSessionForTest(server, uuid, token)`.
-- `NowPlaying`: `start()/stop()`, `current()` → `Song(title, artist, playing, source)`, Test-Hook `setOverride(song)`.
+- `NowPlaying`: `start()/stop()`, `current()` → `Song(title, artist, playing, source, positionMs, lengthMs, sampledAt)`
+  (`positionNow()` rechnet weiter, `timestamp()` = „1:23 / 3:45“), Test-Hook `setOverride(song)`.
+  Windows: SMTC `GetTimelineProperties()` (Position + Zeit seit LastUpdatedTime), Linux: playerctl `{{position}}`/`{{mpris:length}}` (µs),
+  macOS: osascript `player position`/`duration`.
+- `CoverArt.get(title, artist)` → Identifier oder null (lädt im Hintergrund), Test-Hook `putForTest`. Über dem Namen: Cover-Quad per
+  `submitCustomGeometry` mit derselben Transformation wie `submitNameTag` (Billboard, 0,025 Skalierung).
 - `NetworkModule.DEFAULT_SERVER` = **`https://nova-server-ifqq.onrender.com`** (seit 1.4.1). Die Server-Adresse-Setting ersetzt beim
   Laden einen leeren gespeicherten Wert durch diesen Standard (alte 1.4.0-Configs hatten ""). Abschalten = Modul „Nova-Netzwerk“ aus.
   Der Gametest schaltet das Modul am Anfang aus (`loadEnabled(false)`), damit er nie den echten Server anspricht.
@@ -230,7 +254,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 - Client: `Minecraft.services().sessionService().joinServer(uuid, accessToken, serverId)` (Token geht **nur an Mojang**)
 - `POST /v1/auth/finish {name, serverId}` → Server fragt `sessionserver.mojang.com/session/minecraft/hasJoined` → `{token, uuid}`
 - `POST /v1/sync` (Header `Authorization: Bearer <64 hex>`) Body `{status:{cosmetics, song?, emote?{id, age}}, players:[uuid…]}`
-  → `{players:{uuid:{cosmetics, song?, emote?{id, age}}}}`
+  → `{players:{uuid:{cosmetics, song?, emote?{id, age}}}}`. Seit 1.5: `cosmetics.minimee {name, mode}`, `song.pos/len` (ms) +
+  `song.playing`; der Server rechnet `pos` bis zur Antwort weiter (interne Zeit `at` wird nicht mitgeschickt).
 - `POST /v1/auth/dev {uuid, name}` nur bei `NOVA_DEV=1` (lokale Tests!).
 - Limits: Body 32 KB, 200 Spieler/Sync, Status-TTL 30 s, Token 24 h, start/finish 20/min/IP, sync 10/5 s/UUID.
   Werte werden gefiltert (nur bekannte IDs, Songtitel 80 / Interpret 60 Zeichen, keine Steuer- und §-Zeichen).
@@ -314,6 +339,24 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 33. **Repo öffentlich gemacht** (für das Mojang-Formular als Website-Angabe).
 34. **Keine Tokens/Keys im Chat**: Der Nutzer bot einen GitHub-Key an – abgelehnt, stattdessen GitHub-App-Freigabe erklärt.
 
+35. **Ping selbst messen** (Ping/Pong-Pakete wie das F3-Netzwerkdiagramm) statt `PlayerInfo.getLatency()` (wird vom Server nur
+    alle paar Sekunden geschickt und ist auf vielen Servern geschönt). Fallback auf den Tab-Wert, wenn kein Pong kommt.
+36. **Einfärben über Graustufen-Texturen** (`*_tint.png`): Das Multiplizieren der farbigen Originaltextur ergab matschige Farben.
+    „Normal“ nutzt weiter die Originaltextur. Krone: Gold bleibt gold, nur die Steine (eigene Modellteile) werden gefärbt.
+37. **Krone breiter als die Hut-Ebene** (±5,15 statt ±4,5): Vorher lag der Ring genau in der zweiten Hautebene → sah „im Kopf“ aus.
+38. **Ein einziges Cosmetics-Menü**: Der Tab „Cosmetics“ im Hauptmenü öffnet die Garderobe, Cosmetics-Karten erscheinen dort nur noch
+    bei der Suche. Alle Optionen (Bool/Modus/Zahl/Text) werden generisch als Zeilen angezeigt; Farbfelder stehen **über** den Kacheln,
+    damit sie auch bei kleinem Fenster sichtbar sind. Vorschau dreht zeitbasiert (24 °/s), Ziehen 0,9 °/px.
+39. **Song-Cover über die iTunes-Suche** (ohne Konto, nur Titel+Interpret, abschaltbar): Jeder Client lädt die Cover selbst, es
+    werden keine Bilder über den Nova-Server geschickt.
+40. **Minimee-Skins über `mc.playerSkinRenderCache()`** mit `ResolvableProfile.createUnresolved(name)` (Mojang-Lookup im Hintergrund,
+    bis dahin Standard-Skin). Pro Modus+Slim ein eigenes `PlayerModel` mit fester Pose (wegen verzögertem Rendering).
+41. **Wegpunkte pro Welt/Server** (`WorldId`) in `config/novaclient/waypoints.json`, Markierungen per
+    `gameRenderer.projectPointToScreen` im HUD (z > 1 = hinter der Kamera). Todes-Koordinaten setzen einen Wegpunkt „Tod“.
+42. **/playtime als Client-Befehl** (Fabric `ClientCommandRegistrationCallback`); zählt nur, wenn das Spiel nicht pausiert ist,
+    speichert alle 30 s und beim Beenden. Achtung: überdeckt einen eventuellen Server-Befehl /playtime.
+43. **Kill-Effekt Standard „Totem“**: Der Blitz sah im Xvfb-Test orange aus [UNSICHER, ob nur die Testgrafik] → als Option behalten.
+
 ### Verworfene Ansätze (nicht erneut versuchen)
 - `gradlew` aus einem fremden geklonten Repo ausführen → blockiert.
 - Tastenabfrage pro Tick (`InputConstants.isKeyDown`) für Modul-Tasten → verpasst kurze Drücke.
@@ -393,6 +436,11 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 13. Nutzer hat den Nova-Server per Render-Blueprint deployt (Dienst `nova-server`, Free, Auto-Deploy von `main`) →
     **v1.4.1** + **Launcher 1.1.1**: Server-URL fest eingebaut, Migration leerer Adressen, Neuigkeiten-Karte. `/health`, `/v1/auth/start`
     online geprüft, `/v1/auth/dev` gibt online korrekt 404. Gametest + Launcher-UI-Test bestanden.
+14. Nutzer-Feedback (Screenshot: „35ms“ klebt am Namen in der Tab-Liste, Krone halb im Kopf) + Wunschliste → **v1.5.0** +
+    **Launcher 1.2.0**: ein Cosmetics-Menü, langsamere Vorschau, Farben für Flügel/Hörner/Kronen-Steine, Krone höher, echter Ping +
+    breite Tab-Spalte, 7 neue animierte Capes, 15 neue Begleiter (skaliert über `Attributes.SCALE`), Aura entfernt, Minimees,
+    Wegpunkte neu (mehrere, gespeichert, Markierungen, /wegpunkt), /playtime, Song mit Zeit + Cover (HUD mit Fortschrittsbalken),
+    10 neue Module. Server 1.1 (minimee, song pos/len, neue Capes). Gametest erweitert und bestanden.
 
 ---
 
@@ -491,7 +539,8 @@ Einzige Ausnahme: `SdlGlTest.java` hieß im Chat `T.java` (Klasse `T`), nur der 
 | Datei | Zweck | Aufruf |
 |---|---|---|
 | `tools/assets/capes.py` | 14 statische Cape-Texturen (64×32) | `python3 tools/assets/capes.py src/main/resources/assets/novaclient/textures/cape` |
-| `tools/assets/cosmetic_assets.py` | Abzeichen, Kopfschmuck-/Flügel-Texturen, 6×16 animierte Cape-Frames | `python3 tools/assets/cosmetic_assets.py src/main/resources/assets/novaclient/textures` |
+| `tools/assets/cosmetic_assets.py` | Abzeichen, Kopfschmuck-/Flügel-Texturen, 6×16 animierte Cape-Frames (seit 1.5 importierbar: Aufrufe unter `__main__`) | `python3 tools/assets/cosmetic_assets.py src/main/resources/assets/novaclient/textures` |
+| `tools/assets/cosmetic_assets_v2.py` | 1.5: Graustufen-Flügel/-Hörner (`*_tint`), neue Krone + `crown_gems.png`, Kette, 7 neue animierte Capes | `python3 tools/assets/cosmetic_assets_v2.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/mod_icon.py` | Mod-Icon 128×128 | im Repo-Root: `python3 tools/assets/mod_icon.py` |
 | `tools/assets/launcher_assets.py` | Launcher `default-skin.png` + `icon.png` | in `launcher/`: `python3 ../tools/assets/launcher_assets.py` |
 | `tools/assets/make_ico.py` | `icon.ico` aus `icon.png` | in `launcher/`: `python3 ../tools/assets/make_ico.py` |

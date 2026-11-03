@@ -24,7 +24,7 @@ public class CapeModule extends Module {
 	public final BoolSetting elytra = add(new BoolSetting("Auch auf Elytren", true));
 
 	public CapeModule() {
-		super("Cape", "Eigenes Cape: 14 Designs, 6 animierte oder wechselnd", Category.COSMETICS, false);
+		super("Cape", "Eigenes Cape: 14 Designs, 13 animierte oder wechselnd", Category.COSMETICS, false);
 		instance = this;
 	}
 

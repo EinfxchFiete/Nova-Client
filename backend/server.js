@@ -25,7 +25,9 @@ const HEADS = new Set(['bandana', 'crown', 'tophat', 'horns', 'catears', 'halo']
 const WINGS = new Set(['angel', 'dragon', 'butterfly']);
 const COLORS = new Set(['Normal', 'Rot', 'Orange', 'Gelb', 'Grün', 'Türkis', 'Blau', 'Lila', 'Pink', 'Schwarz', 'Regenbogen']);
 const CAPES = new Set(['nova', 'galaxy', 'fire', 'ocean', 'forest', 'gold', 'ice', 'rainbow', 'cherry', 'checker', 'lava', 'night', 'sunset', 'matrix',
-  'anim:nova', 'anim:galaxy', 'anim:fire', 'anim:ocean', 'anim:rainbow', 'anim:matrix']);
+  'anim:nova', 'anim:galaxy', 'anim:fire', 'anim:ocean', 'anim:rainbow', 'anim:matrix',
+  'anim:aurora', 'anim:lava', 'anim:storm', 'anim:sakura', 'anim:ender', 'anim:snow', 'anim:neon']);
+const MINIMEE_MODES = new Set(['neck', 'pocket', 'head']);
 const EMOTES = new Map([['wave', 3000], ['cheer', 3000], ['dance', 6000], ['clap', 3000], ['facepalm', 2500], ['point', 2500]]);
 
 const pending = new Map();  // serverId -> { name, created }
@@ -111,6 +113,7 @@ function pick(set, v) {
 
 function sanitizeStatus(s, now) {
   const out = { cosmetics: { cape: '', head: '', headColor: '', wings: '', wingsColor: '' }, song: null, emote: null };
+  // minimee: a mini player (any Minecraft name) as necklace, in the pocket or on the head
   if (!s || typeof s !== 'object') return out;
   const c = s.cosmetics && typeof s.cosmetics === 'object' ? s.cosmetics : {};
   out.cosmetics = {
@@ -120,9 +123,24 @@ function sanitizeStatus(s, now) {
     wings: pick(WINGS, c.wings),
     wingsColor: pick(COLORS, c.wingsColor),
   };
+  if (c.minimee && typeof c.minimee === 'object' && typeof c.minimee.name === 'string'
+      && /^[A-Za-z0-9_]{1,16}$/.test(c.minimee.name) && MINIMEE_MODES.has(c.minimee.mode)) {
+    out.cosmetics.minimee = { name: c.minimee.name, mode: c.minimee.mode };
+  }
   if (s.song && typeof s.song === 'object') {
     const title = cleanText(s.song.title, 80);
-    if (title) out.song = { title, artist: cleanText(s.song.artist, 60) };
+    if (title) {
+      out.song = { title, artist: cleanText(s.song.artist, 60) };
+      // optional playback position (ms) and length (ms) for the timestamp above the name
+      const len = Number(s.song.len);
+      const pos = Number(s.song.pos);
+      if (Number.isFinite(len) && len > 0 && len <= 24 * 3600 * 1000 && Number.isFinite(pos)) {
+        out.song.len = Math.round(len);
+        out.song.pos = Math.round(Math.max(0, Math.min(len, pos)));
+        out.song.playing = s.song.playing !== false;
+        out.song.at = now;
+      }
+    }
   }
   if (s.emote && typeof s.emote === 'object' && EMOTES.has(s.emote.id)) {
     const age = Math.max(0, Math.min(60000, Number(s.emote.age) || 0));
@@ -213,7 +231,11 @@ const routes = {
       const st = statuses.get(uuid);
       if (!st || now - st.updated > STATUS_TTL) continue;
       const out = { cosmetics: st.cosmetics };
-      if (st.song) out.song = st.song;
+      if (st.song) {
+        const { at, ...song } = st.song;
+        if (song.len && song.playing) song.pos = Math.min(song.len, song.pos + (now - at));
+        out.song = song;
+      }
       if (st.emote && now - st.emote.start < (EMOTES.get(st.emote.id) || 0)) out.emote = { id: st.emote.id, age: now - st.emote.start };
       players[uuid] = out;
     }

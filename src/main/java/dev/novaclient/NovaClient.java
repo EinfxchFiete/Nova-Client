@@ -19,6 +19,10 @@ import dev.novaclient.module.visual.FreelookModule;
 import dev.novaclient.util.CombatTracker;
 import dev.novaclient.util.KeyState;
 import dev.novaclient.util.Notifications;
+import dev.novaclient.util.PingTracker;
+import dev.novaclient.world.Playtime;
+import dev.novaclient.command.NovaCommands;
+import dev.novaclient.module.hud.WaypointModule;
 import dev.novaclient.util.Render;
 import dev.novaclient.module.hud.ThemeModule;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
@@ -41,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class NovaClient implements ClientModInitializer {
 	public static final String MOD_ID = "novaclient";
 	public static final String NAME = "Nova Client";
-	public static final String VERSION = "1.4.1";
+	public static final String VERSION = "1.5.0";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static ModuleManager modules;
@@ -75,7 +79,11 @@ public class NovaClient implements ClientModInitializer {
 			}
 		});
 		NovaNetwork.start();
-		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> config.save());
+		NovaCommands.register();
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+			config.save();
+			Playtime.save();
+		});
 
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), (graphics, deltaTracker) -> renderHud(graphics));
 		HudElementRegistry.replaceElement(VanillaHudElements.MOB_EFFECTS, original -> (graphics, deltaTracker) -> {
@@ -124,6 +132,8 @@ public class NovaClient implements ClientModInitializer {
 			// key release events are lost while the window is not focused
 			KeyState.releaseAll();
 		}
+		PingTracker.tick(mc);
+		Playtime.tick(mc);
 		modules.tick(mc);
 		NovaNetwork.clientTick(mc);
 	}
@@ -138,6 +148,7 @@ public class NovaClient implements ClientModInitializer {
 		}
 		int w = graphics.guiWidth();
 		int h = graphics.guiHeight();
+		WaypointModule.renderMarkers(graphics, w, h);
 		for (HudModule m : modules.getHudModules()) {
 			if (m.isEnabled()) {
 				m.render(graphics, w, h, false);

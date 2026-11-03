@@ -17,6 +17,8 @@ public class MusicModule extends HudModule {
 	public final BoolSetting share = add(new BoolSetting("Mit anderen Nova-Spielern teilen", true));
 	public final BoolSetting showHud = add(new BoolSetting("HUD anzeigen", true));
 	public final BoolSetting onlyPlaying = add(new BoolSetting("Nur wenn Musik läuft", true));
+	public final BoolSetting timestamp = add(new BoolSetting("Zeit anzeigen (1:23 / 3:45)", true));
+	public final BoolSetting cover = add(new BoolSetting("Song-Cover anzeigen (iTunes-Suche)", true));
 
 	public MusicModule() {
 		super("Musik", "Aktueller Song (Spotify, Browser, …) im HUD und über deinem Namen", false, Anchor.START, 2, Anchor.END, 52);
@@ -49,14 +51,23 @@ public class MusicModule extends HudModule {
 		return s;
 	}
 
-	/** Text for the line above the local player's name, or null. */
-	public static String songAboveName() {
+	/** The song shown above the local player's name, or null. */
+	public static NowPlaying.Song songAboveName() {
 		MusicModule m = instance;
 		if (m == null || !m.isEnabled() || !m.aboveName.isOn()) {
 			return null;
 		}
-		NowPlaying.Song s = m.song();
-		return s == null ? null : format(s);
+		return m.song();
+	}
+
+	/** Timestamps above names (yours and others') are shown; on by default, also when the module is off. */
+	public static boolean showTimestamps() {
+		return instance == null || instance.timestamp.isOn();
+	}
+
+	/** Covers above names (yours and others') are shown and looked up. */
+	public static boolean showCovers() {
+		return instance == null || instance.cover.isOn();
 	}
 
 	/** Song to send to other Nova players, or null. */
@@ -73,12 +84,25 @@ public class MusicModule extends HudModule {
 		return s.artist().isEmpty() ? s.title() : s.title() + " – " + s.artist();
 	}
 
-	private String[] lines(boolean editor) {
+	private NowPlaying.Song hudSong(boolean editor) {
 		NowPlaying.Song s = song();
+		if (s == null && editor) {
+			return new NowPlaying.Song("Never Gonna Give You Up", "Rick Astley", true, "", 61_000, 213_000, System.currentTimeMillis());
+		}
+		return s;
+	}
+
+	private String[] lines(boolean editor) {
+		NowPlaying.Song s = hudSong(editor);
 		if (s == null) {
-			return editor ? new String[] {"Never Gonna Give You Up", "Rick Astley"} : null;
+			return null;
 		}
 		return new String[] {s.title(), s.artist().isEmpty() ? s.source() : s.artist()};
+	}
+
+	private boolean bar(boolean editor) {
+		NowPlaying.Song s = hudSong(editor);
+		return s != null && s.hasTimeline() && timestamp.isOn();
 	}
 
 	@Override
@@ -88,12 +112,12 @@ public class MusicModule extends HudModule {
 			return 0;
 		}
 		int w = Math.max(font().width(l[0]), font().width(l[1]));
-		return Math.min(MAX_W, w) + 18 + PADDING * 2;
+		return Math.max(110, Math.min(MAX_W, w)) + 24 + PADDING * 2;
 	}
 
 	@Override
 	public int getHeight(boolean editor) {
-		return getWidth(editor) == 0 ? 0 : 2 * (font().lineHeight + 1) + PADDING * 2;
+		return getWidth(editor) == 0 ? 0 : 2 * (font().lineHeight + 1) + PADDING * 2 + (bar(editor) ? 9 : 2);
 	}
 
 	@Override
@@ -102,13 +126,46 @@ public class MusicModule extends HudModule {
 		if (l == null) {
 			return;
 		}
+		NowPlaying.Song s = hudSong(editor);
 		int accent = ThemeModule.accent();
-		// note icon
-		Render.rounded(g, x + PADDING, y + PADDING + 1, x + PADDING + 14, y + PADDING + 17, Render.alpha(accent, 0xD0));
-		g.text(font(), "♪", x + PADDING + 4, y + PADDING + 5, 0xFFFFFFFF, false);
-		int tx = x + PADDING + 18;
+		int size = 20;
+		int cx = x + PADDING;
+		int cy = y + PADDING;
+		net.minecraft.resources.Identifier coverTex = cover.isOn() ? dev.novaclient.music.CoverArt.get(s.title(), s.artist()) : null;
+		if (coverTex != null) {
+			g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, coverTex, cx, cy, 0, 0, size, size, 64, 64, 64, 64);
+		} else {
+			// note icon while the cover loads / if there is none
+			Render.rounded(g, cx, cy, cx + size, cy + size, Render.alpha(accent, 0xD0));
+			g.text(font(), "♪", cx + 7, cy + 6, 0xFFFFFFFF, false);
+		}
+		int tx = x + PADDING + size + 4;
 		text(g, ellipsis(l[0]), tx, y + PADDING + 1, 0xFFFFFFFF);
 		text(g, ellipsis(l[1]), tx, y + PADDING + 11, 0xFFA8A8B8);
+		if (bar(editor)) {
+			int by = y + PADDING + 23;
+			int bx0 = x + PADDING;
+			int bx1 = x + getWidth(editor) - PADDING;
+			String t0 = NowPlaying.Song.time(s.positionNow());
+			String t1 = NowPlaying.Song.time(s.lengthMs());
+			int barX0 = bx0 + font().width(t0) + 4;
+			int barX1 = bx1 - font().width(t1) - 4;
+			g.pose().pushMatrix();
+			g.pose().translate(bx0, by);
+			g.pose().scale(0.75F, 0.75F);
+			g.text(font(), t0, 0, 0, 0xFFA8A8B8, false);
+			g.pose().popMatrix();
+			g.pose().pushMatrix();
+			g.pose().translate(bx1 - font().width(t1) * 0.75F, by);
+			g.pose().scale(0.75F, 0.75F);
+			g.text(font(), t1, 0, 0, 0xFFA8A8B8, false);
+			g.pose().popMatrix();
+			barX0 = bx0 + (int) (font().width(t0) * 0.75F) + 4;
+			barX1 = bx1 - (int) (font().width(t1) * 0.75F) - 4;
+			float f = s.lengthMs() > 0 ? s.positionNow() / (float) s.lengthMs() : 0;
+			g.fill(barX0, by + 2, barX1, by + 4, 0x40FFFFFF);
+			g.fill(barX0, by + 2, barX0 + Math.round((barX1 - barX0) * f), by + 4, accent);
+		}
 	}
 
 	private static String ellipsis(String s) {

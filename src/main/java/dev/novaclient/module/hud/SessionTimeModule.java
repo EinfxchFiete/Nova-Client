@@ -1,30 +1,25 @@
 package dev.novaclient.module.hud;
 
+import dev.novaclient.setting.ModeSetting;
+import dev.novaclient.world.Playtime;
+
+/** Play time in the current world/server: this session or in total (saved, see /playtime). */
 public class SessionTimeModule extends TextHudModule {
-	private Object lastLevel;
-	private long joinedAt = System.currentTimeMillis();
+	public final ModeSetting mode = add(new ModeSetting("Anzeige", "Diese Sitzung", "Diese Sitzung", "Gesamt in dieser Welt"));
 
 	public SessionTimeModule() {
-		super("Spielzeit", "Wie lange du schon in dieser Welt/auf diesem Server bist", false, Anchor.END, 2, Anchor.START, 98);
-	}
-
-	@Override
-	public void tick() {
-		Object level = mc().level;
-		if (level != null && lastLevel == null) {
-			joinedAt = System.currentTimeMillis();
-		}
-		lastLevel = level;
+		super("Spielzeit", "Wie lange du in dieser Welt/auf diesem Server spielst (auch gesamt, /playtime)", false, Anchor.END, 2, Anchor.START, 98);
 	}
 
 	@Override
 	protected String label() {
-		return "Spielzeit";
+		return mode.is("Diese Sitzung") ? "Spielzeit" : "Gesamt";
 	}
 
 	@Override
 	protected String value() {
-		long s = mc().level == null ? 0 : (System.currentTimeMillis() - joinedAt) / 1000L;
+		long ms = mc().level == null ? 0 : mode.is("Diese Sitzung") ? Playtime.currentSession() : Playtime.currentTotal();
+		long s = ms / 1000L;
 		long h = s / 3600;
 		long m = (s % 3600) / 60;
 		long sec = s % 60;

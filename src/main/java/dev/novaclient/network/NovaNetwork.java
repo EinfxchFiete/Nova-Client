@@ -39,7 +39,8 @@ public final class NovaNetwork {
 	private static final long STALE_MS = 20_000L;
 
 	/** What another Nova player wears / plays right now. */
-	public record RemoteStatus(Loadout loadout, String songTitle, String songArtist, String emote, long emoteStart, long receivedAt) {
+	public record RemoteStatus(Loadout loadout, String songTitle, String songArtist, long songPos, long songLen, boolean songPlaying,
+		String emote, long emoteStart, long receivedAt) {
 	}
 
 	/** Data prepared on the game thread for the next sync. */
@@ -95,6 +96,11 @@ public final class NovaNetwork {
 			JsonObject s = new JsonObject();
 			s.addProperty("title", song.title());
 			s.addProperty("artist", song.artist());
+			if (song.hasTimeline()) {
+				s.addProperty("pos", song.positionNow());
+				s.addProperty("len", song.lengthMs());
+				s.addProperty("playing", song.playing());
+			}
 			status.add("song", s);
 		}
 		Emotes.Active emote = Emotes.localActive();
@@ -227,10 +233,22 @@ public final class NovaNetwork {
 		Loadout loadout = o.has("cosmetics") && o.get("cosmetics").isJsonObject() ? Loadout.fromJson(o.getAsJsonObject("cosmetics")) : Loadout.NONE;
 		String title = "";
 		String artist = "";
+		long pos = -1;
+		long len = -1;
+		boolean playing = true;
 		if (o.has("song") && o.get("song").isJsonObject()) {
 			JsonObject s = o.getAsJsonObject("song");
 			title = clean(s.has("title") ? s.get("title").getAsString() : "", 80);
 			artist = clean(s.has("artist") ? s.get("artist").getAsString() : "", 60);
+			if (s.has("len") && s.has("pos")) {
+				len = s.get("len").getAsLong();
+				pos = s.get("pos").getAsLong();
+				if (len <= 0 || len > 24L * 3600_000L || pos < 0) {
+					len = -1;
+					pos = -1;
+				}
+				playing = !s.has("playing") || s.get("playing").getAsBoolean();
+			}
 		}
 		String emote = "";
 		long emoteStart = 0;
@@ -239,7 +257,7 @@ public final class NovaNetwork {
 			emote = Emotes.valid(e.has("id") ? e.get("id").getAsString() : "");
 			emoteStart = now - Math.max(0, Math.min(60_000L, e.has("age") ? e.get("age").getAsLong() : 0));
 		}
-		return new RemoteStatus(loadout, title, artist, emote, emoteStart, now);
+		return new RemoteStatus(loadout, title, artist, pos, Math.max(len, -1), playing, emote, emoteStart, now);
 	}
 
 	/** Removes control characters and limits the length of text from other players. */
@@ -278,6 +296,15 @@ public final class NovaNetwork {
 			return null;
 		}
 		return s.songArtist().isEmpty() ? s.songTitle() : s.songTitle() + " – " + s.songArtist();
+	}
+
+	/** The song another Nova player listens to (with extrapolated position), or null. */
+	public static NowPlaying.Song songInfo(UUID uuid) {
+		RemoteStatus s = fresh(uuid);
+		if (s == null || s.songTitle().isEmpty()) {
+			return null;
+		}
+		return new NowPlaying.Song(s.songTitle(), s.songArtist(), s.songPlaying(), "", s.songPos(), s.songLen(), s.receivedAt());
 	}
 
 	public static RemoteStatus status(UUID uuid) {
