@@ -11,6 +11,8 @@
 		"EntityMixin",
 		"EntityRendererMixin",
 		"FirstPersonHandsMixin",
+		"ItemEntityRendererMixin",
+		"ItemEntityRenderStateMixin",
 		"GameRendererMixin",
 		"HudMixin",
 		"KeyboardHandlerMixin",
@@ -21,6 +23,7 @@
 		"MinecraftTitleMixin",
 		"MouseHandlerMixin",
 		"PlayerModelMixin",
+		"PlayerScoreEntryMixin",
 		"PlayerTabOverlayMixin",
 		"ScreenEffectRendererMixin"
 	],

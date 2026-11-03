@@ -153,6 +153,9 @@ public final class ModuleManager {
 		register(new DamageNumbersModule());
 		register(new HealthTagsModule());
 		register(new RearViewModule());
+		register(new dev.novaclient.module.visual.ItemPhysicsModule());
+		register(new dev.novaclient.module.visual.ScoreboardNumbersModule());
+		register(new dev.novaclient.module.visual.HitMarkerModule());
 
 		register(new ToggleSprintModule());
 		register(new ToggleSneakModule());
@@ -168,6 +171,9 @@ public final class ModuleManager {
 		register(new AutoGgModule());
 		register(new WindowTitleModule());
 		register(new ChatMentionsModule());
+		register(new dev.novaclient.module.utility.CompactChatModule());
+		register(new dev.novaclient.module.utility.LongChatModule());
+		register(new dev.novaclient.module.utility.FriendsModule());
 
 		register(new CapeModule());
 		register(new HeadCosmeticModule());

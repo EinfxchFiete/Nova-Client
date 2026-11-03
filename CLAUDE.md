@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.6.0** (80 Module), **Nova Launcher 1.3.0**, Nova-Server 1.2 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.7.0** (86 Module), **Nova Launcher 1.4.0**, Nova-Server 1.3 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -447,6 +447,20 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
     Emotes bow/salute/zombie/shrug/think, Module Minimap, Bewegungsstatus, Hotbar-Nummern, Schadenszahlen, Leben über Spielern,
     Rückblick (H), Chat-Erwähnungen. Server 1.2 (neue IDs, extras, Emotes). Texturen: `tools/assets/cosmetic_assets_v3.py`.
     Hinweis: Schwänze und Rucksack liegen hinter einem Cape teilweise verdeckt (wie Elytra) – bewusst so gelassen.
+16. Wunsch: Item-Physik, Freundesystem, Startmenü auf der Umschalttaste → **v1.7.0** + **Launcher 1.4.0**:
+    - **Startmenü** `gui/NovaHubScreen` (Menü-Taste): Karten Module (1) / Cosmetics (2) / Freunde (3) + HUD-Editor; Untermenüs haben das
+      Startmenü als `parent` (ESC geht zurück). Gametest: nach RSHIFT `waitForScreen(NovaHubScreen)` + Taste 1.
+    - **Freunde** `friends/Friends` (config/novaclient/friends.json: Liste + abgelehnte), `gui/FriendsScreen`, Modul „Freunde“ (an:
+      Server teilen, markieren = grünes ❤ vor dem Namen, Benachrichtigungen). Hinzufügen = Anfrage; Freunde erst, wenn beide sich
+      hinzugefügt haben. Namenssuche: erst Tab-Liste, dann Mojang (`services().profileResolver().fetchByName`, 10 s Timeout).
+      „Beitreten“: `level.disconnect` + `ConnectScreen.startConnecting`.
+    - **Server 1.3**: `/v1/sync` nimmt `friends:[uuid]` und `status.server` (Host oder „Einzelspieler“), speichert Freundeslisten 24 h
+      im RAM (`friendLists`) und antwortet mit `friends:{uuid:{mutual, name?, online?, server?, lastSeen?}}` (Details **nur bei
+      gegenseitiger Freundschaft**) und `requests:[{uuid,name}]`.
+    - Module: Item-Physik (Mixins `ItemEntityRendererMixin` + `ItemEntityRenderStateMixin`, Interface `util/ItemPhysicsState` –
+      Interfaces dürfen **nicht** im Mixin-Paket liegen!), Kompakter Chat + Langer Chat-Verlauf (`ChatComponentMixin`),
+      Scoreboard-Zahlen aus (`PlayerScoreEntryMixin`), Trefferanzeige.
+    - Bugfix: Kill-Effekt-Blitz blieb für immer stehen (clientseitige Blitze werden nicht getickt) → nach 20 Ticks entfernt.
 
 ---
 

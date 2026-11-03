@@ -47,6 +47,10 @@ public final class Badges {
 			return null;
 		}
 		Component shown = local && forNametag ? NametagModule.colorize(name) : name;
+		if (!local && dev.novaclient.module.utility.FriendsModule.marking() && dev.novaclient.friends.Friends.isFriend(uuid)) {
+			// friends get a green heart in front of the name
+			shown = Component.empty().append(Component.literal("❤ ").withColor(0x55FF55)).append(shown);
+		}
 		MutableComponent icon = null;
 		if (isOwner(uuid)) {
 			icon = ownerIcon();

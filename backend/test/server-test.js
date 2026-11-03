@@ -95,6 +95,22 @@ async function login(port, name, joinIt = true) {
     assert.strictEqual(r.json.players[a.json.uuid].cosmetics.minimee, undefined, 'invalid minimee must be dropped');
     assert.strictEqual(r.json.players[a.json.uuid].song.len, undefined, 'invalid song length must be dropped');
 
+    // friends: A adds B -> B gets a request, A sees "not mutual"; B accepts -> both see each other online + server
+    r = await post(port, '/v1/sync', { status: { server: 'Play.Example.net:25566' }, players: [], friends: [b.json.uuid] }, a.json.token);
+    assert.deepStrictEqual(r.json.friends[b.json.uuid], { mutual: false });
+    r = await post(port, '/v1/sync', { status: { server: 'evil server §c' }, players: [], friends: [] }, b.json.token);
+    assert.strictEqual(r.json.requests.length, 1);
+    assert.strictEqual(r.json.requests[0].uuid, a.json.uuid);
+    assert.strictEqual(r.json.requests[0].name, 'Flipp1009');
+    r = await post(port, '/v1/sync', { status: { server: 'Einzelspieler' }, players: [], friends: [a.json.uuid] }, b.json.token);
+    assert.strictEqual(r.json.requests.length, 0, 'accepted request must disappear');
+    const fa = r.json.friends[a.json.uuid];
+    assert.ok(fa.mutual && fa.online && fa.name === 'Flipp1009', 'B must see A online: ' + JSON.stringify(fa));
+    assert.strictEqual(fa.server, 'play.example.net:25566');
+    r = await post(port, '/v1/sync', { status: {}, players: [], friends: [b.json.uuid] }, a.json.token);
+    assert.strictEqual(r.json.friends[b.json.uuid].server, 'Einzelspieler');
+    assert.strictEqual(r.json.friends[b.json.uuid].name, 'EinfxchFiete');
+
     // wrong token, dev endpoint disabled
     r = await post(port, '/v1/sync', { status: {} }, 'f'.repeat(64));
     assert.strictEqual(r.status, 401);

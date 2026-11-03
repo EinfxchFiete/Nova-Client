@@ -44,7 +44,8 @@ public final class NovaNetwork {
 	}
 
 	/** Data prepared on the game thread for the next sync. */
-	private record Snapshot(String server, UUID uuid, String name, String accessToken, JsonObject status, List<UUID> players) {
+	private record Snapshot(String server, UUID uuid, String name, String accessToken, JsonObject status, List<UUID> players,
+		List<UUID> friends, boolean notifyFriends) {
 	}
 
 	private static final Map<UUID, RemoteStatus> STATUS = new ConcurrentHashMap<>();
@@ -124,7 +125,19 @@ public final class NovaNetwork {
 				players.add(p.getUUID());
 			}
 		}
-		pending = new Snapshot(server, mc.getUser().getProfileId(), mc.getUser().getName(), mc.getUser().getAccessToken(), status, players);
+		// friends: the list goes to the server so it can tell mutual friends that you are online (and where, if shared)
+		dev.novaclient.module.utility.FriendsModule fm = dev.novaclient.module.utility.FriendsModule.get();
+		boolean friendsOn = fm != null && fm.isEnabled();
+		List<UUID> friends = new ArrayList<>();
+		if (friendsOn) {
+			dev.novaclient.friends.Friends.list().forEach(f -> friends.add(f.uuid()));
+			if (fm.shareServer.isOn()) {
+				var sd = mc.getCurrentServer();
+				status.addProperty("server", mc.getSingleplayerServer() != null ? "Einzelspieler" : sd != null ? sd.ip : "");
+			}
+		}
+		pending = new Snapshot(server, mc.getUser().getProfileId(), mc.getUser().getName(), mc.getUser().getAccessToken(), status, players,
+			friendsOn ? friends : null, friendsOn && fm.notify.isOn());
 	}
 
 	/** Ask for a sync as soon as possible (e.g. when an emote starts or the outfit changed). */
@@ -210,7 +223,18 @@ public final class NovaNetwork {
 			players.add(id.toString());
 		}
 		body.add("players", players);
+		if (s.friends() != null) {
+			JsonArray friends = new JsonArray();
+			for (UUID id : s.friends()) {
+				friends.add(id.toString());
+			}
+			body.add("friends", friends);
+		}
 		JsonObject res = post(s.server() + "/v1/sync", body, token);
+		if (s.friends() != null) {
+			dev.novaclient.friends.Friends.update(res.has("friends") && res.get("friends").isJsonObject() ? res.getAsJsonObject("friends") : null,
+				res.has("requests") && res.get("requests").isJsonArray() ? res.getAsJsonArray("requests") : null, s.notifyFriends());
+		}
 		long now = System.currentTimeMillis();
 		Map<UUID, RemoteStatus> fresh = new ConcurrentHashMap<>();
 		if (res.has("players") && res.get("players").isJsonObject()) {

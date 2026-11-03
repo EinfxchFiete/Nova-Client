@@ -14,10 +14,10 @@ let logLines = [];
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444', '#ec4899', '#64748b'];
 const NEWS = [
+  { t: 'Nova Client 1.7.0', title: 'Freunde & Startmenü', g: 'linear-gradient(135deg,#22c55e,#0ea5e9)', text: 'Neues Startmenü (Umschalttaste): Module, Cosmetics, Freunde. Freunde hinzufügen, sehen wer online ist und beitreten. Dazu Item-Physik und mehr.' },
   { t: 'Nova Client 1.6.0', title: 'Noch mehr Cosmetics', g: 'linear-gradient(135deg,#f97316,#ec4899)', text: '8 neue Kopf-Cosmetics, Extras (Rucksack, Schwänze, Schal), 3 neue Flügel, 3 animierte Capes, 5 Emotes, Minimap, Schadenszahlen und mehr.' },
   { t: 'Nova Client 1.5.0', title: 'Minimees & Song-Cover', g: 'linear-gradient(135deg,#db2777,#f59e0b)', text: 'Minimees als Kette, an der Hosentasche oder auf dem Kopf, Song-Cover und Zeit über dem Namen, 7 neue animierte Capes, 15 neue Begleiter und /playtime.' },
   { t: 'Verbessert', title: 'Ein Cosmetics-Menü', g: 'linear-gradient(135deg,#8b5cf6,#22d3ee)', text: 'Alle Cosmetics in einem Menü mit 3D-Vorschau, einfärbbare Flügel, Hörner und Kronen-Steine, echter Ping und Wegpunkte pro Welt.' },
-  { t: 'Nova Client 1.4.1', title: 'Nova-Server ist online', g: 'linear-gradient(135deg,#0ea5e9,#8b5cf6)', text: 'Der Nova-Server ist fest eingebaut: Alle Nova-Spieler sehen automatisch gegenseitig Cosmetics, Songs, Emotes und Abzeichen.' },
 ];
 
 // ---------------------------------------------------------------- helpers

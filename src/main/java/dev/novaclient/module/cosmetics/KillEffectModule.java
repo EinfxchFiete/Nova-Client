@@ -21,6 +21,7 @@ public class KillEffectModule extends Module {
 	public final ModeSetting effect = add(new ModeSetting("Effekt", "Totem", "Totem", "Blitz", "Herzen", "Flammen", "Seelen", "Explosion"));
 
 	private Entity handled;
+	private int boltTicks = -1;
 
 	public KillEffectModule() {
 		super("Kill-Effekt", "Blitz, Totem-Partikel und mehr, wenn etwas stirbt, das du getroffen hast", Category.COSMETICS, false);
@@ -30,6 +31,13 @@ public class KillEffectModule extends Module {
 	public void tick() {
 		Minecraft mc = mc();
 		ClientLevel level = mc.level;
+		// the client-only lightning is not ticked by the game, so it would stay forever: remove it after one second
+		if (boltTicks >= 0 && ++boltTicks > 20) {
+			boltTicks = -1;
+			if (level != null && level.getEntity(BOLT_ID) != null) {
+				level.removeEntity(BOLT_ID, Entity.RemovalReason.DISCARDED);
+			}
+		}
 		Entity target = CombatTracker.lastHitEntity();
 		if (!isEnabled() || level == null || mc.player == null || target == null || target == handled || target == mc.player) {
 			return;
@@ -59,6 +67,7 @@ public class KillEffectModule extends Module {
 				bolt.setVisualOnly(true);
 				bolt.snapTo(x, y, z, 0, 0);
 				level.addEntity(bolt);
+				boltTicks = 0;
 			}
 			return;
 		}

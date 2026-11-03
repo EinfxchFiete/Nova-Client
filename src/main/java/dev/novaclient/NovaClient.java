@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class NovaClient implements ClientModInitializer {
 	public static final String MOD_ID = "novaclient";
 	public static final String NAME = "Nova Client";
-	public static final String VERSION = "1.6.0";
+	public static final String VERSION = "1.7.0";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static ModuleManager modules;
@@ -66,6 +66,7 @@ public class NovaClient implements ClientModInitializer {
 			if (level.isClientSide() && player instanceof LocalPlayer local) {
 				CombatTracker.onAttack(local, entity);
 				HitParticlesModule.onHit(entity);
+				dev.novaclient.module.visual.HitMarkerModule.onHit();
 			}
 			return InteractionResult.PASS;
 		});
@@ -125,7 +126,7 @@ public class NovaClient implements ClientModInitializer {
 	private static void onTick(Minecraft mc) {
 		while (openMenuKey.consumeClick()) {
 			if (mc.gui.screen() == null) {
-				mc.gui.setScreen(new ClickGuiScreen(null));
+				mc.gui.setScreen(new dev.novaclient.gui.NovaHubScreen());
 			}
 		}
 		if (!mc.isWindowActive()) {
@@ -151,6 +152,7 @@ public class NovaClient implements ClientModInitializer {
 		WaypointModule.renderMarkers(graphics, w, h);
 		dev.novaclient.module.visual.DamageNumbersModule.render(graphics, w, h);
 		dev.novaclient.module.hud.HotbarNumbersModule.render(graphics, w, h);
+		dev.novaclient.module.visual.HitMarkerModule.render(graphics, w, h);
 		for (HudModule m : modules.getHudModules()) {
 			if (m.isEnabled()) {
 				m.render(graphics, w, h, false);

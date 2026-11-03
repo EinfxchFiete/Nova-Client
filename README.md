@@ -5,13 +5,14 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 ## Installation
 1. Fabric Loader **0.20.1+** für Minecraft 26.3 installieren
 2. **Fabric API** (26.3) in den `mods`-Ordner legen
-3. `nova-client-1.6.0.jar` in den `mods`-Ordner legen
+3. `nova-client-1.7.0.jar` in den `mods`-Ordner legen
 4. Java 25 (bringt der offizielle Launcher automatisch mit)
 
 ## Bedienung
 | Taste / Ort | Funktion |
 |---|---|
-| Rechte Umschalttaste | Menü öffnen: Karte anklicken = an/aus, Rechtsklick oder ☰ = Einstellungen, einfach lostippen = Suche |
+| Rechte Umschalttaste | Startmenü: **1 Module** (Karte anklicken = an/aus, Rechtsklick oder ☰ = Einstellungen, lostippen = Suche), **2 Cosmetics**, **3 Freunde**, HUD-Editor |
+| Startmenü → Freunde | Freunde per Name oder vom Server hinzufügen, Anfragen annehmen, sehen wer online ist und wo, „Beitreten“ |
 | C (halten) | Zoom, Mausrad = Zoomstärke |
 | V | Emote-Rad (11 Emotes: Winken, Jubeln, Tanzen, Klatschen, Facepalm, Zeigen, Verbeugen, Salutieren, Zombie, Schulterzucken, Nachdenken) |
 | H (halten, Modul „Rückblick“) | hinter dich schauen |
@@ -26,10 +27,10 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 
 Jedes Modul kann eine eigene An/Aus-Taste bekommen. Profile liegen in `config/novaclient/profiles/`.
 
-## Module (80)
+## Module (86)
 - **HUD:** FPS, Ping, CPS, Koordinaten (+ Richtung, Nether-Umrechnung, Chunk), Keystrokes, Rüstungsstatus, Trankeffekte, Uhrzeit, Datum, Server-IP, Spieler online, Wetter, Geschwindigkeit, RAM, Tag-Zähler, Biom, Lichtlevel, Sättigung, Pfeile, Totem-Zähler, Item-Zähler, Spielzeit, Reichweite, Combo, Ziel-HUD, Kompassleiste, Block-Info, Inventar-Vorschau, Stoppuhr, Wegpunkt, **Musik** (Song mit Cover, Zeit und Fortschritt), **Ingame-Zeit**, **Mondphase**, **Blickrichtung**, **Erfahrung**, **Item-Haltbarkeit**, **Minimap**, **Bewegungsstatus**, **Hotbar-Nummern**, Theme
-- **Visuals:** Zoom, Freelook, Custom Crosshair, Fullbright, No Hurt Cam, Low Fire, HUD-Tweaks, Kein Regen, Blockumrandung, Overlays (Kürbis/Pulverschnee/Unterwasser/Vignette), **Hand-Größe**, **Schadenszahlen**, **Leben über Spielern**, **Rückblick**
-- **Utility:** Toggle Sprint, Toggle Sneak, Benachrichtigungen, Todes-Koordinaten, Haltbarkeitswarnung, Chat-Zeitstempel, Chat-Makros, Hintergrund-FPS, **Nova-Netzwerk**, **Tab-Ping in ms**, **Koordinaten teilen**, **Auto-GG**, **Fenstertitel**, **Chat-Erwähnungen**
+- **Visuals:** Zoom, Freelook, Custom Crosshair, Fullbright, No Hurt Cam, Low Fire, HUD-Tweaks, Kein Regen, Blockumrandung, Overlays (Kürbis/Pulverschnee/Unterwasser/Vignette), **Hand-Größe**, **Schadenszahlen**, **Leben über Spielern**, **Rückblick**, **Item-Physik**, **Scoreboard-Zahlen aus**, **Trefferanzeige**
+- **Utility:** Toggle Sprint, Toggle Sneak, Benachrichtigungen, Todes-Koordinaten, Haltbarkeitswarnung, Chat-Zeitstempel, Chat-Makros, Hintergrund-FPS, **Nova-Netzwerk**, **Tab-Ping in ms**, **Koordinaten teilen**, **Auto-GG**, **Fenstertitel**, **Chat-Erwähnungen**, **Kompakter Chat**, **Langer Chat-Verlauf**, **Freunde**
 - **Cosmetics:** Cape (14 Designs + **16 animierte** + wechselnd), **Kopfschmuck in 3D** (Bandana, Krone mit einfärbbaren Steinen, Zylinder, Teufelshörner, Katzenohren, Heiligenschein, Partyhut, Cowboyhut, Hasenohren, Kopfhörer, Sonnenbrille, Wikingerhelm, Blumenkranz, Mütze – in 11 Farben), **animierte Flügel** (Engel, Drache, Schmetterling, Fledermaus, Fee, Phönix – einfärbbar), **Extras** (Rucksack, Katzen-, Fuchs- und Teufelsschwanz, Schal), **Minimee** (Mini-Spieler mit beliebigem Skin als Kette, an der Hosentasche oder auf dem Kopf), **Emotes**, Nametags, **19 Begleiter**, Partikel-Ring, Partikel-Spur, Treffer-Partikel, **Kill-Effekt**
 
 ## Nova-Netzwerk (Cosmetics, Songs und Emotes für alle Nova-Spieler)

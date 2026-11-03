@@ -171,6 +171,17 @@ public class NovaClientGameTest implements FabricClientGameTest {
 		}
 	}
 
+	private static int chatSize(net.minecraft.client.Minecraft mc) {
+		try {
+			Object state = mc.gui.hud.getChat().storeState();
+			java.lang.reflect.Field f = state.getClass().getDeclaredField("messages");
+			f.setAccessible(true);
+			return ((java.util.List<?>) f.get(state)).size();
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		}
+	}
+
 	private static java.awt.image.BufferedImage testCover(int rgb) {
 		var img = new java.awt.image.BufferedImage(64, 64, java.awt.image.BufferedImage.TYPE_INT_RGB);
 		for (int y = 0; y < 64; y++) {
@@ -179,6 +190,12 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			}
 		}
 		return img;
+	}
+
+	/** Flipp1009 adds us as a friend and shares his server. */
+	private static void pushFriendRequest(String server, String token, java.util.UUID me) {
+		postJson(server + "/v1/sync", "{\"status\":{\"cosmetics\":{\"cape\":\"anim:fire\",\"head\":\"tophat\"},\"server\":\"play.nova-test.net\"},"
+			+ "\"players\":[],\"friends\":[\"" + me + "\"]}", token);
 	}
 
 	private static void pushRemote(String server, String token, String emote) {
@@ -226,6 +243,9 @@ public class NovaClientGameTest implements FabricClientGameTest {
 
 			// ---------------------------------------------------------------- open menu with the real key
 			input.pressKey(InputConstants.KEY_RSHIFT);
+			ctx.waitForScreen(dev.novaclient.gui.NovaHubScreen.class);
+			ctx.takeScreenshot("02b_hub");
+			click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.NovaHubScreen) mc.gui.screen()).cardCenter(0)), LMB);
 			ctx.waitForScreen(ClickGuiScreen.class);
 			ctx.waitTicks(2);
 			check(ctx.computeOnClient(mc -> textInputEnabled(mc)), "SDL text input must be on while the menu is open (search typing)");
@@ -573,6 +593,8 @@ public class NovaClientGameTest implements FabricClientGameTest {
 
 			// ---------------------------------------------------------------- cosmetics tab: cape via real clicks
 			input.pressKey(InputConstants.KEY_RSHIFT);
+			ctx.waitForScreen(dev.novaclient.gui.NovaHubScreen.class);
+			input.pressKey(InputConstants.KEY_1);
 			ctx.waitForScreen(ClickGuiScreen.class);
 			check(gui(ctx, s -> s.visibleCardCount(dev.novaclient.module.Category.COSMETICS)) == 0,
 				"cosmetics must not show up as cards in the main menu");
@@ -739,6 +761,8 @@ public class NovaClientGameTest implements FabricClientGameTest {
 
 			// ---------------------------------------------------------------- chat macro: edit text in the menu, bind N, press N
 			input.pressKey(InputConstants.KEY_RSHIFT);
+			ctx.waitForScreen(dev.novaclient.gui.NovaHubScreen.class);
+			input.pressKey(InputConstants.KEY_1);
 			ctx.waitForScreen(ClickGuiScreen.class);
 			input.typeChars("makro");
 			ctx.waitTick();
@@ -874,6 +898,8 @@ public class NovaClientGameTest implements FabricClientGameTest {
 
 				// cosmetics menu with preview, opened from the main menu footer
 				input.pressKey(InputConstants.KEY_RSHIFT);
+				ctx.waitForScreen(dev.novaclient.gui.NovaHubScreen.class);
+				input.pressKey(InputConstants.KEY_1);
 				ctx.waitForScreen(ClickGuiScreen.class);
 				click(ctx, gui(ctx, s -> s.footerButtonCenter(1)), LMB);
 				ctx.waitForScreen(dev.novaclient.gui.CosmeticsScreen.class);
@@ -1007,6 +1033,45 @@ public class NovaClientGameTest implements FabricClientGameTest {
 						&& detected.lengthMs() == 200_000 && detected.positionNow() >= 61_000, "playerctl output parsed wrong: " + detected);
 				}
 
+				// friends: Flipp1009 sends a request, we accept it in the friends menu (opened with key 3 in the hub)
+				ctx.runOnClient(mc -> module("Nova-Netzwerk").loadEnabled(true));
+				pushFriendRequest(server, flippToken, me);
+				ctx.runOnClient(mc -> dev.novaclient.network.NovaNetwork.requestSync());
+				ctx.waitFor(mc -> dev.novaclient.friends.Friends.requests().stream().anyMatch(r -> r.uuid().equals(flipp)), 200);
+				input.pressKey(InputConstants.KEY_RSHIFT);
+				ctx.waitForScreen(dev.novaclient.gui.NovaHubScreen.class);
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("52_hub_request");
+				input.pressKey(InputConstants.KEY_3);
+				ctx.waitForScreen(dev.novaclient.gui.FriendsScreen.class);
+				ctx.takeScreenshot("53_friends_request");
+				click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.FriendsScreen) mc.gui.screen()).buttonCenter("Flipp1009", "Annehmen")), LMB);
+				check(ctx.computeOnClient(mc -> dev.novaclient.friends.Friends.isFriend(flipp)), "accepting the request did not add Flipp1009");
+				pushFriendRequest(server, flippToken, me);
+				ctx.runOnClient(mc -> dev.novaclient.network.NovaNetwork.requestSync());
+				ctx.waitFor(mc -> {
+					var st = dev.novaclient.friends.Friends.status(flipp);
+					return st != null && st.mutual() && st.online();
+				}, 200);
+				var fst = ctx.computeOnClient(mc -> dev.novaclient.friends.Friends.status(flipp));
+				check(fst.server().equals("play.nova-test.net"), "friend server wrong: " + fst);
+				check(ctx.computeOnClient(mc -> ((dev.novaclient.gui.FriendsScreen) mc.gui.screen()).buttonCenter("Flipp1009", "Beitreten")) != null,
+					"join button missing");
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("54_friends_online");
+				// typing a name of a player that does not exist
+				click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.FriendsScreen) mc.gui.screen()).inputCenter()), LMB);
+				input.typeChars("Nobody_xyz_404");
+				ctx.waitTick();
+				click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.FriendsScreen) mc.gui.screen()).addButtonCenter()), LMB);
+				ctx.waitFor(mc -> ((dev.novaclient.gui.FriendsScreen) mc.gui.screen()).getMessage().contains("nicht gefunden"), 600);
+				check(ctx.computeOnClient(mc -> mc.player.getName().getString().length() > 0), "player gone");
+				// the friend marker in front of the name
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Badges.decorate(flipp, false, net.minecraft.network.chat.Component.literal("Flipp1009"), true)
+					.getString().contains("❤")), "friend heart missing");
+				ctx.setScreen(() -> null);
+				ctx.runOnClient(mc -> dev.novaclient.friends.Friends.remove(flipp));
+
 				// coordinates share key
 				ctx.runOnClient(mc -> {
 					var m = (dev.novaclient.module.utility.CoordsShareModule) module("Koordinaten teilen");
@@ -1058,6 +1123,8 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.waitTicks(3);
 			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_043) instanceof net.minecraft.world.entity.LightningBolt), "kill effect did not play");
 			ctx.takeScreenshot("56_kill_effect");
+			ctx.waitTicks(30);
+			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_043) == null), "kill effect lightning was not removed");
 
 			// new HUD modules, hand size, window title
 			enable(ctx, "Ingame-Zeit", "Mondphase", "Blickrichtung", "Erfahrung", "Item-Haltbarkeit", "Hand-Größe", "Fenstertitel");
@@ -1104,6 +1171,44 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.waitTicks(3);
 			check(ctx.computeOnClient(mc -> mc.options.getCameraType() == CameraType.FIRST_PERSON), "rear view did not go back");
 			sp.getServer().runCommand("kill @e[type=minecraft:pig]");
+
+			// ================================================================ 1.7: item physics, chat, scoreboard, hit marker
+			enable(ctx, "Item-Physik", "Kompakter Chat", "Langer Chat-Verlauf", "Scoreboard-Zahlen aus", "Trefferanzeige");
+			ctx.runOnClient(mc -> module("HUD-Tweaks").setEnabled(false));
+			sp.getServer().runCommand("execute at @p run summon minecraft:item ~0.8 ~ ~-2.5 {PickupDelay:32767,Item:{id:\"minecraft:diamond_sword\",count:1}}");
+			sp.getServer().runCommand("execute at @p run summon minecraft:item ~-0.8 ~ ~-2.5 {PickupDelay:32767,Item:{id:\"minecraft:grass_block\",count:3}}");
+			sp.getServer().runCommand("execute at @p run summon minecraft:item ~0 ~ ~-3.5 {PickupDelay:32767,Item:{id:\"minecraft:apple\",count:1}}");
+			ctx.runOnClient(mc -> mc.player.setXRot(35));
+			sp.getServer().runCommand("scoreboard objectives add novatest dummy \"Nova Test\"");
+			sp.getServer().runCommand("scoreboard objectives setdisplay sidebar novatest");
+			sp.getServer().runCommand("scoreboard players set Punkte novatest 42");
+			ctx.runOnClient(mc -> {
+				for (int i = 0; i < 3; i++) {
+					mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Doppelte Nachricht"));
+				}
+				dev.novaclient.module.visual.HitMarkerModule.onHit();
+			});
+			check(ctx.computeOnClient(mc -> dev.novaclient.module.visual.HitMarkerModule.visible()), "hit marker not shown");
+			ctx.waitTicks(30);
+			check(ctx.computeOnClient(mc -> chatContains(mc, "Doppelte Nachricht (x3)")), "compact chat did not merge the messages");
+			ctx.takeScreenshot("61_item_physics_scoreboard");
+			ctx.runOnClient(mc -> module("Item-Physik").setEnabled(false));
+			ctx.waitTicks(2);
+			ctx.takeScreenshot("61b_items_vanilla");
+			ctx.runOnClient(mc -> mc.player.setXRot(0));
+			ctx.runOnClient(mc -> {
+				for (int i = 0; i < 160; i++) {
+					mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Zeile " + i));
+				}
+			});
+			check(ctx.computeOnClient(mc -> chatSize(mc)) > 150, "long chat history not kept: " + ctx.computeOnClient(mc -> chatSize(mc)));
+			sp.getServer().runCommand("kill @e[type=minecraft:item]");
+			sp.getServer().runCommand("scoreboard objectives remove novatest");
+			ctx.runOnClient(mc -> {
+				for (String n : new String[] {"Item-Physik", "Kompakter Chat", "Langer Chat-Verlauf", "Scoreboard-Zahlen aus", "Trefferanzeige"}) {
+					module(n).setEnabled(false);
+				}
+			});
 			ctx.runOnClient(mc -> {
 				for (String n : new String[] {"Minimap", "Bewegungsstatus", "Hotbar-Nummern", "Schadenszahlen", "Leben über Spielern", "Rückblick", "Chat-Erwähnungen"}) {
 					module(n).setEnabled(false);

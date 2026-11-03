@@ -34,7 +34,11 @@ const MINIMEE_MODES = new Set(['neck', 'pocket', 'head']);
 const EMOTES = new Map([['wave', 3000], ['cheer', 3000], ['dance', 6000], ['clap', 3000], ['facepalm', 2500], ['point', 2500],
   ['bow', 2500], ['salute', 2500], ['zombie', 4000], ['shrug', 2000], ['think', 3000]]);
 
+const FRIEND_TTL = 24 * 60 * 60 * 1000;
+const MAX_FRIENDS = 200;
 const pending = new Map();  // serverId -> { name, created }
+// uuid -> { name, friends: Set<uuid>, server, updated }  (friend lists are kept for a day, statuses only 30 s)
+const friendLists = new Map();
 const sessions = new Map(); // token -> { uuid, name, expires, lastSync }
 const statuses = new Map(); // uuid -> { name, cosmetics, song, emote:{id,start}, updated }
 const limits = new Map();   // key -> { count, reset }
@@ -113,6 +117,39 @@ function cleanText(v, max) {
 
 function pick(set, v) {
   return typeof v === 'string' && set.has(v) ? v : '';
+}
+
+/** Server address a player shares with mutual friends: host[:port] or "Einzelspieler". */
+function cleanServer(v) {
+  if (typeof v !== 'string') return '';
+  const t = v.trim().toLowerCase();
+  if (t === 'einzelspieler') return 'Einzelspieler';
+  return /^[a-z0-9.-]{1,60}(:[0-9]{1,5})?$/.test(t) ? t : '';
+}
+
+/** What a player sees about their friends: status only for mutual friends, plus incoming requests. */
+function friendsView(me, myFriends, now) {
+  const friends = {};
+  for (const uuid of myFriends) {
+    const f = friendLists.get(uuid);
+    const mutual = !!f && f.friends.has(me) && now - f.updated < FRIEND_TTL;
+    if (!mutual) {
+      friends[uuid] = { mutual: false };
+      continue;
+    }
+    const st = statuses.get(uuid);
+    const online = !!st && now - st.updated < STATUS_TTL;
+    const entry = { mutual: true, name: f.name, online, lastSeen: now - f.updated };
+    if (online && f.server) entry.server = f.server;
+    friends[uuid] = entry;
+  }
+  const requests = [];
+  for (const [uuid, f] of friendLists) {
+    if (uuid === me || myFriends.has(uuid) || now - f.updated > FRIEND_TTL || !f.friends.has(me)) continue;
+    requests.push({ uuid, name: f.name });
+    if (requests.length >= 50) break;
+  }
+  return { friends, requests };
 }
 
 function sanitizeStatus(s, now) {
@@ -228,6 +265,16 @@ const routes = {
     const body = await readBody(req);
     const clean = sanitizeStatus(body.status, now);
     statuses.set(s.uuid, { name: s.name, ...clean, updated: now });
+    let myFriends = null;
+    if (Array.isArray(body.friends)) {
+      myFriends = new Set();
+      for (const raw of body.friends.slice(0, MAX_FRIENDS)) {
+        const u = dashed(raw);
+        if (u && u !== s.uuid) myFriends.add(u);
+      }
+      const server = body.status && typeof body.status === 'object' ? cleanServer(body.status.server) : '';
+      friendLists.set(s.uuid, { name: s.name, friends: myFriends, server, updated: now });
+    }
     s.lastSync = now;
     const players = {};
     const wanted = Array.isArray(body.players) ? body.players.slice(0, MAX_PLAYERS_PER_SYNC) : [];
@@ -245,7 +292,9 @@ const routes = {
       if (st.emote && now - st.emote.start < (EMOTES.get(st.emote.id) || 0)) out.emote = { id: st.emote.id, age: now - st.emote.start };
       players[uuid] = out;
     }
-    send(res, 200, { players });
+    const out = { players };
+    if (myFriends) Object.assign(out, friendsView(s.uuid, myFriends, now));
+    send(res, 200, out);
   },
 };
 
@@ -266,6 +315,7 @@ setInterval(() => {
   for (const [k, v] of pending) if (now - v.created > PENDING_TTL) pending.delete(k);
   for (const [k, v] of sessions) if (v.expires < now) sessions.delete(k);
   for (const [k, v] of statuses) if (now - v.updated > STATUS_TTL * 4) statuses.delete(k);
+  for (const [k, v] of friendLists) if (now - v.updated > FRIEND_TTL) friendLists.delete(k);
   for (const [k, v] of limits) if (v.reset < now) limits.delete(k);
 }, 60000).unref();
 
