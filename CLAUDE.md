@@ -435,7 +435,6 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
   Spieler gelistet ist. Mixins laden aber fehlerfrei (`defaultRequire 1`).
 - Render-Free schläft nach ~15 min ohne Anfragen (erste Anfrage ~1 min langsam).
 - Viele HUD-Module gleichzeitig an + kleine GUI-Skala ⇒ Platzmangel/Überlappung (HUD-Editor „Anordnen“ hilft nur teilweise).
-- Cosmetics-Menü: „Matrix“ gibt es zweimal (statisch + animiert, Unterzeile „animiert“ unterscheidet) – UX-Feinschliff offen.
 - Custom Crosshair blendet die Vanilla-Angriffsanzeige mit aus.
 - Gametest-Szene: In der Frontansicht war die Kamera sehr nah, solange ein Rüstungsständer im Weg stand (nur Test).
 - E-Mail-Adresse des Nutzers steht als Commit-Autor in der (öffentlichen) Git-Historie; Umschreiben angeboten, **keine Antwort** [OFFEN].
@@ -444,8 +443,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 
 ## 7. AKTUELLER STAND
 
-- Alles Umgesetzte ist **committet und gepusht** (letzter Code-Commit ee84bb2 + Übergabe-Commit mit dieser Datei und `tools/`).
-- Zuletzt bearbeitet: Launcher (Steve-Standard-Skin, „Nicht eingeloggt“, Monocraft).
+- Alles Umgesetzte ist **committet und gepusht** (v1.4.1 auf Branch `claude/intelligent-babbage-0h0ma0`; `main` steht noch auf der Übergabe).
+- Zuletzt bearbeitet: Chat-Abzeichen, „… Live“-Capes, Launcher 1.1.1.
 - Ausgeliefert an den Nutzer: `nova-client-1.4.1.jar`, `Nova-Launcher-Windows.zip` (Launcher 1.1.1 inkl. Nova 1.4.1).
 - **Wartet auf den Nutzer:**
   1. **Nova-Server auf Render deployen** und die URL schicken (Anleitung in `backend/README.md`).
