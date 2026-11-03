@@ -1,7 +1,7 @@
 {
   "name": "nova-launcher",
   "productName": "Nova Launcher",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Launcher für Nova Client (Minecraft 26.3, Fabric)",
   "main": "src/main.js",
   "author": "Nova",

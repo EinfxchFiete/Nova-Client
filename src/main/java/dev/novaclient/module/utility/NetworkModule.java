@@ -8,12 +8,21 @@ import java.util.Locale;
 
 /** Connection to the Nova server: lets Nova players see each other's cosmetics, songs and emotes. */
 public class NetworkModule extends Module {
-	/** Default Nova server; set after the server has been deployed (see backend/README.md). */
-	public static final String DEFAULT_SERVER = "";
+	/** Default Nova server (Render.com, see backend/README.md). */
+	public static final String DEFAULT_SERVER = "https://nova-server-ifqq.onrender.com";
 
 	private static NetworkModule instance;
 
-	public final TextSetting server = add(new TextSetting("Server-Adresse", DEFAULT_SERVER, 120));
+	public final TextSetting server = add(new TextSetting("Server-Adresse", DEFAULT_SERVER, 120) {
+		@Override
+		public void fromJson(com.google.gson.JsonElement element) {
+			super.fromJson(element);
+			// configs from before 1.4.1 stored an empty address; use the official server instead
+			if (get().isBlank()) {
+				set(DEFAULT_SERVER);
+			}
+		}
+	});
 	public final BoolSetting showOthers = add(new BoolSetting("Cosmetics anderer anzeigen", true));
 	public final BoolSetting showBadges = add(new BoolSetting("Nova-Symbol anderer anzeigen", true));
 

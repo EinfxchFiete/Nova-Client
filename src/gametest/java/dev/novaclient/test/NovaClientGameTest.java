@@ -155,6 +155,16 @@ public class NovaClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
 		TestInput input = ctx.getInput();
+		// default server + migration of old empty addresses; keep the real server out of the test run
+		ctx.runOnClient(mc -> {
+			var net = (dev.novaclient.module.utility.NetworkModule) module("Nova-Netzwerk");
+			check(net.serverUrl().equals(dev.novaclient.module.utility.NetworkModule.DEFAULT_SERVER)
+				&& net.serverUrl().startsWith("https://"), "unexpected default server: " + net.serverUrl());
+			net.server.fromJson(new com.google.gson.JsonPrimitive(""));
+			check(net.serverUrl().equals(dev.novaclient.module.utility.NetworkModule.DEFAULT_SERVER),
+				"old empty address was not migrated");
+			net.loadEnabled(false);
+		});
 		try (TestSingleplayerContext sp = ctx.worldBuilder()
 			.adjustSettings(s -> s.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL))
 			.create()) {
@@ -708,6 +718,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				String flippToken = devToken(server, flipp, "Flipp1009");
 				ctx.runOnClient(mc -> {
 					((dev.novaclient.module.utility.NetworkModule) module("Nova-Netzwerk")).server.set(server);
+					module("Nova-Netzwerk").loadEnabled(true);
 					dev.novaclient.network.NovaNetwork.setSessionForTest(server, me, myToken);
 				});
 
@@ -870,7 +881,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					mc.level.removeEntity(-777, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
 					dev.novaclient.music.NowPlaying.setOverride(null);
 					module("Musik").setEnabled(false);
-					((dev.novaclient.module.utility.NetworkModule) module("Nova-Netzwerk")).server.set("");
+					module("Nova-Netzwerk").loadEnabled(false);
 				});
 			} finally {
 				backend.destroy();

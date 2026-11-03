@@ -5,7 +5,7 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 ## Installation
 1. Fabric Loader **0.20.1+** für Minecraft 26.3 installieren
 2. **Fabric API** (26.3) in den `mods`-Ordner legen
-3. `nova-client-1.4.0.jar` in den `mods`-Ordner legen
+3. `nova-client-1.4.1.jar` in den `mods`-Ordner legen
 4. Java 25 (bringt der offizielle Launcher automatisch mit)
 
 ## Bedienung
@@ -31,7 +31,8 @@ Jedes Modul kann eine eigene An/Aus-Taste bekommen. Profile liegen in `config/no
 ## Nova-Netzwerk (Cosmetics, Songs und Emotes für alle Nova-Spieler)
 Damit andere Nova-Spieler deine Cosmetics, Emotes und deinen aktuellen Song **über deinem Namen** sehen, braucht es den
 kleinen **Nova-Server** aus dem Ordner [`backend/`](backend/README.md) (kostenlos auf Render.com, Anleitung dort).
-Die Server-Adresse trägst du im Spiel unter *Utility → Nova-Netzwerk* ein.
+Seit 1.4.1 ist der offizielle Nova-Server (`https://nova-server-ifqq.onrender.com`) fest eingetragen – du musst nichts einstellen.
+Eine andere Adresse kannst du im Spiel unter *Utility → Nova-Netzwerk* eintragen.
 Die Owner **Flipp1009** und **EinfxchFiete** haben eine Krone vor dem Namen, andere Nova-Spieler einen Nova-Stern.
 
 Ohne Nova-Server siehst nur du deine Cosmetics. Spieler ohne Nova Client sehen sie nie.

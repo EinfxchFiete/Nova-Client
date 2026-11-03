@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.4.0**, **Nova Launcher 1.1.0**, Nova-Server 1.0.0.
+- Aktuelle Versionen: **Nova Client 1.4.1**, **Nova Launcher 1.1.1**, Nova-Server 1.0.0 (online: `https://nova-server-ifqq.onrender.com`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
 ### Tech-Stack
@@ -220,7 +220,9 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 - `NovaNetwork`: `start()`, `clientTick(mc)`, `requestSync()`, `isNovaUser(uuid)`, `loadout(uuid)`, `song(uuid)`, `status(uuid)`,
   `isConnected()`, `lastError()`, `knownPlayers()`, Test-Hook `setSessionForTest(server, uuid, token)`.
 - `NowPlaying`: `start()/stop()`, `current()` → `Song(title, artist, playing, source)`, Test-Hook `setOverride(song)`.
-- `NetworkModule.DEFAULT_SERVER` = **""** (Platzhalter – nach dem Deploy die Render-URL eintragen, siehe Abschnitt 7).
+- `NetworkModule.DEFAULT_SERVER` = **`https://nova-server-ifqq.onrender.com`** (seit 1.4.1). Die Server-Adresse-Setting ersetzt beim
+  Laden einen leeren gespeicherten Wert durch diesen Standard (alte 1.4.0-Configs hatten ""). Abschalten = Modul „Nova-Netzwerk“ aus.
+  Der Gametest schaltet das Modul am Anfang aus (`loadEnabled(false)`), damit er nie den echten Server anspricht.
 
 ### Nova-Server-API (`backend/server.js`)
 - `GET /`, `GET /health`
@@ -388,6 +390,9 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 10. Nutzer will die Server-Adresse später schicken (wenn zu Hause / wieder Tokens).
 11. Launcher (ee84bb2): Steve als Standard-Skin (von Mojang geladen), Nametag „Nicht eingeloggt“, Monocraft-Schrift.
 12. Übergabe: diese CLAUDE.md + `tools/` (Generatoren/Helfer aus dem Chat).
+13. Nutzer hat den Nova-Server per Render-Blueprint deployt (Dienst `nova-server`, Free, Auto-Deploy von `main`) →
+    **v1.4.1** + **Launcher 1.1.1**: Server-URL fest eingebaut, Migration leerer Adressen, Neuigkeiten-Karte. `/health`, `/v1/auth/start`
+    online geprüft, `/v1/auth/dev` gibt online korrekt 404. Gametest + Launcher-UI-Test bestanden.
 
 ---
 
@@ -440,12 +445,15 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 
 - Alles Umgesetzte ist **committet und gepusht** (letzter Code-Commit ee84bb2 + Übergabe-Commit mit dieser Datei und `tools/`).
 - Zuletzt bearbeitet: Launcher (Steve-Standard-Skin, „Nicht eingeloggt“, Monocraft).
-- Ausgeliefert an den Nutzer: `nova-client-1.4.0.jar`, `Nova-Launcher-Windows.zip` (Launcher 1.1.0 inkl. Nova 1.4.0, mit Steve/Monocraft).
+- Ausgeliefert an den Nutzer: `nova-client-1.4.1.jar`, `Nova-Launcher-Windows.zip` (Launcher 1.1.1 inkl. Nova 1.4.1).
+- Download-Tipp: Kann der Nutzer die `.jar` nicht herunterladen, zusätzlich als ZIP verpackt schicken oder auf
+  `launcher/resources/nova-client.jar` im GitHub-Repo verweisen (identische Datei).
 - **Wartet auf den Nutzer:**
-  1. **Nova-Server auf Render deployen** und die URL schicken (Anleitung in `backend/README.md`).
+  1. ~~Nova-Server deployen~~ **erledigt** (Render, `nova-server-ifqq`). Echte Anmeldung mit Mojang-Konto im Spiel noch ungetestet →
+     Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- Halbfertig im Code: nichts bekannt. `NetworkModule.DEFAULT_SERVER = ""` ist bewusst leer (wartet auf URL).
+- Halbfertig im Code: nichts bekannt.
 - Besprochen, aber nicht im Repo: Standard-Client-ID im Launcher vorbelegen (Idee, siehe 8), E-Mail aus Git-Historie entfernen (Angebot).
 
 ---
@@ -453,10 +461,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 ## 8. OFFENE AUFGABEN & IDEEN
 
 ### To-dos nach Priorität
-1. **Server-URL einbauen**, sobald der Nutzer sie schickt: `NetworkModule.DEFAULT_SERVER = "https://…onrender.com"`,
-   Version erhöhen (1.4.1), `./gradlew build` + Gametest, Jar nach `launcher/resources/nova-client.jar`, Launcher neu bauen
-   (dist:win, Icon, ZIP), committen, pushen, **Jar + ZIP schicken**. Danach mit echtem Server testen
-   (`curl https://…/health`).
+1. ~~Server-URL einbauen~~ **erledigt in 1.4.1**. Offen: Feedback, ob das Netzwerk mit echten Konten funktioniert
+   (Render-Logs im Dashboard unter „Logs“ zeigen Anmeldungen/Fehler).
 2. Nach Mojang-Freischaltung: echten Login/Skin-Upload/Spielstart unter Windows mit dem Nutzer testen; Idee: die Client-ID
    des Nutzers als Standard in `launcher/src/core/store.js` (`settings.clientId`) vorbelegen, damit Freunde nichts eintragen
    müssen. Die ID steht bewusst **nicht** im Repo → beim Nutzer erfragen und **vorher fragen**, ob sie ins öffentliche Repo darf.
@@ -560,7 +566,9 @@ nova-headless.mixins.json: {"required":true,"package":"dev.novaclient.test.mixin
   „Öffentliche Clientflows zulassen“ = Ja/Aktiviert → „Speichern“ → „Übersicht“ → „Anwendungs-ID (Client)“ kopieren →
   Nova Launcher → Optionen → „Azure Client-ID“. Danach das Mojang-Formular (Abschnitt 9). Bis zur Freischaltung meldet der Launcher
   „Mojang hat diese Client-ID noch nicht freigeschaltet“, das ist normal.
-- **Render.com**: noch kein Konto/Deploy [Stand Übergabe].
+- **Render.com**: Konto des Nutzers (Anmeldung über GitHub, „My Workspace“), Blueprint aus `render.yaml`, Web Service
+  **`nova-server`** (Node, Free, „Blueprint managed“, deployt automatisch bei jedem Push auf `main`),
+  URL **`https://nova-server-ifqq.onrender.com`**. Free-Instanz schläft bei Inaktivität ein (erste Anfrage ~50 s langsamer).
 - **Monocraft**: <https://github.com/IdreesInc/Monocraft> (OFL 1.1), Datei `dist/Monocraft-ttf/Monocraft.ttf`.
 - **Steve-Textur**: `https://textures.minecraft.net/texture/31f477eb1a7beee631c2ca64d06f8f68fa93a3386d04452ab27f43acdf1b60cb`.
 
