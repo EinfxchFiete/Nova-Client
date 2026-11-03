@@ -179,7 +179,8 @@ $('#anim-toggle').addEventListener('change', (e) => {
 async function refreshPlaySkin() {
   const skin = await call('accounts:skin');
   const acc = activeAccount();
-  $('#nametag-name').textContent = acc ? acc.name : 'Nicht angemeldet';
+  $('#nametag-name').textContent = acc ? acc.name : 'Nicht eingeloggt';
+  $('#nametag').classList.toggle('logged-out', !acc);
   if (playViewer) await playViewer.loadSkin(skin.url, { model: skin.variant === 'slim' ? 'slim' : 'default' });
   const capeActive = acc && acc.capes.find((c) => c.state === 'ACTIVE');
   if (playViewer) {
@@ -235,7 +236,7 @@ $('#account-btn').addEventListener('click', async () => {
       menu.classList.add('hidden');
       renderTop();
       refreshPlaySkin();
-    } }, '✕'));
+    } }, '×'));
     menu.append(row);
     if (a.active) {
       api.invoke('accounts:skin').then((s) => drawHead(head, s.url)).catch(() => {});
@@ -536,7 +537,7 @@ async function renderSkinsPage() {
   const current = await call('accounts:skin');
   const curCanvas = el('canvas', { width: 16, height: 32 });
   grid.append(el('div', { class: `skin-card${selectedSkin === 'current' ? ' sel' : ''}`, onclick: () => selectSkin('current', current.url, current.variant) },
-    el('span', { class: 'cur' }, 'AKTUELL'), curCanvas, el('div', { class: 'name' }, acc ? acc.name : 'Standard')));
+    el('span', { class: 'cur' }, 'AKTUELL'), curCanvas, el('div', { class: 'name' }, acc ? acc.name : current.source === 'steve' ? 'Steve' : 'Standard')));
   drawFront(curCanvas, current.url, current.variant === 'slim').catch(() => {});
   for (const k of state.skins) {
     const c = el('canvas', { width: 16, height: 32 });
@@ -546,7 +547,7 @@ async function renderSkinsPage() {
         state = await call('skins:remove', k.id);
         if (selectedSkin === k.id) selectedSkin = null;
         renderSkinsPage();
-      } }, '✕'), c, el('div', { class: 'name' }, k.name));
+      } }, '×'), c, el('div', { class: 'name' }, k.name));
     grid.append(card);
     api.invoke('skins:texture', k.id).then((url) => drawFront(c, url, k.variant === 'slim')).catch(() => {});
   }

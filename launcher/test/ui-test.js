@@ -26,6 +26,12 @@ function check(cond, msg) {
   await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
   await page.setViewportSize({ width: 1280, height: 790 }).catch(() => {});
   await page.waitForTimeout(1200);
+  check((await page.textContent('#nametag-name')) === 'Nicht eingeloggt', 'nametag should say "Nicht eingeloggt"');
+  check(await page.isHidden('#nametag .star'), 'no Nova star while logged out');
+  const skin = await page.evaluate(() => window.nova.invoke('accounts:skin'));
+  check(skin.source === 'steve', 'default skin should be Steve from Mojang, got ' + skin.source);
+  const fontOk = await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('16px Monocraft'); });
+  check(fontOk, 'Minecraft-style font (Monocraft) not loaded');
   await page.screenshot({ path: path.join(out, '01_play.png') });
 
   // profile popover

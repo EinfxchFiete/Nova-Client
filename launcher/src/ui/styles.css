@@ -1,3 +1,12 @@
+/* Monocraft: free Minecraft-style font, SIL Open Font License 1.1 (fonts/Monocraft-LICENSE.txt) */
+@font-face {
+  font-family: "Monocraft";
+  src: url("fonts/Monocraft.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   --bg: #0c0c11;
   --bg2: #121219;
@@ -14,7 +23,7 @@
   --radius: 10px;
   --sidebar: 84px;
   --topbar: 64px;
-  font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: "Monocraft", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -225,3 +234,18 @@ input[type=range] { accent-color: var(--accent); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+
+/* ---------------- Minecraft-style font tweaks ---------------- */
+/* pixel fonts look smeared when the browser fakes bold, and the font is already wide */
+body { font-synthesis: none; }
+.nav, .brand, .status-pill, .account, .acc-row .tag, .page-head h1, .panel-title, .nametag, .launch .big, .news-head,
+.news-card .t, .news-card .img, .profile-card .badge, .skin-card .cur { letter-spacing: 0; }
+.nav { font-size: 9px; }
+.brand { font-size: 16px; }
+.account { font-size: 12px; }
+.nametag { font-size: 20px; padding: 6px 12px 4px; border-radius: 2px; background: rgba(0, 0, 0, .45); }
+.nametag.logged-out .star { display: none; }
+.launch .big { font-size: 26px; }
+.news-card .img { font-size: 20px; }
+.page-head h1 { font-size: 24px; }
+.code, .log { font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; }

@@ -10,6 +10,12 @@ Launcher für **Nova Client** (Minecraft 26.3, Fabric) – im Stil moderner Clie
 - **Automatische Installation**: Minecraft 26.3, Java 25 (von Mojang), Fabric Loader, Fabric API (Modrinth) und Nova Client
 - **Konsole** mit lesbarer Spielausgabe
 
+## Schrift und Standard-Skin
+- Schrift: **Monocraft** von Idrees Hassan – eine freie Nachbildung der Minecraft-Schrift unter der
+  SIL Open Font License 1.1 (`src/ui/fonts/Monocraft-LICENSE.txt`).
+- Standard-Skin ohne Login: **Steve**. Der Launcher lädt ihn beim ersten Start von Mojangs Skin-Server
+  (`textures.minecraft.net`) und speichert ihn im Daten-Ordner; er wird nicht mit dem Launcher verteilt.
+
 ## Microsoft-Login einrichten (einmalig)
 Minecraft erlaubt Logins nur über eine registrierte und von Mojang freigeschaltete App:
 1. Im [Azure-Portal](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade) eine App registrieren

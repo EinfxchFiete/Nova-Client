@@ -10,6 +10,8 @@ const { launch, GAME_VERSION } = require('./core/launch');
 const { fetchRetry } = require('./core/net');
 
 const RESOURCES = path.join(__dirname, '..', 'resources');
+// Steve, Minecraft's default skin, straight from Mojang's skin server (not shipped with the launcher)
+const STEVE_URL = 'https://textures.minecraft.net/texture/31f477eb1a7beee631c2ca64d06f8f68fa93a3386d04452ab27f43acdf1b60cb';
 let win = null;
 let game = null;
 let loginCancelled = false;
@@ -84,6 +86,37 @@ async function dataUrl(url) {
   const res = await fetchRetry(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return `data:image/png;base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`;
+}
+
+/** Path of the cached Steve skin, downloading it once from Mojang. null if offline. */
+async function steveSkinFile() {
+  const file = path.join(paths.root(), 'cache', 'steve.png');
+  try {
+    if (!skins.validateSkin(fs.readFileSync(file))) return file;
+  } catch {
+    /* not cached yet */
+  }
+  try {
+    const res = await fetchRetry(STEVE_URL);
+    if (res.ok) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (!skins.validateSkin(buf)) {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, buf);
+        return file;
+      }
+    }
+  } catch {
+    /* offline */
+  }
+  return null;
+}
+
+/** Steve (or, without internet, the bundled Nova skin). */
+async function defaultSkin() {
+  const steve = await steveSkinFile();
+  if (steve) return { url: fileDataUrl(steve), variant: 'classic', source: 'steve' };
+  return { url: fileDataUrl(path.join(RESOURCES, 'default-skin.png')), variant: 'classic', source: 'nova' };
 }
 
 function fileDataUrl(file) {
@@ -188,18 +221,18 @@ function registerIpc() {
     return publicState();
   });
 
-  /** Skin texture of the active account as data URL (or the bundled default skin). */
+  /** Skin texture of the active account as data URL (or Steve when not logged in). */
   handle('accounts:skin', async () => {
     const a = activeAccount();
     const skin = a && (a.skins || []).find((k) => k.state === 'ACTIVE');
     if (skin) {
       try {
-        return { url: await dataUrl(skin.url), variant: (skin.variant || 'CLASSIC').toLowerCase() };
+        return { url: await dataUrl(skin.url), variant: (skin.variant || 'CLASSIC').toLowerCase(), source: 'account' };
       } catch {
         /* fall through to default */
       }
     }
-    return { url: fileDataUrl(path.join(RESOURCES, 'default-skin.png')), variant: 'classic' };
+    return defaultSkin();
   });
 
   handle('capes:texture', async (url) => {
