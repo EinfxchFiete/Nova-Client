@@ -6,3 +6,7 @@ out/
 .idea/
 .vscode/
 nova-client-*.jar
+
+# Python caches (asset generators)
+__pycache__/
+*.pyc
