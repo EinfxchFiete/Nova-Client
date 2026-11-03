@@ -30,6 +30,11 @@ public final class Emotes {
 		ALL.put("clap", new Info("Klatschen", 3000));
 		ALL.put("facepalm", new Info("Facepalm", 2500));
 		ALL.put("point", new Info("Zeigen", 2500));
+		ALL.put("bow", new Info("Verbeugen", 2500));
+		ALL.put("salute", new Info("Salutieren", 2500));
+		ALL.put("zombie", new Info("Zombie", 4000));
+		ALL.put("shrug", new Info("Schulterzucken", 2000));
+		ALL.put("think", new Info("Nachdenken", 3000));
 	}
 
 	private static Active local;
@@ -163,6 +168,51 @@ public final class Emotes {
 				m.rightArm.xRot = Mth.lerp(in, m.rightArm.xRot, -1.55F);
 				m.rightArm.yRot = -0.1F;
 				m.rightArm.zRot = 0;
+			}
+			case "bow" -> {
+				// head down, one hand on the chest, the other arm to the side
+				float d = in * (0.5F + 0.5F * Mth.sin(Math.min(t, 2.0F) * Mth.PI / 2.0F));
+				m.head.xRot = 0.95F * d;
+				m.rightArm.xRot = -1.05F * d;
+				m.rightArm.yRot = 0.75F * d;
+				m.rightArm.zRot = 0;
+				m.leftArm.xRot = 0.35F * d;
+				m.leftArm.zRot = -0.35F * d;
+			}
+			case "salute" -> {
+				m.rightArm.xRot = Mth.lerp(in, m.rightArm.xRot, -2.35F);
+				m.rightArm.yRot = -0.75F;
+				m.rightArm.zRot = 0.35F;
+				m.head.xRot = -0.1F;
+			}
+			case "zombie" -> {
+				float sway = Mth.sin(t * 4.0F) * 0.08F;
+				m.rightArm.xRot = -1.55F + sway;
+				m.leftArm.xRot = -1.55F - sway;
+				m.rightArm.yRot = 0;
+				m.leftArm.yRot = 0;
+				m.rightArm.zRot = 0;
+				m.leftArm.zRot = 0;
+				m.head.zRot = Mth.sin(t * 2.0F) * 0.15F;
+				m.head.xRot = 0.15F;
+			}
+			case "shrug" -> {
+				float up = in * (0.5F + 0.5F * Mth.sin(t * 6.0F));
+				m.rightArm.xRot = -0.55F;
+				m.leftArm.xRot = -0.55F;
+				m.rightArm.zRot = 0.6F + up * 0.25F;
+				m.leftArm.zRot = -0.6F - up * 0.25F;
+				m.head.zRot = 0.2F * in;
+			}
+			case "think" -> {
+				// hand on the chin, looking around
+				m.rightArm.xRot = Mth.lerp(in, m.rightArm.xRot, -2.0F);
+				m.rightArm.yRot = -0.6F;
+				m.rightArm.zRot = 0;
+				m.leftArm.xRot = -0.6F;
+				m.leftArm.yRot = 0.7F;
+				m.head.yRot = Mth.sin(t * 1.5F) * 0.35F;
+				m.head.xRot = -0.15F;
 			}
 			default -> {
 			}

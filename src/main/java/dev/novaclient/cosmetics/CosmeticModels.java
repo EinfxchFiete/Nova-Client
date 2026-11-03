@@ -31,6 +31,29 @@ public final class CosmeticModels {
 	public static ModelPart catEar;
 	public static ModelPart halo;
 	public static ModelPart wing;
+	// 1.6.0
+	public static ModelPart partyHat;
+	public static ModelPart partyPom;
+	public static ModelPart cowboyHat;
+	public static ModelPart cowboyBand;
+	public static ModelPart bunnyEar;
+	public static ModelPart headphones;
+	public static ModelPart sunglasses;
+	public static ModelPart vikingHelmet;
+	public static ModelPart vikingRim;
+	public static ModelPart vikingHorn;
+	public static ModelPart flowerVine;
+	public static final ModelPart[] FLOWERS = new ModelPart[3];
+	public static ModelPart beanie;
+	public static ModelPart beaniePom;
+	public static ModelPart backpack;
+	public static ModelPart backpackStraps;
+	public static ModelPart tailThin;
+	public static ModelPart tailFluffy;
+	public static ModelPart tailFluffyTip;
+	public static ModelPart tailArrow;
+	public static ModelPart scarf;
+	public static ModelPart scarfEnd;
 
 	private static boolean built;
 
@@ -125,5 +148,98 @@ public final class CosmeticModels {
 		// a flat 16x16 plane: x = 0 is the spine, it grows to +x; y from -10 (top) to +6
 		m.getRoot().addOrReplaceChild("plane", CubeListBuilder.create().texOffs(0, 0).addBox(0, -10, 0, 16, 16, 0), PartPose.ZERO);
 		wing = bake(m, 64, 32);
+
+		buildV16();
+	}
+
+	private static ModelPart single(CubeListBuilder cubes, int w, int h) {
+		MeshDefinition m = new MeshDefinition();
+		m.getRoot().addOrReplaceChild("p", cubes, PartPose.ZERO);
+		return bake(m, w, h);
+	}
+
+	/** Models of the 1.6.0 cosmetics (head space for hats, body space for extras). */
+	private static void buildV16() {
+		MeshDefinition m = new MeshDefinition();
+		PartDefinition r = m.getRoot();
+		r.addOrReplaceChild("l1", CubeListBuilder.create().texOffs(0, 0).addBox(-3, -10, -3, 6, 2, 6), PartPose.ZERO);
+		r.addOrReplaceChild("l2", CubeListBuilder.create().texOffs(0, 8).addBox(-2, -12, -2, 4, 2, 4), PartPose.ZERO);
+		r.addOrReplaceChild("l3", CubeListBuilder.create().texOffs(0, 14).addBox(-1, -14, -1, 2, 2, 2, new CubeDeformation(-0.2F)), PartPose.ZERO);
+		partyHat = bake(m, 64, 32);
+		partyPom = single(CubeListBuilder.create().texOffs(0, 18).addBox(-1, -15.6F, -1, 2, 2, 2, new CubeDeformation(-0.1F)), 64, 32);
+
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("brim", CubeListBuilder.create().texOffs(0, 0).addBox(-6.5F, -8.6F, -6.5F, 13, 1, 13), PartPose.ZERO);
+		r.addOrReplaceChild("crown", CubeListBuilder.create().texOffs(0, 16).addBox(-4.5F, -12.4F, -4.5F, 9, 4, 9, new CubeDeformation(0.12F)), PartPose.ZERO);
+		cowboyHat = bake(m, 64, 64);
+		cowboyBand = single(CubeListBuilder.create().texOffs(0, 32).addBox(-4.5F, -9.6F, -4.5F, 9, 1, 9, new CubeDeformation(0.25F)), 64, 64);
+
+		bunnyEar = single(CubeListBuilder.create().texOffs(0, 0).addBox(-1, -6, -0.5F, 2, 6, 1), 32, 32);
+
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("band", CubeListBuilder.create().texOffs(0, 0).addBox(-5, -9.2F, -1, 10, 1, 2), PartPose.ZERO);
+		r.addOrReplaceChild("left", CubeListBuilder.create().texOffs(0, 4).addBox(-5, -8.2F, -1, 1, 5, 2), PartPose.ZERO);
+		r.addOrReplaceChild("right", CubeListBuilder.create().texOffs(0, 4).addBox(4, -8.2F, -1, 1, 5, 2), PartPose.ZERO);
+		r.addOrReplaceChild("cupL", CubeListBuilder.create().texOffs(0, 12).addBox(-5.9F, -5.4F, -2, 2, 3, 4), PartPose.ZERO);
+		r.addOrReplaceChild("cupR", CubeListBuilder.create().texOffs(0, 12).mirror().addBox(3.9F, -5.4F, -2, 2, 3, 4), PartPose.ZERO);
+		headphones = bake(m, 64, 32);
+
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("frame", CubeListBuilder.create().texOffs(0, 0).addBox(-4.5F, -5.2F, -4.8F, 9, 2, 1), PartPose.ZERO);
+		r.addOrReplaceChild("tl", CubeListBuilder.create().texOffs(0, 4).addBox(-4.7F, -4.8F, -4.3F, 1, 1, 5), PartPose.ZERO);
+		r.addOrReplaceChild("tr", CubeListBuilder.create().texOffs(0, 4).addBox(3.7F, -4.8F, -4.3F, 1, 1, 5), PartPose.ZERO);
+		sunglasses = bake(m, 64, 32);
+
+		vikingHelmet = single(CubeListBuilder.create().texOffs(0, 0).addBox(-4.5F, -9.3F, -4.5F, 9, 3, 9, new CubeDeformation(0.2F)), 64, 32);
+		vikingRim = single(CubeListBuilder.create().texOffs(0, 12).addBox(-5, -6.6F, -5, 10, 1, 10, SIDES), 64, 32);
+		m = new MeshDefinition();
+		PartDefinition base = m.getRoot().addOrReplaceChild("base", CubeListBuilder.create().texOffs(0, 24).addBox(-1, -3, -1, 2, 3, 2), PartPose.ZERO);
+		base.addOrReplaceChild("tip", CubeListBuilder.create().texOffs(8, 24).addBox(-0.5F, -3, -0.5F, 1, 3, 1), PartPose.offsetAndRotation(0, -2.7F, 0, 0, 0, 0.55F));
+		vikingHorn = bake(m, 64, 32);
+
+		flowerVine = single(CubeListBuilder.create().texOffs(0, 0).addBox(-5, -9, -5, 10, 1, 10, SIDES), 64, 32);
+		for (int g = 0; g < 3; g++) {
+			m = new MeshDefinition();
+			r = m.getRoot();
+			for (int i = g; i < 12; i += 3) {
+				double a = i * Math.PI * 2 / 12;
+				float x = (float) (Math.cos(a) * 5.0);
+				float z = (float) (Math.sin(a) * 5.0);
+				r.addOrReplaceChild("f" + i, CubeListBuilder.create().texOffs(0, 14).addBox(x - 0.6F, -9.6F, z - 0.6F, 1, 1, 1, new CubeDeformation(0.25F)), PartPose.ZERO);
+			}
+			FLOWERS[g] = bake(m, 64, 32);
+		}
+
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("cap", CubeListBuilder.create().texOffs(0, 0).addBox(-4.5F, -9.6F, -4.5F, 9, 4, 9, new CubeDeformation(0.25F)), PartPose.ZERO);
+		r.addOrReplaceChild("fold", CubeListBuilder.create().texOffs(0, 14).addBox(-4.5F, -6.4F, -4.5F, 9, 2, 9, new CubeDeformation(0.5F)), PartPose.ZERO);
+		beanie = bake(m, 64, 32);
+		beaniePom = single(CubeListBuilder.create().texOffs(40, 0).addBox(-1.5F, -12.6F, -1.5F, 3, 3, 3), 64, 32);
+
+		// extras (body space: neck at y 0, back at z +2)
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("bag", CubeListBuilder.create().texOffs(0, 0).addBox(-3, 1, 2.1F, 6, 7, 3), PartPose.ZERO);
+		r.addOrReplaceChild("pocket", CubeListBuilder.create().texOffs(0, 12).addBox(-2, 4.5F, 5.1F, 4, 3, 1), PartPose.ZERO);
+		backpack = bake(m, 64, 32);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("sl", CubeListBuilder.create().texOffs(0, 18).addBox(-3, -0.1F, -2.35F, 1, 6, 1, new CubeDeformation(-0.2F)), PartPose.ZERO);
+		r.addOrReplaceChild("sr", CubeListBuilder.create().texOffs(0, 18).addBox(2, -0.1F, -2.35F, 1, 6, 1, new CubeDeformation(-0.2F)), PartPose.ZERO);
+		r.addOrReplaceChild("tl", CubeListBuilder.create().texOffs(0, 18).addBox(-3, -0.4F, -2, 1, 1, 4, new CubeDeformation(-0.2F)), PartPose.ZERO);
+		r.addOrReplaceChild("tr", CubeListBuilder.create().texOffs(0, 18).addBox(2, -0.4F, -2, 1, 1, 4, new CubeDeformation(-0.2F)), PartPose.ZERO);
+		backpackStraps = bake(m, 64, 32);
+
+		tailThin = single(CubeListBuilder.create().texOffs(0, 0).addBox(-0.5F, -0.5F, 0, 1, 1, 3), 32, 32);
+		tailFluffy = single(CubeListBuilder.create().texOffs(0, 6).addBox(-1.5F, -1.5F, 0, 3, 3, 3), 32, 32);
+		tailFluffyTip = single(CubeListBuilder.create().texOffs(0, 14).addBox(-1.5F, -1.5F, 0, 3, 3, 3), 32, 32);
+		tailArrow = single(CubeListBuilder.create().texOffs(0, 22).addBox(-1, -1, 0, 2, 2, 1), 32, 32);
+
+		scarf = single(CubeListBuilder.create().texOffs(0, 0).addBox(-4.8F, -0.2F, -2.8F, 9.6F, 2.5F, 5.6F, SIDES), 64, 32);
+		scarfEnd = single(CubeListBuilder.create().texOffs(0, 10).addBox(-1, 0, -0.5F, 2, 5, 1), 64, 32);
 	}
 }

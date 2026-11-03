@@ -21,14 +21,18 @@ const PENDING_TTL = 2 * 60 * 1000;
 const MAX_BODY = 32 * 1024;
 const MAX_PLAYERS_PER_SYNC = 200;
 
-const HEADS = new Set(['bandana', 'crown', 'tophat', 'horns', 'catears', 'halo']);
-const WINGS = new Set(['angel', 'dragon', 'butterfly']);
+const HEADS = new Set(['bandana', 'crown', 'tophat', 'horns', 'catears', 'halo',
+  'partyhat', 'cowboyhat', 'bunnyears', 'headphones', 'sunglasses', 'viking', 'flowercrown', 'beanie']);
+const EXTRAS = new Set(['backpack', 'cattail', 'foxtail', 'deviltail', 'scarf']);
+const WINGS = new Set(['angel', 'dragon', 'butterfly', 'bat', 'fairy', 'phoenix']);
 const COLORS = new Set(['Normal', 'Rot', 'Orange', 'Gelb', 'Grün', 'Türkis', 'Blau', 'Lila', 'Pink', 'Schwarz', 'Regenbogen']);
 const CAPES = new Set(['nova', 'galaxy', 'fire', 'ocean', 'forest', 'gold', 'ice', 'rainbow', 'cherry', 'checker', 'lava', 'night', 'sunset', 'matrix',
   'anim:nova', 'anim:galaxy', 'anim:fire', 'anim:ocean', 'anim:rainbow', 'anim:matrix',
-  'anim:aurora', 'anim:lava', 'anim:storm', 'anim:sakura', 'anim:ender', 'anim:snow', 'anim:neon']);
+  'anim:aurora', 'anim:lava', 'anim:storm', 'anim:sakura', 'anim:ender', 'anim:snow', 'anim:neon',
+  'anim:hearts', 'anim:glitch', 'anim:portal']);
 const MINIMEE_MODES = new Set(['neck', 'pocket', 'head']);
-const EMOTES = new Map([['wave', 3000], ['cheer', 3000], ['dance', 6000], ['clap', 3000], ['facepalm', 2500], ['point', 2500]]);
+const EMOTES = new Map([['wave', 3000], ['cheer', 3000], ['dance', 6000], ['clap', 3000], ['facepalm', 2500], ['point', 2500],
+  ['bow', 2500], ['salute', 2500], ['zombie', 4000], ['shrug', 2000], ['think', 3000]]);
 
 const pending = new Map();  // serverId -> { name, created }
 const sessions = new Map(); // token -> { uuid, name, expires, lastSync }
@@ -112,7 +116,7 @@ function pick(set, v) {
 }
 
 function sanitizeStatus(s, now) {
-  const out = { cosmetics: { cape: '', head: '', headColor: '', wings: '', wingsColor: '' }, song: null, emote: null };
+  const out = { cosmetics: { cape: '', head: '', headColor: '', wings: '', wingsColor: '', extra: '', extraColor: '' }, song: null, emote: null };
   // minimee: a mini player (any Minecraft name) as necklace, in the pocket or on the head
   if (!s || typeof s !== 'object') return out;
   const c = s.cosmetics && typeof s.cosmetics === 'object' ? s.cosmetics : {};
@@ -122,6 +126,8 @@ function sanitizeStatus(s, now) {
     headColor: pick(COLORS, c.headColor),
     wings: pick(WINGS, c.wings),
     wingsColor: pick(COLORS, c.wingsColor),
+    extra: pick(EXTRAS, c.extra),
+    extraColor: pick(COLORS, c.extraColor),
   };
   if (c.minimee && typeof c.minimee === 'object' && typeof c.minimee.name === 'string'
       && /^[A-Za-z0-9_]{1,16}$/.test(c.minimee.name) && MINIMEE_MODES.has(c.minimee.mode)) {

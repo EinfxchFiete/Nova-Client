@@ -12,6 +12,8 @@ public final class CosmeticRegistry {
 	public static final Map<String, String> WINGS = new LinkedHashMap<>();
 	/** colour name -> RGB, "Regenbogen" is animated, "Normal" = untinted */
 	public static final Map<String, Integer> COLORS = new LinkedHashMap<>();
+	/** body extra id (backpack, tails, scarf) -> display name */
+	public static final Map<String, String> EXTRAS = new LinkedHashMap<>();
 	/** animated cape id -> display name */
 	public static final Map<String, String> ANIMATED_CAPES = new LinkedHashMap<>();
 
@@ -27,10 +29,27 @@ public final class CosmeticRegistry {
 		HEADS.put("horns", "Teufelshörner");
 		HEADS.put("catears", "Katzenohren");
 		HEADS.put("halo", "Heiligenschein");
+		HEADS.put("partyhat", "Partyhut");
+		HEADS.put("cowboyhat", "Cowboyhut");
+		HEADS.put("bunnyears", "Hasenohren");
+		HEADS.put("headphones", "Kopfhörer");
+		HEADS.put("sunglasses", "Sonnenbrille");
+		HEADS.put("viking", "Wikingerhelm");
+		HEADS.put("flowercrown", "Blumenkranz");
+		HEADS.put("beanie", "Mütze");
+
+		EXTRAS.put("backpack", "Rucksack");
+		EXTRAS.put("cattail", "Katzenschwanz");
+		EXTRAS.put("foxtail", "Fuchsschwanz");
+		EXTRAS.put("deviltail", "Teufelsschwanz");
+		EXTRAS.put("scarf", "Schal");
 
 		WINGS.put("angel", "Engelsflügel");
 		WINGS.put("dragon", "Drachenflügel");
 		WINGS.put("butterfly", "Schmetterling");
+		WINGS.put("bat", "Fledermausflügel");
+		WINGS.put("fairy", "Feenflügel");
+		WINGS.put("phoenix", "Phönixflügel");
 
 		COLORS.put("Normal", 0xFFFFFF);
 		COLORS.put("Rot", 0xE53935);
@@ -57,6 +76,9 @@ public final class CosmeticRegistry {
 		ANIMATED_CAPES.put("anim:ender", "Ender (animiert)");
 		ANIMATED_CAPES.put("anim:snow", "Schneefall (animiert)");
 		ANIMATED_CAPES.put("anim:neon", "Neon (animiert)");
+		ANIMATED_CAPES.put("anim:hearts", "Herzen (animiert)");
+		ANIMATED_CAPES.put("anim:glitch", "Glitch (animiert)");
+		ANIMATED_CAPES.put("anim:portal", "Portal (animiert)");
 
 		MINIMEE_MODES.put("neck", "Kette");
 		MINIMEE_MODES.put("pocket", "Hosentasche");
@@ -93,6 +115,10 @@ public final class CosmeticRegistry {
 
 	public static String validWings(String id) {
 		return WINGS.containsKey(id) ? id : "";
+	}
+
+	public static String validExtra(String id) {
+		return EXTRAS.containsKey(id) ? id : "";
 	}
 
 	public static String validColor(String name) {

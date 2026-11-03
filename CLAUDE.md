@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.5.0** (72 Module), **Nova Launcher 1.2.0**, Nova-Server 1.1 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.6.0** (80 Module), **Nova Launcher 1.3.0**, Nova-Server 1.2 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -441,6 +441,12 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
     breite Tab-Spalte, 7 neue animierte Capes, 15 neue Begleiter (skaliert über `Attributes.SCALE`), Aura entfernt, Minimees,
     Wegpunkte neu (mehrere, gespeichert, Markierungen, /wegpunkt), /playtime, Song mit Zeit + Cover (HUD mit Fortschrittsbalken),
     10 neue Module. Server 1.1 (minimee, song pos/len, neue Capes). Gametest erweitert und bestanden.
+15. „Viel mehr Cosmetics und Module“ → **v1.6.0** + **Launcher 1.3.0**: 8 neue Kopf-Cosmetics (partyhat, cowboyhat, bunnyears,
+    headphones, sunglasses, viking, flowercrown, beanie), neue Kategorie **Extras** (`ExtrasModule`, Loadout-Felder `extra`/`extraColor`:
+    backpack, cattail, foxtail, deviltail, scarf), Flügel bat/fairy/phoenix (Phönix leuchtet), animierte Capes hearts/glitch/portal,
+    Emotes bow/salute/zombie/shrug/think, Module Minimap, Bewegungsstatus, Hotbar-Nummern, Schadenszahlen, Leben über Spielern,
+    Rückblick (H), Chat-Erwähnungen. Server 1.2 (neue IDs, extras, Emotes). Texturen: `tools/assets/cosmetic_assets_v3.py`.
+    Hinweis: Schwänze und Rucksack liegen hinter einem Cape teilweise verdeckt (wie Elytra) – bewusst so gelassen.
 
 ---
 
@@ -540,6 +546,7 @@ Einzige Ausnahme: `SdlGlTest.java` hieß im Chat `T.java` (Klasse `T`), nur der 
 |---|---|---|
 | `tools/assets/capes.py` | 14 statische Cape-Texturen (64×32) | `python3 tools/assets/capes.py src/main/resources/assets/novaclient/textures/cape` |
 | `tools/assets/cosmetic_assets.py` | Abzeichen, Kopfschmuck-/Flügel-Texturen, 6×16 animierte Cape-Frames (seit 1.5 importierbar: Aufrufe unter `__main__`) | `python3 tools/assets/cosmetic_assets.py src/main/resources/assets/novaclient/textures` |
+| `tools/assets/cosmetic_assets_v3.py` | 1.6: neue Kopf-Cosmetics, Extras, Flügel bat/fairy/phoenix (+ `_tint`), Capes hearts/glitch/portal | `python3 -B tools/assets/cosmetic_assets_v3.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/cosmetic_assets_v2.py` | 1.5: Graustufen-Flügel/-Hörner (`*_tint`), neue Krone + `crown_gems.png`, Kette, 7 neue animierte Capes | `python3 tools/assets/cosmetic_assets_v2.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/mod_icon.py` | Mod-Icon 128×128 | im Repo-Root: `python3 tools/assets/mod_icon.py` |
 | `tools/assets/launcher_assets.py` | Launcher `default-skin.png` + `icon.png` | in `launcher/`: `python3 ../tools/assets/launcher_assets.py` |

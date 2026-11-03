@@ -9,6 +9,7 @@ import dev.novaclient.module.Module;
 import dev.novaclient.module.cosmetics.CapeModule;
 import dev.novaclient.module.cosmetics.CompanionModule;
 import dev.novaclient.module.cosmetics.EmotesModule;
+import dev.novaclient.module.cosmetics.ExtrasModule;
 import dev.novaclient.module.cosmetics.HeadCosmeticModule;
 import dev.novaclient.module.cosmetics.MinimeeModule;
 import dev.novaclient.module.cosmetics.WingsModule;
@@ -55,7 +56,7 @@ public class CosmeticsScreen extends Screen {
 	private static final float SPIN_SPEED = 24F;
 	/** Degrees per dragged GUI pixel. */
 	private static final float DRAG_SPEED = 0.9F;
-	private static final String[] TABS = {"Capes", "Kopf", "Flügel", "Minimee", "Begleiter", "Effekte", "Emotes"};
+	private static final String[] TABS = {"Capes", "Kopf", "Flügel", "Minimee", "Begleiter", "Effekte", "Emotes", "Extras"};
 	private static final String[] EFFECTS = {"Partikel-Spur", "Partikel-Ring", "Treffer-Partikel", "Kill-Effekt", "Nametags"};
 
 	private static int lastTab;
@@ -293,6 +294,17 @@ public class CosmeticsScreen extends Screen {
 					for (Setting<?> s : m.getSettings()) {
 						out.add(Item.setting(s, s.getName()));
 					}
+				}
+			}
+			case 7 -> {
+				ExtrasModule extras = ExtrasModule.get();
+				out.add(Item.colors(extras.color, "Farbe:"));
+				out.add(Item.tile("Kein Extra", "", !extras.isEnabled(), () -> extras.setEnabled(false)));
+				for (String name : CosmeticRegistry.EXTRAS.values()) {
+					out.add(Item.tile(name, "3D", extras.isEnabled() && extras.type.get().equals(name), () -> {
+						extras.type.set(name);
+						extras.setEnabled(true);
+					}));
 				}
 			}
 			default -> {

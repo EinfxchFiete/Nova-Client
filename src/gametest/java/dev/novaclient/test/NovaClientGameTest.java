@@ -183,7 +183,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 
 	private static void pushRemote(String server, String token, String emote) {
 		postJson(server + "/v1/sync", "{\"status\":{\"cosmetics\":{\"cape\":\"anim:fire\",\"head\":\"tophat\",\"headColor\":\"Rot\","
-			+ "\"wings\":\"dragon\",\"wingsColor\":\"\",\"minimee\":{\"name\":\"EinfxchFiete\",\"mode\":\"pocket\"}},"
+			+ "\"wings\":\"dragon\",\"wingsColor\":\"\",\"minimee\":{\"name\":\"EinfxchFiete\",\"mode\":\"pocket\"},\"extra\":\"foxtail\",\"extraColor\":\"\"},"
 			+ "\"song\":{\"title\":\"Blinding Lights\",\"artist\":\"The Weeknd\",\"pos\":83000,\"len\":200000,\"playing\":true},"
 			+ "\"emote\":{\"id\":\"" + emote + "\",\"age\":0}},\"players\":[]}", token);
 	}
@@ -830,6 +830,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					"remote song not received");
 				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Badges.isOwner(flipp)), "Flipp1009 must be an owner");
 				check(seen.minimee().equals("EinfxchFiete") && seen.minimeeMode().equals("pocket"), "remote minimee not received: " + seen);
+				check(seen.extra().equals("foxtail"), "remote extra not received: " + seen);
 				var remoteSong = ctx.computeOnClient(mc -> dev.novaclient.network.NovaNetwork.songInfo(flipp));
 				check(remoteSong.lengthMs() == 200_000 && remoteSong.positionNow() >= 83_000 && remoteSong.timestamp().endsWith("/ 3:20"),
 					"remote song time wrong: " + remoteSong + " " + remoteSong.timestamp());
@@ -950,6 +951,38 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					ctx.waitTicks(2);
 					ctx.takeScreenshot("49_head_" + head.getKey());
 				}
+				// extras tab by clicks, then every extra from behind
+				click(ctx, at.apply(s -> s.tabCenter(7)), LMB);
+				click(ctx, at.apply(s -> s.tileCenter("Rucksack")), LMB);
+				check(enabled(ctx, "Extras") && ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Cosmetics.local().extra()).equals("backpack"),
+					"extras tile click failed");
+				click(ctx, at.apply(s -> s.swatchCenter("Blau")), LMB);
+				check(ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.ExtrasModule) module("Extras")).color.get()).equals("Blau"), "extras colour failed");
+				ctx.runOnClient(mc -> {
+					module("Flügel").setEnabled(false);
+					module("Cape").setEnabled(false);
+					module("Minimee").setEnabled(false);
+					module("Kopfschmuck").setEnabled(false);
+				});
+				for (var extra : dev.novaclient.cosmetics.CosmeticRegistry.EXTRAS.entrySet()) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.ExtrasModule) module("Extras")).type.set(extra.getValue()));
+					ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(extra.getKey().equals("scarf") ? 200 : extra.getKey().endsWith("tail") ? 100 : 35));
+					ctx.waitTicks(2);
+					ctx.takeScreenshot("49x_extra_" + extra.getKey());
+				}
+				ctx.runOnClient(mc -> {
+					module("Extras").setEnabled(false);
+					module("Flügel").setEnabled(true);
+					module("Cape").setEnabled(true);
+					module("Kopfschmuck").setEnabled(true);
+					((dev.novaclient.module.cosmetics.WingsModule) module("Flügel")).color.set("Normal");
+				});
+				for (var wing : dev.novaclient.cosmetics.CosmeticRegistry.WINGS.entrySet()) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.WingsModule) module("Flügel")).type.set(wing.getValue()));
+					ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(20));
+					ctx.waitTicks(2);
+					ctx.takeScreenshot("49w_wings_" + wing.getKey());
+				}
 				ctx.setScreen(() -> null);
 				ctx.runOnClient(mc -> module("Begleiter").setEnabled(false));
 				ctx.waitTicks(2);
@@ -1034,6 +1067,45 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				"window title wrong");
 			ctx.runOnClient(mc -> {
 				for (String n : new String[] {"Ingame-Zeit", "Mondphase", "Blickrichtung", "Erfahrung", "Item-Haltbarkeit", "Hand-Größe", "Kill-Effekt", "Minimee"}) {
+					module(n).setEnabled(false);
+				}
+			});
+
+			// ================================================================ 1.6: emotes, modules
+			for (String emote : new String[] {"bow", "salute", "zombie", "shrug", "think"}) {
+				ctx.runOnClient(mc -> dev.novaclient.emote.Emotes.play(emote));
+				ctx.waitTicks(8);
+				check(emote.equals(ctx.computeOnClient(mc -> {
+					var a = dev.novaclient.emote.Emotes.localActive();
+					return a == null ? "" : a.id();
+				})), "emote " + emote + " not playing");
+				ctx.takeScreenshot("58_emote_" + emote);
+				ctx.runOnClient(mc -> dev.novaclient.emote.Emotes.stop());
+				ctx.waitTicks(2);
+			}
+			enable(ctx, "Minimap", "Bewegungsstatus", "Hotbar-Nummern", "Schadenszahlen", "Leben über Spielern", "Rückblick", "Chat-Erwähnungen");
+			sp.getServer().runCommand("execute at @p run summon minecraft:pig ~1 ~ ~-3 {NoAI:1b}");
+			ctx.waitTicks(25);
+			sp.getServer().runCommand("damage @e[type=minecraft:pig,limit=1] 3");
+			ctx.waitTicks(3);
+			check(ctx.computeOnClient(mc -> ((dev.novaclient.module.visual.DamageNumbersModule) module("Schadenszahlen")).activePopups()) > 0,
+				"no damage number for the pig");
+			ctx.takeScreenshot("59_minimap_damage_hotbar");
+			check(ctx.computeOnClient(mc -> {
+				var m = (dev.novaclient.module.utility.ChatMentionsModule) module("Chat-Erwähnungen");
+				String me = mc.player.getGameProfile().name();
+				return m.mentions("hey " + me + " komm mal") && !m.mentions("hey " + me + "xyz") && !m.mentions("hallo zusammen");
+			}), "chat mention detection wrong");
+			input.holdKey(InputConstants.KEY_H);
+			ctx.waitTicks(3);
+			check(ctx.computeOnClient(mc -> mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT), "rear view key did not turn the camera");
+			ctx.takeScreenshot("60_rear_view");
+			input.releaseKey(InputConstants.KEY_H);
+			ctx.waitTicks(3);
+			check(ctx.computeOnClient(mc -> mc.options.getCameraType() == CameraType.FIRST_PERSON), "rear view did not go back");
+			sp.getServer().runCommand("kill @e[type=minecraft:pig]");
+			ctx.runOnClient(mc -> {
+				for (String n : new String[] {"Minimap", "Bewegungsstatus", "Hotbar-Nummern", "Schadenszahlen", "Leben über Spielern", "Rückblick", "Chat-Erwähnungen"}) {
 					module(n).setEnabled(false);
 				}
 			});

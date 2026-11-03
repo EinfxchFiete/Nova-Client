@@ -23,6 +23,7 @@ import dev.novaclient.util.CombatTracker;
 import dev.novaclient.util.Notifications;
 import dev.novaclient.module.cosmetics.AuraModule;
 import dev.novaclient.module.cosmetics.MinimeeModule;
+import dev.novaclient.module.cosmetics.ExtrasModule;
 import dev.novaclient.module.cosmetics.CapeModule;
 import dev.novaclient.module.cosmetics.EmotesModule;
 import dev.novaclient.module.cosmetics.HeadCosmeticModule;
@@ -45,6 +46,13 @@ import dev.novaclient.module.hud.HeldDurabilityModule;
 import dev.novaclient.module.utility.AutoGgModule;
 import dev.novaclient.module.utility.WindowTitleModule;
 import dev.novaclient.module.visual.HandSizeModule;
+import dev.novaclient.module.visual.DamageNumbersModule;
+import dev.novaclient.module.visual.HealthTagsModule;
+import dev.novaclient.module.visual.RearViewModule;
+import dev.novaclient.module.utility.ChatMentionsModule;
+import dev.novaclient.module.hud.MinimapModule;
+import dev.novaclient.module.hud.MovementStatusModule;
+import dev.novaclient.module.hud.HotbarNumbersModule;
 import dev.novaclient.module.cosmetics.KillEffectModule;
 import dev.novaclient.module.hud.WeatherModule;
 import dev.novaclient.module.utility.BackgroundFpsModule;
@@ -125,6 +133,9 @@ public final class ModuleManager {
 		register(new RotationModule());
 		register(new ExperienceModule());
 		register(new HeldDurabilityModule());
+		register(new MinimapModule());
+		register(new MovementStatusModule());
+		register(new HotbarNumbersModule());
 		register(new MusicModule());
 		register(new ItemCounterModule("Item-Zähler", "Zählt das gehaltene Item im ganzen Inventar", "Gehaltenes Item", Anchor.START, 2, Anchor.START, 196));
 
@@ -139,6 +150,9 @@ public final class ModuleManager {
 		register(new BlockOutlineModule());
 		register(new OverlaysModule());
 		register(new HandSizeModule());
+		register(new DamageNumbersModule());
+		register(new HealthTagsModule());
+		register(new RearViewModule());
 
 		register(new ToggleSprintModule());
 		register(new ToggleSneakModule());
@@ -153,6 +167,7 @@ public final class ModuleManager {
 		register(new CoordsShareModule());
 		register(new AutoGgModule());
 		register(new WindowTitleModule());
+		register(new ChatMentionsModule());
 
 		register(new CapeModule());
 		register(new HeadCosmeticModule());
@@ -164,6 +179,7 @@ public final class ModuleManager {
 		register(new CompanionModule());
 		register(new AuraModule());
 		register(new MinimeeModule());
+		register(new ExtrasModule());
 		register(new KillEffectModule());
 	}
 

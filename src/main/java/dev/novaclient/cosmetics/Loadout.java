@@ -7,8 +7,9 @@ import com.google.gson.JsonObject;
  * The same record is used for the local player and for other Nova players received from the network.
  * {@code minimee} is a Minecraft name whose skin is shown as a mini player at {@code minimeeMode}.
  */
-public record Loadout(String cape, String head, String headColor, String wings, String wingsColor, String minimee, String minimeeMode) {
-	public static final Loadout NONE = new Loadout("", "", "", "", "", "", "");
+public record Loadout(String cape, String head, String headColor, String wings, String wingsColor, String minimee, String minimeeMode,
+	String extra, String extraColor) {
+	public static final Loadout NONE = new Loadout("", "", "", "", "", "", "", "", "");
 
 	public boolean hasMinimee() {
 		return !minimee.isEmpty() && !minimeeMode.isEmpty();
@@ -21,6 +22,8 @@ public record Loadout(String cape, String head, String headColor, String wings, 
 		o.addProperty("headColor", headColor);
 		o.addProperty("wings", wings);
 		o.addProperty("wingsColor", wingsColor);
+		o.addProperty("extra", extra);
+		o.addProperty("extraColor", extraColor);
 		if (hasMinimee()) {
 			JsonObject m = new JsonObject();
 			m.addProperty("name", minimee);
@@ -51,7 +54,9 @@ public record Loadout(String cape, String head, String headColor, String wings, 
 			CosmeticRegistry.validColor(str(o, "headColor")),
 			CosmeticRegistry.validWings(str(o, "wings")),
 			CosmeticRegistry.validColor(str(o, "wingsColor")),
-			name, mode);
+			name, mode,
+			CosmeticRegistry.validExtra(str(o, "extra")),
+			CosmeticRegistry.validColor(str(o, "extraColor")));
 	}
 
 	private static String str(JsonObject o, String key) {

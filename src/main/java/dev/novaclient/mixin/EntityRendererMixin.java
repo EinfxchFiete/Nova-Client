@@ -18,7 +18,8 @@ public abstract class EntityRendererMixin {
 	private void novaclient$badges(Entity entity, CallbackInfoReturnable<Component> cir) {
 		if (entity instanceof Player player && cir.getReturnValue() != null) {
 			boolean local = player == Minecraft.getInstance().player;
-			cir.setReturnValue(Badges.decorate(player.getUUID(), local, cir.getReturnValue(), true));
+			Component name = Badges.decorate(player.getUUID(), local, cir.getReturnValue(), true);
+			cir.setReturnValue(local ? name : dev.novaclient.module.visual.HealthTagsModule.decorate(player, name));
 		}
 	}
 }

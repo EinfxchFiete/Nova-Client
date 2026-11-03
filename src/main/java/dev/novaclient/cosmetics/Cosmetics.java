@@ -4,6 +4,7 @@ import dev.novaclient.NovaClient;
 import dev.novaclient.module.cosmetics.CapeModule;
 import dev.novaclient.module.cosmetics.HeadCosmeticModule;
 import dev.novaclient.module.cosmetics.MinimeeModule;
+import dev.novaclient.module.cosmetics.ExtrasModule;
 import dev.novaclient.module.cosmetics.WingsModule;
 import dev.novaclient.network.NovaNetwork;
 import net.minecraft.client.Minecraft;
@@ -21,6 +22,7 @@ public final class Cosmetics {
 		HeadCosmeticModule head = HeadCosmeticModule.get();
 		WingsModule wings = WingsModule.get();
 		MinimeeModule mini = MinimeeModule.get();
+		ExtrasModule extras = ExtrasModule.get();
 		boolean miniOn = mini != null && mini.isEnabled() && !mini.playerName().isEmpty();
 		return new Loadout(
 			cape != null && cape.isEnabled() ? cape.currentId() : "",
@@ -29,7 +31,9 @@ public final class Cosmetics {
 			wings != null && wings.isEnabled() ? wings.currentId() : "",
 			wings != null && wings.isEnabled() ? wings.color.get() : "",
 			miniOn ? mini.playerName() : "",
-			miniOn ? mini.modeId() : "");
+			miniOn ? mini.modeId() : "",
+			extras != null && extras.isEnabled() ? extras.currentId() : "",
+			extras != null && extras.isEnabled() ? extras.color.get() : "");
 	}
 
 	/** Loadout for the player with this entity id, or null if nothing should be drawn. */

@@ -63,7 +63,7 @@ async function login(port, name, joinIt = true) {
     let r = await post(port, '/v1/sync', {
       status: {
         cosmetics: { cape: 'anim:aurora', head: 'crown', headColor: 'Rot', wings: 'hacker', wingsColor: '§cevil',
-          minimee: { name: 'Flipp1009', mode: 'neck' } },
+          minimee: { name: 'Flipp1009', mode: 'neck' }, extra: 'foxtail', extraColor: 'Blau' },
         song: { title: `§4${longTitle}\n`, artist: 'Nova', pos: 61000, len: 200000, playing: true },
         emote: { id: 'wave', age: 100 },
       },
@@ -77,6 +77,8 @@ async function login(port, name, joinIt = true) {
     assert.ok(seen, 'B should see A');
     assert.strictEqual(seen.cosmetics.cape, 'anim:aurora');
     assert.deepStrictEqual(seen.cosmetics.minimee, { name: 'Flipp1009', mode: 'neck' });
+    assert.strictEqual(seen.cosmetics.extra, 'foxtail');
+    assert.strictEqual(seen.cosmetics.extraColor, 'Blau');
     assert.strictEqual(seen.song.len, 200000);
     assert.ok(seen.song.pos >= 61000 && seen.song.pos < 66000, 'song position must be extrapolated: ' + seen.song.pos);
     assert.strictEqual(seen.song.at, undefined, 'internal timestamp must not leak');

@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class NovaClient implements ClientModInitializer {
 	public static final String MOD_ID = "novaclient";
 	public static final String NAME = "Nova Client";
-	public static final String VERSION = "1.5.0";
+	public static final String VERSION = "1.6.0";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static ModuleManager modules;
@@ -149,6 +149,8 @@ public class NovaClient implements ClientModInitializer {
 		int w = graphics.guiWidth();
 		int h = graphics.guiHeight();
 		WaypointModule.renderMarkers(graphics, w, h);
+		dev.novaclient.module.visual.DamageNumbersModule.render(graphics, w, h);
+		dev.novaclient.module.hud.HotbarNumbersModule.render(graphics, w, h);
 		for (HudModule m : modules.getHudModules()) {
 			if (m.isEnabled()) {
 				m.render(graphics, w, h, false);
