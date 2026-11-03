@@ -4,6 +4,7 @@
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"AbstractClientPlayerMixin",
+		"AvatarRendererMixin",
 		"CameraMixin",
 		"ChatComponentMixin",
 		"EntityMixin",
@@ -16,6 +17,8 @@
 		"LightmapRenderStateExtractorMixin",
 		"LivingEntityRendererMixin",
 		"MouseHandlerMixin",
+		"PlayerModelMixin",
+		"PlayerTabOverlayMixin",
 		"ScreenEffectRendererMixin"
 	],
 	"injectors": {

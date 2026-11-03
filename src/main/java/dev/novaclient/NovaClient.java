@@ -22,7 +22,14 @@ import dev.novaclient.util.Notifications;
 import dev.novaclient.util.Render;
 import dev.novaclient.module.hud.ThemeModule;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
+import dev.novaclient.cosmetics.CosmeticsLayer;
+import dev.novaclient.network.NovaNetwork;
+import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegistrationCallback;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.client.Minecraft;
@@ -34,7 +41,7 @@ import org.slf4j.LoggerFactory;
 public class NovaClient implements ClientModInitializer {
 	public static final String MOD_ID = "novaclient";
 	public static final String NAME = "Nova Client";
-	public static final String VERSION = "1.3.0";
+	public static final String VERSION = "1.4.0";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static ModuleManager modules;
@@ -60,6 +67,14 @@ public class NovaClient implements ClientModInitializer {
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(NovaClient::onTick);
+		LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
+			if (renderer instanceof AvatarRenderer<?> avatar) {
+				@SuppressWarnings("unchecked")
+				RenderLayerParent<AvatarRenderState, PlayerModel> parent = (RenderLayerParent<AvatarRenderState, PlayerModel>) (Object) avatar;
+				helper.register(new CosmeticsLayer(parent));
+			}
+		});
+		NovaNetwork.start();
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> config.save());
 
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), (graphics, deltaTracker) -> renderHud(graphics));
@@ -110,6 +125,7 @@ public class NovaClient implements ClientModInitializer {
 			KeyState.releaseAll();
 		}
 		modules.tick(mc);
+		NovaNetwork.clientTick(mc);
 	}
 
 	private static void renderHud(GuiGraphicsExtractor graphics) {

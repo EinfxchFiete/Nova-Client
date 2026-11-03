@@ -363,7 +363,7 @@ public class ClickGuiScreen extends Screen {
 		for (int i = 0; i < buttons.length; i++) {
 			int[] b = footerButton(i);
 			boolean hover = Render.inside(mouseX, mouseY, b[0], b[1], b[2], b[3]);
-			boolean current = i == 1 && page == Page.PROFILES || i == 2 && page == Page.DESIGN;
+			boolean current = i == 2 && page == Page.PROFILES || i == 3 && page == Page.DESIGN;
 			Render.rounded(g, b[0], b[1], b[2], b[3], Render.alpha(accent, hover || current ? 0x90 : 0x40));
 			g.centeredText(font, buttons[i], (b[0] + b[2]) / 2, b[1] + 4, TEXT);
 		}
@@ -376,7 +376,7 @@ public class ClickGuiScreen extends Screen {
 	}
 
 	private static String[] footerButtons() {
-		return new String[] {"HUD-Editor", "Profile", "Design"};
+		return new String[] {"HUD-Editor", "Cosmetics", "Profile", "Design"};
 	}
 
 	private int[] footerButton(int i) {
@@ -714,7 +714,11 @@ public class ClickGuiScreen extends Screen {
 			if (Render.inside(mx, my, b[0], b[1], b[2], b[3])) {
 				switch (i) {
 					case 0 -> openHudEditor();
-					case 1 -> open(page == Page.PROFILES ? Page.GRID : Page.PROFILES, null);
+					case 1 -> {
+						NovaClient.config().save();
+						minecraft.gui.setScreen(new CosmeticsScreen(this));
+					}
+					case 2 -> open(page == Page.PROFILES ? Page.GRID : Page.PROFILES, null);
 					default -> open(page == Page.DESIGN ? Page.GRID : Page.DESIGN, null);
 				}
 				return true;

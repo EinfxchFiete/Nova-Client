@@ -5,7 +5,6 @@ import dev.novaclient.module.Module;
 import dev.novaclient.module.hud.ThemeModule;
 import dev.novaclient.setting.BoolSetting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 
 /** Shows your own nametag in third person and marks you with a Nova symbol. */
 public class NametagModule extends Module {
@@ -38,17 +37,23 @@ public class NametagModule extends Module {
 		};
 	}
 
-	public static Component decorate(Component name) {
+	/** Own name in the chosen colour (when the module is on). */
+	public static Component colorize(Component name) {
 		NametagModule n = instance;
 		if (n == null || !n.isEnabled() || name == null) {
 			return name;
 		}
 		int c = n.nameColor();
-		Component shown = c < 0 ? name : Component.literal(name.getString()).withColor(c);
-		if (!n.symbol.isOn()) {
-			return shown;
-		}
-		MutableComponent star = Component.literal("✦ ").withColor(ThemeModule.accent() & 0xFFFFFF);
-		return star.append(shown);
+		return c < 0 ? name : Component.literal(name.getString()).withColor(c);
+	}
+
+	/** Whether the Nova symbol should be shown in front of your own name. */
+	public static boolean symbolOn() {
+		return instance != null && instance.isEnabled() && instance.symbol.isOn();
+	}
+
+	/** Kept for compatibility: own name with colour (badges are added by {@link dev.novaclient.cosmetics.Badges}). */
+	public static Component decorate(Component name) {
+		return colorize(name);
 	}
 }

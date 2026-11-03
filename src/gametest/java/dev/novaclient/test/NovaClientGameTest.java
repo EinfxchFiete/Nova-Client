@@ -87,6 +87,71 @@ public class NovaClientGameTest implements FabricClientGameTest {
 		}
 	}
 
+	private static final int BACKEND_PORT = 18765;
+
+	/** Starts the Nova server (backend/server.js) locally with the test login enabled. */
+	private static Process startBackend() {
+		try {
+			java.nio.file.Path dir = java.nio.file.Path.of(System.getProperty("user.dir")).toAbsolutePath();
+			java.nio.file.Path script = null;
+			for (int i = 0; i < 6 && dir != null; i++, dir = dir.getParent()) {
+				if (java.nio.file.Files.isRegularFile(dir.resolve("backend/server.js"))) {
+					script = dir.resolve("backend/server.js");
+					break;
+				}
+			}
+			check(script != null, "backend/server.js not found");
+			ProcessBuilder pb = new ProcessBuilder("node", script.toString());
+			pb.environment().put("PORT", String.valueOf(BACKEND_PORT));
+			pb.environment().put("NOVA_DEV", "1");
+			pb.redirectErrorStream(true);
+			pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+			Process p = pb.start();
+			java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
+			for (int i = 0; i < 50; i++) {
+				try {
+					var res = http.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://127.0.0.1:" + BACKEND_PORT + "/health")).build(),
+						java.net.http.HttpResponse.BodyHandlers.ofString());
+					if (res.statusCode() == 200) {
+						return p;
+					}
+				} catch (java.io.IOException e) {
+					Thread.sleep(100);
+				}
+			}
+			throw new AssertionError("backend did not start");
+		} catch (InterruptedException | java.io.IOException e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	private static String postJson(String url, String body, String token) {
+		try {
+			var b = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url)).header("Content-Type", "application/json")
+				.POST(java.net.http.HttpRequest.BodyPublishers.ofString(body));
+			if (token != null) {
+				b.header("Authorization", "Bearer " + token);
+			}
+			var res = java.net.http.HttpClient.newHttpClient().send(b.build(), java.net.http.HttpResponse.BodyHandlers.ofString());
+			check(res.statusCode() == 200, "HTTP " + res.statusCode() + " from " + url + ": " + res.body());
+			return res.body();
+		} catch (InterruptedException | java.io.IOException e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	private static String devToken(String server, java.util.UUID uuid, String name) {
+		String body = postJson(server + "/v1/auth/dev", "{\"uuid\":\"" + uuid + "\",\"name\":\"" + name + "\"}", null);
+		return com.google.gson.JsonParser.parseString(body).getAsJsonObject().get("token").getAsString();
+	}
+
+	/** Publishes the status of the fake second Nova player. */
+	private static void pushRemote(String server, String token, String emote) {
+		postJson(server + "/v1/sync", "{\"status\":{\"cosmetics\":{\"cape\":\"anim:fire\",\"head\":\"tophat\",\"headColor\":\"Rot\","
+			+ "\"wings\":\"dragon\",\"wingsColor\":\"\"},\"song\":{\"title\":\"Blinding Lights\",\"artist\":\"The Weeknd\"},"
+			+ "\"emote\":{\"id\":\"" + emote + "\",\"age\":0}},\"players\":[]}", token);
+	}
+
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
 		TestInput input = ctx.getInput();
@@ -476,7 +541,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			enable(ctx, "Nametags", "Partikel-Spur");
 
 			// ---------------------------------------------------------------- design page: accent swatches
-			click(ctx, gui(ctx, s -> s.footerButtonCenter(2)), LMB);
+			click(ctx, gui(ctx, s -> s.footerButtonCenter(3)), LMB);
 			check(gui(ctx, s -> s.getPage()) == ClickGuiScreen.Page.DESIGN, "design page did not open");
 			click(ctx, gui(ctx, s -> s.swatchCenter(1)), LMB);
 			double hue = ctx.computeOnClient(mc -> ((ThemeModule) module("Theme")).hue.get());
@@ -485,7 +550,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			click(ctx, gui(ctx, s -> s.swatchCenter(0)), LMB);
 
 			// ---------------------------------------------------------------- profiles page
-			click(ctx, gui(ctx, s -> s.footerButtonCenter(1)), LMB);
+			click(ctx, gui(ctx, s -> s.footerButtonCenter(2)), LMB);
 			check(gui(ctx, s -> s.getPage()) == ClickGuiScreen.Page.PROFILES, "profiles page did not open");
 			ctx.takeScreenshot("28_profiles");
 			// preset "Minimal" is the right-most preset button
@@ -518,21 +583,21 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				NovaClient.config().delete("Mein Profil");
 			});
 
-			// ---------------------------------------------------------------- rebind freelook to V in its settings
+			// ---------------------------------------------------------------- rebind freelook to K in its settings
 			click(ctx, gui(ctx, s -> s.tabCenter(2)), LMB);
 			Module freelookMod = ctx.computeOnClient(mc -> module("Freelook"));
 			click(ctx, gui(ctx, s -> s.cardCenter(freelookMod)), RMB);
 			click(ctx, gui(ctx, s -> s.rowPoint(0, -1)), LMB);
-			input.pressKey(InputConstants.KEY_V);
+			input.pressKey(InputConstants.KEY_K);
 			ctx.waitTick();
-			check(ctx.computeOnClient(mc -> ((FreelookModule) module("Freelook")).key.code()) == InputConstants.KEY_V, "freelook key not rebound");
+			check(ctx.computeOnClient(mc -> ((FreelookModule) module("Freelook")).key.code()) == InputConstants.KEY_K, "freelook key not rebound");
 			ctx.setScreen(() -> null);
 			ctx.waitTicks(2);
-			input.holdKey(InputConstants.KEY_V);
+			input.holdKey(InputConstants.KEY_K);
 			ctx.waitTicks(4);
-			check(ctx.computeOnClient(mc -> FreelookModule.isActive()), "freelook does not react to the new key V");
+			check(ctx.computeOnClient(mc -> FreelookModule.isActive()), "freelook does not react to the new key K");
 			ctx.takeScreenshot("31_freelook_indicator_cape_nametag");
-			input.releaseKey(InputConstants.KEY_V);
+			input.releaseKey(InputConstants.KEY_K);
 			ctx.waitTicks(3);
 			ctx.runOnClient(mc -> ((FreelookModule) module("Freelook")).key.reset());
 
@@ -568,7 +633,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			check(!ctx.computeOnClient(mc -> textInputEnabled(mc)), "text input should be off in game");
 
 			// ---------------------------------------------------------------- companion, aura, halo
-			enable(ctx, "Begleiter", "Aura", "Heiligenschein");
+			enable(ctx, "Begleiter", "Aura", "Partikel-Ring");
 			ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
 			ctx.waitTicks(15);
 			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042) != null), "companion entity missing");
@@ -631,6 +696,185 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			check(ctx.computeOnClient(mc -> ((dev.novaclient.module.utility.ChatMacrosModule) module("Chat-Makros")).getLastSent()).equals("Hallo Nova"),
 				"macro was not sent");
 			ctx.takeScreenshot("41_macro_sent");
+
+			// ================================================================ 1.4: network, cosmetics, music, emotes
+			Process backend = startBackend();
+			try {
+				String server = "http://127.0.0.1:" + BACKEND_PORT;
+				java.util.UUID me = ctx.computeOnClient(mc -> mc.getUser().getProfileId());
+				String myName = ctx.computeOnClient(mc -> mc.getUser().getName());
+				String myToken = devToken(server, me, myName);
+				java.util.UUID flipp = java.util.UUID.fromString("0c68d1f1-ba5c-4356-833b-5f1cb4e4530c");
+				String flippToken = devToken(server, flipp, "Flipp1009");
+				ctx.runOnClient(mc -> {
+					((dev.novaclient.module.utility.NetworkModule) module("Nova-Netzwerk")).server.set(server);
+					dev.novaclient.network.NovaNetwork.setSessionForTest(server, me, myToken);
+				});
+
+				// a second Nova player (the owner Flipp1009) standing next to us, on a free spot without helmet
+				sp.getServer().runCommand("kill @e[type=minecraft:armor_stand]");
+				sp.getServer().runCommand("item replace entity @a armor.head with minecraft:air");
+				sp.getServer().runCommand("item replace entity @a armor.chest with minecraft:air");
+				sp.getServer().runCommand("tp @a 40 -60 40 180 0");
+				ctx.waitTicks(5);
+				ctx.runOnClient(mc -> {
+					net.minecraft.client.player.RemotePlayer other = new net.minecraft.client.player.RemotePlayer(mc.level,
+						new com.mojang.authlib.GameProfile(flipp, "Flipp1009"));
+					other.setId(-777);
+					other.snapTo(mc.player.getX() + 1.6, mc.player.getY(), mc.player.getZ(), 180, 0);
+					other.setYHeadRot(180);
+					other.yBodyRot = 180;
+					mc.level.addEntity(other);
+				});
+				pushRemote(server, flippToken, "wave");
+
+				// our own outfit + song
+				ctx.runOnClient(mc -> {
+					((dev.novaclient.module.cosmetics.HeadCosmeticModule) module("Kopfschmuck")).type.set("Krone");
+					((dev.novaclient.module.cosmetics.WingsModule) module("Flügel")).type.set("Engelsflügel");
+					((dev.novaclient.module.cosmetics.CapeModule) module("Cape")).design.set("Galaxie (animiert)");
+					module("Kopfschmuck").setEnabled(true);
+					module("Flügel").setEnabled(true);
+					module("Cape").setEnabled(true);
+					module("Nametags").setEnabled(true);
+					module("Musik").setEnabled(true);
+					module("Partikel-Spur").setEnabled(false);
+					module("Aura").setEnabled(false);
+					module("Partikel-Ring").setEnabled(false);
+					module("Begleiter").setEnabled(false);
+					dev.novaclient.music.NowPlaying.setOverride(new dev.novaclient.music.NowPlaying.Song("Nova Theme", "DJ Nova", true, "Spotify"));
+					dev.novaclient.network.NovaNetwork.requestSync();
+				});
+				ctx.waitFor(mc -> dev.novaclient.network.NovaNetwork.isNovaUser(flipp), 200);
+				dev.novaclient.cosmetics.Loadout seen = ctx.computeOnClient(mc -> dev.novaclient.network.NovaNetwork.loadout(flipp));
+				check(seen != null && seen.head().equals("tophat") && seen.wings().equals("dragon") && seen.cape().equals("anim:fire"),
+					"remote loadout not received: " + seen);
+				check("Blinding Lights – The Weeknd".equals(ctx.computeOnClient(mc -> dev.novaclient.network.NovaNetwork.song(flipp))),
+					"remote song not received");
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Badges.isOwner(flipp)), "Flipp1009 must be an owner");
+				String remoteCape = ctx.computeOnClient(mc -> {
+					var e = mc.level.getEntity(-777);
+					var c = ((net.minecraft.client.player.AbstractClientPlayer) e).getSkin().cape();
+					return c == null ? "none" : c.texturePath().toString();
+				});
+				check(remoteCape.startsWith("novaclient:textures/cape/anim/fire_"), "remote cape not applied: " + remoteCape);
+
+				// front view: crown + song above own name, owner crown + tophat + song + wave on the other player
+				ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
+				pushRemote(server, flippToken, "wave");
+				ctx.waitTicks(20);
+				ctx.takeScreenshot("42_network_front");
+				// back view: capes and wings
+				ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+				pushRemote(server, flippToken, "dance");
+				ctx.waitTicks(25);
+				ctx.takeScreenshot("43_network_back");
+				ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+				// emote wheel with the real key V
+				input.pressKey(InputConstants.KEY_V);
+				ctx.waitForScreen(dev.novaclient.emote.EmoteWheelScreen.class);
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("44_emote_wheel");
+				int[] waveBtn = ctx.computeOnClient(mc -> ((dev.novaclient.emote.EmoteWheelScreen) mc.gui.screen()).buttonCenter("cheer"));
+				click(ctx, waveBtn, LMB);
+				check("cheer".equals(ctx.computeOnClient(mc -> {
+					var a = dev.novaclient.emote.Emotes.localActive();
+					return a == null ? "" : a.id();
+				})), "emote from the wheel not playing");
+				check(ctx.computeOnClient(mc -> mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT), "emote should turn the camera");
+				ctx.waitTicks(15);
+				ctx.takeScreenshot("45_emote_cheer");
+				ctx.waitTicks(60);
+				check(ctx.computeOnClient(mc -> dev.novaclient.emote.Emotes.localActive() == null), "emote should end");
+				check(ctx.computeOnClient(mc -> mc.options.getCameraType() == CameraType.FIRST_PERSON), "camera not restored after emote");
+
+				// cosmetics menu with preview, opened from the main menu footer
+				input.pressKey(InputConstants.KEY_RSHIFT);
+				ctx.waitForScreen(ClickGuiScreen.class);
+				click(ctx, gui(ctx, s -> s.footerButtonCenter(1)), LMB);
+				ctx.waitForScreen(dev.novaclient.gui.CosmeticsScreen.class);
+				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(200));
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("46_cosmetics_capes");
+				java.util.function.Function<java.util.function.Function<dev.novaclient.gui.CosmeticsScreen, int[]>, int[]> at =
+					f -> ctx.computeOnClient(mc -> f.apply((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()));
+				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).scrollTo("Nova Puls"));
+				ctx.waitTick();
+				ctx.takeScreenshot("46b_cosmetics_capes_animated");
+				click(ctx, at.apply(s -> s.tileCenter("Nova Puls")), LMB);
+				check(ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.CapeModule) module("Cape")).design.get()).equals("Nova Puls (animiert)"),
+					"cape tile click did not select the animated Nova cape");
+				click(ctx, at.apply(s -> s.tabCenter(1)), LMB);
+				click(ctx, at.apply(s -> s.tileCenter("Bandana")), LMB);
+				click(ctx, at.apply(s -> s.swatchCenter("Lila")), LMB);
+				check(ctx.computeOnClient(mc -> {
+					var h = (dev.novaclient.module.cosmetics.HeadCosmeticModule) module("Kopfschmuck");
+					return h.isEnabled() && h.type.get().equals("Bandana") && h.color.get().equals("Lila");
+				}), "head tile/colour click failed");
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("47_cosmetics_head");
+				click(ctx, at.apply(s -> s.tabCenter(2)), LMB);
+				click(ctx, at.apply(s -> s.tileCenter("Schmetterling")), LMB);
+				check(ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.WingsModule) module("Flügel")).type.get()).equals("Schmetterling"),
+					"wings tile click failed");
+				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(20));
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("48_cosmetics_wings_back");
+				// all head cosmetics once, so every model is rendered at least once
+				for (var head : dev.novaclient.cosmetics.CosmeticRegistry.HEADS.entrySet()) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.HeadCosmeticModule) module("Kopfschmuck")).type.set(head.getValue()));
+					ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(200));
+					ctx.waitTicks(2);
+					ctx.takeScreenshot("49_head_" + head.getKey());
+				}
+				ctx.setScreen(() -> null);
+				ctx.waitTicks(2);
+
+				// tab list with ping in ms
+				input.holdKey(o -> o.keyPlayerList);
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("50_tab_list");
+				input.releaseKey(o -> o.keyPlayerList);
+
+				// music HUD
+				ctx.takeScreenshot("51_music_hud");
+				// real detection (Linux: playerctl). The test run puts a fake playerctl on the PATH.
+				if (System.getenv("NOVA_FAKE_PLAYERCTL") != null) {
+					ctx.runOnClient(mc -> dev.novaclient.music.NowPlaying.setOverride(null));
+					ctx.waitFor(mc -> {
+						var song = dev.novaclient.music.NowPlaying.current();
+						return song != null && song.title().equals("Fake Song");
+					}, 300);
+					var detected = ctx.computeOnClient(mc -> dev.novaclient.music.NowPlaying.current());
+					check(detected.artist().equals("Fake Artist") && detected.playing() && detected.source().equals("Spotify"),
+						"playerctl output parsed wrong: " + detected);
+				}
+
+				// coordinates share key
+				ctx.runOnClient(mc -> {
+					var m = (dev.novaclient.module.utility.CoordsShareModule) module("Koordinaten teilen");
+					m.key.set(InputConstants.KEY_U);
+					m.setEnabled(true);
+				});
+				ctx.waitTick();
+				input.pressKey(InputConstants.KEY_U);
+				ctx.waitTicks(3);
+				String coordsDebug = ctx.computeOnClient(mc -> "presses=" + dev.novaclient.util.KeyState.presses(InputConstants.KEY_U)
+					+ " enabled=" + module("Koordinaten teilen").isEnabled() + " notif=" + module("Benachrichtigungen").isEnabled()
+					+ " key=" + ((dev.novaclient.module.utility.CoordsShareModule) module("Koordinaten teilen")).key.code()
+					+ " screen=" + mc.gui.screen() + " active=" + dev.novaclient.util.Notifications.active());
+				check(ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active().contains("Koordinaten gesendet")),
+					"coordinates were not shared: " + coordsDebug);
+				ctx.runOnClient(mc -> {
+					mc.level.removeEntity(-777, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+					dev.novaclient.music.NowPlaying.setOverride(null);
+					module("Musik").setEnabled(false);
+					((dev.novaclient.module.utility.NetworkModule) module("Nova-Netzwerk")).server.set("");
+				});
+			} finally {
+				backend.destroy();
+			}
 
 			// ---------------------------------------------------------------- config round trip incl. mode setting
 			ctx.runOnClient(mc -> {

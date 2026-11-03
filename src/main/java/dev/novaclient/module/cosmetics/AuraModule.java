@@ -15,8 +15,8 @@ public class AuraModule extends Module {
 	private float angle;
 
 	public AuraModule(boolean halo) {
-		super(halo ? "Heiligenschein" : "Aura",
-			halo ? "Ein leuchtender Ring über deinem Kopf" : "Ein Partikelring, der um dich kreist",
+		super(halo ? "Partikel-Ring" : "Aura",
+			halo ? "Ein leuchtender Partikelring über deinem Kopf" : "Ein Partikelring, der um dich kreist",
 			Category.COSMETICS, false);
 		this.halo = halo;
 	}

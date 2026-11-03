@@ -23,6 +23,13 @@ import dev.novaclient.util.CombatTracker;
 import dev.novaclient.util.Notifications;
 import dev.novaclient.module.cosmetics.AuraModule;
 import dev.novaclient.module.cosmetics.CapeModule;
+import dev.novaclient.module.cosmetics.EmotesModule;
+import dev.novaclient.module.cosmetics.HeadCosmeticModule;
+import dev.novaclient.module.cosmetics.WingsModule;
+import dev.novaclient.module.hud.MusicModule;
+import dev.novaclient.module.utility.CoordsShareModule;
+import dev.novaclient.module.utility.NetworkModule;
+import dev.novaclient.module.utility.TabPingModule;
 import dev.novaclient.module.cosmetics.CompanionModule;
 import dev.novaclient.module.hud.BlockInfoModule;
 import dev.novaclient.module.hud.InventoryPreviewModule;
@@ -103,6 +110,7 @@ public final class ModuleManager {
 		register(new WeatherModule());
 		register(new StopwatchModule());
 		register(new WaypointModule());
+		register(new MusicModule());
 		register(new ItemCounterModule("Item-Zähler", "Zählt das gehaltene Item im ganzen Inventar", "Gehaltenes Item", Anchor.START, 2, Anchor.START, 196));
 
 		zoom = register(new ZoomModule());
@@ -124,8 +132,14 @@ public final class ModuleManager {
 		register(new ChatTimestampsModule());
 		register(new ChatMacrosModule());
 		register(new BackgroundFpsModule());
+		register(new NetworkModule());
+		register(new TabPingModule());
+		register(new CoordsShareModule());
 
 		register(new CapeModule());
+		register(new HeadCosmeticModule());
+		register(new WingsModule());
+		register(new EmotesModule());
 		register(new NametagModule());
 		register(new TrailModule());
 		register(new HitParticlesModule());

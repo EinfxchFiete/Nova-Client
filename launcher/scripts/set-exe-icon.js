@@ -5,6 +5,7 @@ const path = require('path');
 const ResEdit = require('resedit');
 
 const exe = process.argv[2];
+const version = require(path.join(__dirname, '..', 'package.json')).version.split('.').map(Number);
 const ico = path.join(__dirname, '..', 'resources', 'icon.ico');
 const data = fs.readFileSync(exe);
 const pe = ResEdit.NtExecutable.from(data);
@@ -16,8 +17,8 @@ if (vi) {
   vi.setStringValues({ lang: 1033, codepage: 1200 }, {
     ProductName: 'Nova Launcher', FileDescription: 'Nova Launcher', CompanyName: 'Nova', OriginalFilename: 'Nova Launcher.exe',
   });
-  vi.setFileVersion(1, 0, 0, 0, 1033);
-  vi.setProductVersion(1, 0, 0, 0, 1033);
+  vi.setFileVersion(version[0], version[1], version[2], 0, 1033);
+  vi.setProductVersion(version[0], version[1], version[2], 0, 1033);
   vi.outputToResourceEntries(res.entries);
 }
 res.outputResource(pe);

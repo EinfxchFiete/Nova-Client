@@ -14,9 +14,9 @@ let logLines = [];
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444', '#ec4899', '#64748b'];
 const NEWS = [
-  { t: 'Nova Client 1.3.0', title: 'Begleiter & mehr', g: 'linear-gradient(135deg,#7c3aed,#db2777)', text: 'Allay, Biene, Papagei oder Vex schweben neben dir. Dazu Aura, Heiligenschein und 14 Capes.' },
-  { t: 'Profile & Design', title: 'Dein Stil', g: 'linear-gradient(135deg,#0ea5e9,#6366f1)', text: 'Profile mit Vorlagen für PvP, Survival und Minimal. Akzentfarbe im Menü unter „Design“.' },
-  { t: '56 Module', title: 'Alles drin', g: 'linear-gradient(135deg,#16a34a,#0d9488)', text: 'Keystrokes, CPS, Zoom, Freelook, Ziel-HUD, Wegpunkt, Chat-Makros und vieles mehr. Menü im Spiel: Rechte Umschalttaste.' },
+  { t: 'Nova Client 1.4.0', title: 'Cosmetics in 3D', g: 'linear-gradient(135deg,#7c3aed,#db2777)', text: 'Bandana, Krone, Zylinder, Hörner, Katzenohren, Heiligenschein, animierte Flügel und 6 animierte Capes – mit 3D-Vorschau im Cosmetics-Menü.' },
+  { t: 'Musik & Emotes', title: 'Zeig, was du hörst', g: 'linear-gradient(135deg,#16a34a,#0ea5e9)', text: 'Dein aktueller Song erscheint über deinem Namen. Emote-Rad mit Taste V: Winken, Jubeln, Tanzen und mehr.' },
+  { t: 'Nova-Netzwerk', title: 'Für alle sichtbar', g: 'linear-gradient(135deg,#f59e0b,#ef4444)', text: 'Mit dem Nova-Server sehen sich Nova-Spieler gegenseitig: Cosmetics, Songs, Emotes und das Owner-Abzeichen.' },
 ];
 
 // ---------------------------------------------------------------- helpers

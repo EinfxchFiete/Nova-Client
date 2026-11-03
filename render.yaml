@@ -1,0 +1,11 @@
+# One-click deployment of the Nova server on Render (https://render.com) – "New" -> "Blueprint" -> this repository.
+services:
+  - type: web
+    name: nova-server
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true

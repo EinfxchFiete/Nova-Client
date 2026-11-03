@@ -1,40 +1,49 @@
 package dev.novaclient.module.cosmetics;
 
 import dev.novaclient.NovaClient;
+import dev.novaclient.cosmetics.CosmeticRegistry;
 import dev.novaclient.module.Category;
 import dev.novaclient.module.Module;
 import dev.novaclient.setting.BoolSetting;
 import dev.novaclient.setting.ModeSetting;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerSkin;
 
-/** Client-side cape for your own player (only you can see it). */
+/** Cape cosmetic: 14 static designs, 6 animated designs or a cycling mode. Other Nova players see it too. */
 public class CapeModule extends Module {
 	private static CapeModule instance;
 
-	public static final String[] DESIGNS = {"Nova", "Galaxie", "Feuer", "Ozean", "Wald", "Gold", "Eis", "Regenbogen", "Kirschblüte", "Schachbrett", "Lava", "Nacht", "Sonnenuntergang", "Matrix"};
-
-	/** Design list for the setting: all designs plus a mode that cycles through them. */
-	private static String[] modes() {
-		String[] out = java.util.Arrays.copyOf(DESIGNS, DESIGNS.length + 1);
-		out[DESIGNS.length] = "Wechselnd";
-		return out;
-	}
+	public static final String[] DESIGNS = {"Nova", "Galaxie", "Feuer", "Ozean", "Wald", "Gold", "Eis", "Regenbogen", "Kirschblüte",
+		"Schachbrett", "Lava", "Nacht", "Sonnenuntergang", "Matrix"};
 
 	public final ModeSetting design = add(new ModeSetting("Design", "Nova", modes()));
 	public final BoolSetting elytra = add(new BoolSetting("Auch auf Elytren", true));
 
 	public CapeModule() {
-		super("Cape", "Eigenes Cape mit 14 Designs oder wechselnd (nur für dich sichtbar)", Category.COSMETICS, false);
+		super("Cape", "Eigenes Cape: 14 Designs, 6 animierte oder wechselnd", Category.COSMETICS, false);
 		instance = this;
+	}
+
+	public static CapeModule get() {
+		return instance;
+	}
+
+	private static String[] modes() {
+		List<String> out = new ArrayList<>(List.of(DESIGNS));
+		out.addAll(CosmeticRegistry.ANIMATED_CAPES.values());
+		out.add("Wechselnd");
+		return out.toArray(new String[0]);
 	}
 
 	public static boolean active() {
 		return instance != null && instance.isEnabled();
 	}
 
+	/** Texture name of a static design, e.g. "Galaxie" -> "galaxy". */
 	public static String textureName(String design) {
 		return switch (design) {
 			case "Kirschblüte" -> "cherry";
@@ -51,21 +60,57 @@ public class CapeModule extends Module {
 		};
 	}
 
-	public static Identifier textureId(String design) {
-		return Identifier.fromNamespaceAndPath(NovaClient.MOD_ID, "cape/" + textureName(design));
+	/** Network id of a design name: "galaxy", "anim:galaxy". */
+	public static String idFor(String design) {
+		String anim = CosmeticRegistry.idForName(CosmeticRegistry.ANIMATED_CAPES, design);
+		if (!anim.isEmpty()) {
+			return anim;
+		}
+		if (design.equals("Wechselnd")) {
+			return textureName(DESIGNS[(int) ((System.currentTimeMillis() / 2000L) % DESIGNS.length)]);
+		}
+		return textureName(design);
 	}
 
-	/** Returns the skin with our cape, or the original skin. */
+	public String currentId() {
+		return idFor(design.get());
+	}
+
+	/** Texture for a cape id; animated capes pick the current frame (10 frames per second). */
+	public static Identifier texture(String id) {
+		if (id.startsWith("anim:")) {
+			int frame = (int) ((System.currentTimeMillis() / 100L) % CosmeticRegistry.CAPE_FRAMES);
+			return Identifier.fromNamespaceAndPath(NovaClient.MOD_ID, "cape/anim/" + id.substring(5) + "_" + frame);
+		}
+		return Identifier.fromNamespaceAndPath(NovaClient.MOD_ID, "cape/" + id);
+	}
+
+	/** Full texture file path of a cape id (for drawing it in menus). */
+	public static Identifier texturePath(String id) {
+		Identifier t = texture(id);
+		return t.withPath(p -> "textures/" + p + ".png");
+	}
+
+	/** Kept for older callers/tests: id of a static design as texture id. */
+	public static Identifier textureId(String design) {
+		return texture(idFor(design));
+	}
+
+	/** Returns the skin with the given cape id (and elytra), or the skin unchanged when id is empty. */
+	public static PlayerSkin withCape(PlayerSkin skin, String id, boolean onElytra) {
+		if (id == null || id.isEmpty()) {
+			return skin;
+		}
+		ClientAsset.ResourceTexture cape = new ClientAsset.ResourceTexture(texture(id));
+		return new PlayerSkin(skin.body(), cape, onElytra ? cape : skin.elytra(), skin.model(), skin.secure());
+	}
+
+	/** Returns the skin with our own cape, or the original skin. */
 	public static PlayerSkin apply(PlayerSkin skin) {
 		CapeModule c = instance;
 		if (c == null || !c.isEnabled()) {
 			return skin;
 		}
-		String design = c.design.get();
-		if (design.equals("Wechselnd")) {
-			design = DESIGNS[(int) ((System.currentTimeMillis() / 2000L) % DESIGNS.length)];
-		}
-		ClientAsset.ResourceTexture cape = new ClientAsset.ResourceTexture(textureId(design));
-		return new PlayerSkin(skin.body(), cape, c.elytra.isOn() ? cape : skin.elytra(), skin.model(), skin.secure());
+		return withCape(skin, c.currentId(), c.elytra.isOn());
 	}
 }

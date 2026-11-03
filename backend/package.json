@@ -1,0 +1,13 @@
+{
+  "name": "nova-server",
+  "version": "1.0.0",
+  "description": "Nova Client server: cosmetics, songs and emotes of Nova players",
+  "main": "server.js",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/server-test.js"
+  }
+}
