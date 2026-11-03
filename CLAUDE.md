@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.4.0**, **Nova Launcher 1.1.0**, Nova-Server 1.0.0.
+- Aktuelle Versionen: **Nova Client 1.4.1**, **Nova Launcher 1.1.1**, Nova-Server 1.0.0.
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
 ### Tech-Stack
@@ -121,7 +121,7 @@ src/main/java/dev/novaclient/
   music/NowPlaying.java      Song-Erkennung (Windows PowerShell/SMTC, Linux playerctl, macOS osascript)
   network/NovaNetwork.java   Client für den Nova-Server (Auth über Mojang joinServer, Sync alle 3 s)
   util/                      KeyState (Tasten/Maus-Zustand + Druckzähler), CpsTracker, CombatTracker, Notifications, Render
-  mixin/                     17 Mixins (Liste unten)
+  mixin/                     18 Mixins (Liste unten)
 src/main/resources/
   fabric.mod.json, novaclient.mixins.json, assets/novaclient/{icon.png, lang/de_de.json, en_us.json}
   assets/novaclient/textures/cape/*.png (14 statische Capes), cape/anim/<name>_<0..15>.png (6×16 Frames)
@@ -169,6 +169,7 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 | AvatarRendererMixin | `submitNameDisplay(AvatarRenderState,PoseStack,SubmitNodeCollector,CameraRenderState)` TAIL | Song-Zeile über dem Namen |
 | CameraMixin | `calculateFov` RETURN; `alignWithEntity` vor `Options.getCameraType` (ordinal 0) | Zoom; Freelook-Kamerawinkel |
 | ChatComponentMixin | `addMessage(Component,MessageSignature,GuiMessageSource,GuiMessageTag)` ModifyVariable | Chat-Zeitstempel |
+| ChatListenerMixin | `handlePlayerChatMessage` HEAD, ModifyVariable auf `ChatType.Bound` | Owner-/Nova-Abzeichen vor dem Absender im Chat (nur echter Spieler-Chat; Plugin-Server, die Chat als Systemnachricht schicken, bekommen kein Abzeichen) |
 | EntityMixin | `turn` HEAD | Freelook: Maus dreht Kamera statt Spieler |
 | EntityRendererMixin | `getNameTag(Entity)` RETURN | Owner-/Nova-Abzeichen, eigene Namensfarbe |
 | GameRendererMixin | `bobHurt` HEAD | No Hurt Cam (Todesanimation bleibt) |
@@ -388,6 +389,11 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 10. Nutzer will die Server-Adresse später schicken (wenn zu Hause / wieder Tokens).
 11. Launcher (ee84bb2): Steve als Standard-Skin (von Mojang geladen), Nametag „Nicht eingeloggt“, Monocraft-Schrift.
 12. Übergabe: diese CLAUDE.md + `tools/` (Generatoren/Helfer aus dem Chat).
+13. Neuer Chat (03.11.2026): **v1.4.1** – Owner-/Nova-Abzeichen im Chat (`ChatListenerMixin`, Setting „Abzeichen im Chat“ im Modul
+    Nova-Netzwerk, Standard an), animierte Capes im Cosmetics-Menü „… Live“ (nur Anzeige, Config-Werte unverändert).
+    Gametest prüft echten Spieler-Chat (`sendChat`) mit/ohne Abzeichen. Launcher **1.1.1** (neue Jar + Neuigkeiten-Karte).
+    Gepusht auf den Session-Branch `claude/intelligent-babbage-0h0ma0` (Vorgabe der Umgebung), nicht direkt auf `main`.
+    Server-URL weiterhin offen.
 
 ---
 
@@ -440,7 +446,7 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 
 - Alles Umgesetzte ist **committet und gepusht** (letzter Code-Commit ee84bb2 + Übergabe-Commit mit dieser Datei und `tools/`).
 - Zuletzt bearbeitet: Launcher (Steve-Standard-Skin, „Nicht eingeloggt“, Monocraft).
-- Ausgeliefert an den Nutzer: `nova-client-1.4.0.jar`, `Nova-Launcher-Windows.zip` (Launcher 1.1.0 inkl. Nova 1.4.0, mit Steve/Monocraft).
+- Ausgeliefert an den Nutzer: `nova-client-1.4.1.jar`, `Nova-Launcher-Windows.zip` (Launcher 1.1.1 inkl. Nova 1.4.1).
 - **Wartet auf den Nutzer:**
   1. **Nova-Server auf Render deployen** und die URL schicken (Anleitung in `backend/README.md`).
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
@@ -454,15 +460,15 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 
 ### To-dos nach Priorität
 1. **Server-URL einbauen**, sobald der Nutzer sie schickt: `NetworkModule.DEFAULT_SERVER = "https://…onrender.com"`,
-   Version erhöhen (1.4.1), `./gradlew build` + Gametest, Jar nach `launcher/resources/nova-client.jar`, Launcher neu bauen
+   Version erhöhen (1.4.2), `./gradlew build` + Gametest, Jar nach `launcher/resources/nova-client.jar`, Launcher neu bauen
    (dist:win, Icon, ZIP), committen, pushen, **Jar + ZIP schicken**. Danach mit echtem Server testen
    (`curl https://…/health`).
 2. Nach Mojang-Freischaltung: echten Login/Skin-Upload/Spielstart unter Windows mit dem Nutzer testen; Idee: die Client-ID
    des Nutzers als Standard in `launcher/src/core/store.js` (`settings.clientId`) vorbelegen, damit Freunde nichts eintragen
    müssen. Die ID steht bewusst **nicht** im Repo → beim Nutzer erfragen und **vorher fragen**, ob sie ins öffentliche Repo darf.
 3. Feedback des Nutzers zu Windows einholen: Song-Anzeige, Freelook, Launcher.
-4. Owner-/Nova-Abzeichen auch **im Chat** (bisher nur Nametag + Tab).
-5. Doppelte Cape-Namen im Cosmetics-Menü eindeutiger machen.
+4. ~~Abzeichen im Chat~~ (erledigt in 1.4.1). Offen: auch für Plugin-Server-Chat (Systemnachrichten, Name per Text suchen) – riskant, nicht gemacht.
+5. ~~Doppelte Cape-Namen~~ (erledigt in 1.4.1: animierte Capes mit gleichnamigem statischem Design heißen „… Live“).
 6. Frage an den Nutzer: E-Mail aus der Git-Historie entfernen (Force-Push nötig)?
 
 ### Ideen (erwähnt/angedacht, nicht umgesetzt)

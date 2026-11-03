@@ -16,6 +16,7 @@ public class NetworkModule extends Module {
 	public final TextSetting server = add(new TextSetting("Server-Adresse", DEFAULT_SERVER, 120));
 	public final BoolSetting showOthers = add(new BoolSetting("Cosmetics anderer anzeigen", true));
 	public final BoolSetting showBadges = add(new BoolSetting("Nova-Symbol anderer anzeigen", true));
+	public final BoolSetting chatBadges = add(new BoolSetting("Abzeichen im Chat", true));
 
 	public NetworkModule() {
 		super("Nova-Netzwerk", "Andere Nova-Spieler sehen deine Cosmetics, Emotes und Songs", Category.UTILITY, true);

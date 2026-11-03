@@ -137,6 +137,10 @@ public class CosmeticsScreen extends Screen {
 				for (String design : cape.design.getModes()) {
 					boolean animated = design.contains("animiert");
 					String label = design.replace(" (animiert)", "");
+					if (animated && cape.design.getModes().contains(label)) {
+						// e.g. "Matrix" exists as static and animated design – keep the tiles distinguishable
+						label += " Live";
+					}
 					String sub = animated ? "animiert" : design.equals("Wechselnd") ? "alle 2 s neu" : "";
 					String id = design.equals("Wechselnd") ? "nova" : CapeModule.idFor(design);
 					out.add(new Tile(label, sub, cape.isEnabled() && cape.design.get().equals(design), () -> {

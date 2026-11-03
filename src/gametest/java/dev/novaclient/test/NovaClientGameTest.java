@@ -76,6 +76,20 @@ public class NovaClientGameTest implements FabricClientGameTest {
 		});
 	}
 
+	/** Newest chat message as plain text (badge sprites turn into their fallback ✦/♛). */
+	@SuppressWarnings("unchecked")
+	private static String lastChatMessage(Minecraft mc) {
+		try {
+			java.lang.reflect.Field f = net.minecraft.client.gui.components.ChatComponent.class.getDeclaredField("allMessages");
+			f.setAccessible(true);
+			java.util.List<net.minecraft.client.multiplayer.chat.GuiMessage> all =
+				(java.util.List<net.minecraft.client.multiplayer.chat.GuiMessage>) f.get(mc.gui.hud.getChat());
+			return all.isEmpty() ? "" : all.get(0).content().getString();
+		} catch (ReflectiveOperationException e) {
+			throw new AssertionError(e);
+		}
+	}
+
 	/** Reads TextInputManager.textInputEnabled: without it SDL sends no typed characters. */
 	private static boolean textInputEnabled(Minecraft mc) {
 		try {
@@ -628,6 +642,24 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.runOnClient(mc -> mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Testnachricht")));
 			ctx.waitTicks(2);
 			ctx.takeScreenshot("35_chat_timestamp");
+
+			// ---------------------------------------------------------------- badge in front of the sender in real player chat
+			ctx.runOnClient(mc -> {
+				module("Nametags").setEnabled(true);
+				((dev.novaclient.module.cosmetics.NametagModule) module("Nametags")).symbol.set(true);
+				mc.player.connection.sendChat("Hallo Chat");
+			});
+			ctx.waitTicks(20);
+			String chatLine = ctx.computeOnClient(mc -> lastChatMessage(mc));
+			NovaClient.LOGGER.info("TEST last chat message: {}", chatLine);
+			check(chatLine.contains("Hallo Chat") && chatLine.contains("✦"), "chat badge missing: " + chatLine);
+			ctx.runOnClient(mc -> ((dev.novaclient.module.utility.NetworkModule) module("Nova-Netzwerk")).chatBadges.set(false));
+			ctx.runOnClient(mc -> mc.player.connection.sendChat("Ohne Abzeichen"));
+			ctx.waitTicks(20);
+			String plainLine = ctx.computeOnClient(mc -> lastChatMessage(mc));
+			check(plainLine.contains("Ohne Abzeichen") && !plainLine.contains("✦"), "chat badge should be off: " + plainLine);
+			ctx.runOnClient(mc -> ((dev.novaclient.module.utility.NetworkModule) module("Nova-Netzwerk")).chatBadges.set(true));
+			ctx.takeScreenshot("35b_chat_badge");
 
 			// ---------------------------------------------------------------- text input is released when the menu closes
 			check(!ctx.computeOnClient(mc -> textInputEnabled(mc)), "text input should be off in game");
