@@ -8,8 +8,8 @@ import com.google.gson.JsonObject;
  * {@code minimee} is a Minecraft name whose skin is shown as a mini player at {@code minimeeMode}.
  */
 public record Loadout(String cape, String head, String headColor, String wings, String wingsColor, String minimee, String minimeeMode,
-	String extra, String extraColor) {
-	public static final Loadout NONE = new Loadout("", "", "", "", "", "", "", "", "");
+	String extra, String extraColor, String minimeeAnim, String minimeeSize) {
+	public static final Loadout NONE = new Loadout("", "", "", "", "", "", "", "", "", "none", "normal");
 
 	public boolean hasMinimee() {
 		return !minimee.isEmpty() && !minimeeMode.isEmpty();
@@ -28,6 +28,8 @@ public record Loadout(String cape, String head, String headColor, String wings, 
 			JsonObject m = new JsonObject();
 			m.addProperty("name", minimee);
 			m.addProperty("mode", minimeeMode);
+			m.addProperty("anim", minimeeAnim);
+			m.addProperty("size", minimeeSize);
 			o.add("minimee", m);
 		}
 		return o;
@@ -39,10 +41,14 @@ public record Loadout(String cape, String head, String headColor, String wings, 
 		}
 		String name = "";
 		String mode = "";
+		String anim = "none";
+		String size = "normal";
 		if (o.has("minimee") && o.get("minimee").isJsonObject()) {
 			JsonObject m = o.getAsJsonObject("minimee");
 			name = CosmeticRegistry.validName(str(m, "name"));
 			mode = CosmeticRegistry.validMinimeeMode(str(m, "mode"));
+			anim = CosmeticRegistry.validMinimeeAnim(str(m, "anim"));
+			size = CosmeticRegistry.validMinimeeSize(str(m, "size"));
 			if (name.isEmpty() || mode.isEmpty()) {
 				name = "";
 				mode = "";
@@ -56,7 +62,8 @@ public record Loadout(String cape, String head, String headColor, String wings, 
 			CosmeticRegistry.validColor(str(o, "wingsColor")),
 			name, mode,
 			CosmeticRegistry.validExtra(str(o, "extra")),
-			CosmeticRegistry.validColor(str(o, "extraColor")));
+			CosmeticRegistry.validColor(str(o, "extraColor")),
+			anim, size);
 	}
 
 	private static String str(JsonObject o, String key) {

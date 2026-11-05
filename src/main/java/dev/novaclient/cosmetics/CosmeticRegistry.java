@@ -19,6 +19,10 @@ public final class CosmeticRegistry {
 
 	/** minimee position id -> display name */
 	public static final Map<String, String> MINIMEE_MODES = new LinkedHashMap<>();
+	/** minimee animation id -> display name */
+	public static final Map<String, String> MINIMEE_ANIMS = new LinkedHashMap<>();
+	/** minimee size id -> display name */
+	public static final Map<String, String> MINIMEE_SIZES = new LinkedHashMap<>();
 
 	public static final int CAPE_FRAMES = 16;
 
@@ -37,12 +41,21 @@ public final class CosmeticRegistry {
 		HEADS.put("viking", "Wikingerhelm");
 		HEADS.put("flowercrown", "Blumenkranz");
 		HEADS.put("beanie", "Mütze");
+		HEADS.put("witchhat", "Hexenhut");
+		HEADS.put("santahat", "Weihnachtsmütze");
+		HEADS.put("chefhat", "Kochmütze");
+		HEADS.put("foxears", "Fuchsohren");
+		HEADS.put("unicorn", "Einhorn-Horn");
+		HEADS.put("propeller", "Propellermütze");
 
 		EXTRAS.put("backpack", "Rucksack");
 		EXTRAS.put("cattail", "Katzenschwanz");
 		EXTRAS.put("foxtail", "Fuchsschwanz");
 		EXTRAS.put("deviltail", "Teufelsschwanz");
 		EXTRAS.put("scarf", "Schal");
+		EXTRAS.put("jetpack", "Jetpack");
+		EXTRAS.put("guitar", "Gitarre");
+		EXTRAS.put("backsword", "Rückenschwert");
 
 		WINGS.put("angel", "Engelsflügel");
 		WINGS.put("dragon", "Drachenflügel");
@@ -50,6 +63,7 @@ public final class CosmeticRegistry {
 		WINGS.put("bat", "Fledermausflügel");
 		WINGS.put("fairy", "Feenflügel");
 		WINGS.put("phoenix", "Phönixflügel");
+		WINGS.put("ice", "Eisflügel");
 
 		COLORS.put("Normal", 0xFFFFFF);
 		COLORS.put("Rot", 0xE53935);
@@ -79,10 +93,27 @@ public final class CosmeticRegistry {
 		ANIMATED_CAPES.put("anim:hearts", "Herzen (animiert)");
 		ANIMATED_CAPES.put("anim:glitch", "Glitch (animiert)");
 		ANIMATED_CAPES.put("anim:portal", "Portal (animiert)");
+		ANIMATED_CAPES.put("anim:fireworks", "Feuerwerk (animiert)");
+		ANIMATED_CAPES.put("anim:autumn", "Herbstlaub (animiert)");
+		ANIMATED_CAPES.put("anim:bubbles", "Blubberblasen (animiert)");
+		ANIMATED_CAPES.put("anim:meteor", "Sternschnuppen (animiert)");
 
 		MINIMEE_MODES.put("neck", "Kette");
 		MINIMEE_MODES.put("pocket", "Hosentasche");
 		MINIMEE_MODES.put("head", "Auf dem Kopf");
+		MINIMEE_MODES.put("shoulder", "Auf der Schulter");
+		MINIMEE_MODES.put("back", "Huckepack");
+		MINIMEE_MODES.put("hand", "In der Hand");
+		MINIMEE_MODES.put("float", "Schwebend");
+
+		MINIMEE_ANIMS.put("none", "Keine");
+		MINIMEE_ANIMS.put("wave", "Winken");
+		MINIMEE_ANIMS.put("dance", "Tanzen");
+		MINIMEE_ANIMS.put("kick", "Zappeln");
+
+		MINIMEE_SIZES.put("small", "Klein");
+		MINIMEE_SIZES.put("normal", "Normal");
+		MINIMEE_SIZES.put("big", "Groß");
 	}
 
 	private CosmeticRegistry() {
@@ -132,6 +163,14 @@ public final class CosmeticRegistry {
 
 	public static String validMinimeeMode(String id) {
 		return MINIMEE_MODES.containsKey(id) ? id : "";
+	}
+
+	public static String validMinimeeAnim(String id) {
+		return MINIMEE_ANIMS.containsKey(id) ? id : "none";
+	}
+
+	public static String validMinimeeSize(String id) {
+		return MINIMEE_SIZES.containsKey(id) ? id : "normal";
 	}
 
 	/** Cape ids: static texture names (e.g. "galaxy") or "anim:galaxy". */

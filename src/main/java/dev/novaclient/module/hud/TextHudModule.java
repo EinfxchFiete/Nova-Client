@@ -12,14 +12,33 @@ public abstract class TextHudModule extends HudModule {
 
 	protected abstract String value();
 
-	private String labelPart() {
+	// label, value and width are built once per frame (the HUD asks for the width several times per frame)
+	private long cachedFrame = -1;
+	private String cachedLabel = "";
+	private String cachedValue = "";
+	private int cachedWidth;
+
+	private void refresh() {
+		if (cachedFrame == HudModule.hudFrame()) {
+			return;
+		}
 		String l = label();
-		return l == null || l.isEmpty() ? "" : l + ": ";
+		cachedLabel = l == null || l.isEmpty() ? "" : l + ": ";
+		String v = value();
+		cachedValue = v == null ? "" : v;
+		cachedWidth = font().width(cachedLabel) + font().width(cachedValue);
+		cachedFrame = HudModule.hudFrame();
+	}
+
+	private String labelPart() {
+		refresh();
+		return cachedLabel;
 	}
 
 	@Override
 	public int getWidth(boolean editor) {
-		return font().width(labelPart() + value()) + PADDING * 2;
+		refresh();
+		return cachedWidth + PADDING * 2;
 	}
 
 	@Override
@@ -36,6 +55,6 @@ public abstract class TextHudModule extends HudModule {
 			text(g, l, tx, ty, ThemeModule.accent());
 			tx += font().width(l);
 		}
-		text(g, value(), tx, ty, 0xFFFFFFFF);
+		text(g, cachedValue, tx, ty, 0xFFFFFFFF);
 	}
 }

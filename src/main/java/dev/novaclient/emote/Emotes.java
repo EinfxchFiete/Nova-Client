@@ -35,6 +35,10 @@ public final class Emotes {
 		ALL.put("zombie", new Info("Zombie", 4000));
 		ALL.put("shrug", new Info("Schulterzucken", 2000));
 		ALL.put("think", new Info("Nachdenken", 3000));
+		ALL.put("headbang", new Info("Headbangen", 3000));
+		ALL.put("airguitar", new Info("Luftgitarre", 4000));
+		ALL.put("flex", new Info("Muskeln zeigen", 2500));
+		ALL.put("panic", new Info("Panik", 3000));
 	}
 
 	private static Active local;
@@ -213,6 +217,46 @@ public final class Emotes {
 				m.leftArm.yRot = 0.7F;
 				m.head.yRot = Mth.sin(t * 1.5F) * 0.35F;
 				m.head.xRot = -0.15F;
+			}
+			case "headbang" -> {
+				// nodding hard to the beat, fists up
+				float beat = Mth.sin(t * 13.0F);
+				m.head.xRot = in * (0.25F + beat * 0.45F);
+				m.rightArm.xRot = Mth.lerp(in, m.rightArm.xRot, -2.6F + beat * 0.15F);
+				m.rightArm.zRot = 0.35F;
+				m.leftArm.xRot = Mth.lerp(in, m.leftArm.xRot, -2.6F - beat * 0.15F);
+				m.leftArm.zRot = -0.35F;
+			}
+			case "airguitar" -> {
+				// left hand on the neck, right hand strumming
+				m.leftArm.xRot = Mth.lerp(in, m.leftArm.xRot, -1.2F);
+				m.leftArm.yRot = 0.55F;
+				m.leftArm.zRot = -0.2F;
+				m.rightArm.xRot = Mth.lerp(in, m.rightArm.xRot, -0.75F + Mth.sin(t * 18.0F) * 0.35F);
+				m.rightArm.yRot = -0.45F;
+				m.rightArm.zRot = 0.15F;
+				m.head.xRot = 0.2F + Mth.sin(t * 9.0F) * 0.12F;
+				m.head.zRot = Mth.sin(t * 4.5F) * 0.15F;
+				m.rightLeg.xRot = Math.max(0, Mth.sin(t * 9.0F)) * -0.3F;
+			}
+			case "flex" -> {
+				// both arms up and bent like a bodybuilder, pumping
+				float pump = 0.5F + 0.5F * Mth.sin(t * 7.0F);
+				m.rightArm.xRot = Mth.lerp(in, m.rightArm.xRot, -1.55F);
+				m.rightArm.zRot = 1.25F + pump * 0.2F;
+				m.leftArm.xRot = Mth.lerp(in, m.leftArm.xRot, -1.55F);
+				m.leftArm.zRot = -(1.25F + pump * 0.2F);
+				m.head.yRot = Mth.sin(t * 2.0F) * 0.3F;
+			}
+			case "panic" -> {
+				// arms flailing, looking around
+				m.rightArm.xRot = -2.4F + Mth.sin(t * 16.0F) * 0.9F;
+				m.leftArm.xRot = -2.4F + Mth.sin(t * 16.0F + 2.1F) * 0.9F;
+				m.rightArm.zRot = 0.4F + Mth.sin(t * 11.0F) * 0.3F;
+				m.leftArm.zRot = -0.4F - Mth.sin(t * 11.0F + 1.0F) * 0.3F;
+				m.head.yRot = Mth.sin(t * 8.0F) * 0.6F;
+				m.rightLeg.xRot = Mth.sin(t * 14.0F) * 0.5F;
+				m.leftLeg.xRot = -Mth.sin(t * 14.0F) * 0.5F;
 			}
 			default -> {
 			}

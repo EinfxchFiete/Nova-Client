@@ -54,6 +54,28 @@ public final class CosmeticModels {
 	public static ModelPart tailArrow;
 	public static ModelPart scarf;
 	public static ModelPart scarfEnd;
+	// 1.8.0
+	public static ModelPart witchHat;
+	public static ModelPart witchTop;
+	public static ModelPart witchTip;
+	public static ModelPart witchBand;
+	public static ModelPart santaFur;
+	public static ModelPart santaBody;
+	public static ModelPart santaDroop1;
+	public static ModelPart santaDroop2;
+	public static ModelPart santaPom;
+	public static ModelPart chefHat;
+	public static ModelPart foxEar;
+	public static ModelPart foxEarInner;
+	public static ModelPart unicornHorn;
+	public static ModelPart propellerCap;
+	public static ModelPart propellerBlade;
+	public static ModelPart jetpack;
+	public static ModelPart jetpackStripes;
+	public static ModelPart guitarBody;
+	public static ModelPart guitarNeck;
+	public static ModelPart swordBlade;
+	public static ModelPart swordHilt;
 
 	private static boolean built;
 
@@ -150,6 +172,100 @@ public final class CosmeticModels {
 		wing = bake(m, 64, 32);
 
 		buildV16();
+		buildV18();
+	}
+
+	/** Models of the 1.8.0 cosmetics (head space for hats, body space for extras). */
+	private static void buildV18() {
+		// witch hat: brim + cone; the top two pieces bend backwards (separate parts, animated in the layer)
+		MeshDefinition m = new MeshDefinition();
+		PartDefinition r = m.getRoot();
+		r.addOrReplaceChild("brim", CubeListBuilder.create().texOffs(0, 0).addBox(-6, -8.6F, -6, 12, 1, 12), PartPose.ZERO);
+		r.addOrReplaceChild("l1", CubeListBuilder.create().texOffs(0, 13).addBox(-4, -11.6F, -4, 8, 3, 8), PartPose.ZERO);
+		r.addOrReplaceChild("l2", CubeListBuilder.create().texOffs(32, 13).addBox(-3, -14.6F, -2.5F, 6, 3, 6), PartPose.ZERO);
+		witchHat = bake(m, 64, 64);
+		witchTop = single(CubeListBuilder.create().texOffs(0, 25).addBox(-2, -3, -2, 4, 3, 4), 64, 64);
+		witchTip = single(CubeListBuilder.create().texOffs(24, 25).addBox(-1, -3, -1, 2, 3, 2), 64, 64);
+		witchBand = single(CubeListBuilder.create().texOffs(0, 40).addBox(-4, -9.8F, -4, 8, 1, 8, new CubeDeformation(0.15F)), 64, 64);
+
+		// santa hat: white fur rim, red body, a drooping tip with a pompom
+		santaFur = single(CubeListBuilder.create().texOffs(0, 0).addBox(-4.5F, -9.4F, -4.5F, 9, 2, 9, new CubeDeformation(0.2F)), 64, 64);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("b1", CubeListBuilder.create().texOffs(0, 12).addBox(-4, -12.4F, -4, 8, 3, 8), PartPose.ZERO);
+		r.addOrReplaceChild("b2", CubeListBuilder.create().texOffs(32, 12).addBox(-3, -15.2F, -3, 6, 3, 6), PartPose.ZERO);
+		santaBody = bake(m, 64, 64);
+		santaDroop1 = single(CubeListBuilder.create().texOffs(0, 24).addBox(-2, -3, -2, 4, 3, 4), 64, 64);
+		santaDroop2 = single(CubeListBuilder.create().texOffs(20, 24).addBox(-1.5F, -3, -1.5F, 3, 3, 3), 64, 64);
+		santaPom = single(CubeListBuilder.create().texOffs(40, 24).addBox(-1.5F, -3, -1.5F, 3, 3, 3, new CubeDeformation(0.1F)), 64, 64);
+
+		// chef hat: band and a big puff
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("band", CubeListBuilder.create().texOffs(0, 0).addBox(-4, -9.6F, -4, 8, 2, 8, new CubeDeformation(0.3F)), PartPose.ZERO);
+		r.addOrReplaceChild("puff", CubeListBuilder.create().texOffs(0, 12).addBox(-5, -14.6F, -5, 10, 5, 10), PartPose.ZERO);
+		r.addOrReplaceChild("top", CubeListBuilder.create().texOffs(0, 30).addBox(-4, -15.4F, -4, 8, 1, 8), PartPose.ZERO);
+		chefHat = bake(m, 64, 64);
+
+		// fox ear (pointed), the white inside is its own part so it is never tinted
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("ear", CubeListBuilder.create().texOffs(0, 0).addBox(-1.5F, -4, -0.5F, 3, 4, 1), PartPose.ZERO);
+		r.addOrReplaceChild("tip", CubeListBuilder.create().texOffs(0, 8).addBox(-0.5F, -5, -0.5F, 1, 1, 1), PartPose.ZERO);
+		foxEar = bake(m, 32, 32);
+		foxEarInner = single(CubeListBuilder.create().texOffs(8, 8).addBox(-0.5F, -3.2F, -1.0F, 1, 2, 1, new CubeDeformation(0, 0, -0.35F)), 32, 32);
+
+		// unicorn horn: a spiral of thinner and thinner pieces (base at the origin, growing up)
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("s1", CubeListBuilder.create().texOffs(0, 0).addBox(-1, -2, -1, 2, 2, 2), PartPose.ZERO);
+		r.addOrReplaceChild("s2", CubeListBuilder.create().texOffs(8, 0).addBox(-1, -4, -1, 2, 2, 2, new CubeDeformation(-0.25F)),
+			PartPose.rotation(0, 0.6F, 0));
+		r.addOrReplaceChild("s3", CubeListBuilder.create().texOffs(16, 0).addBox(-0.5F, -6, -0.5F, 1, 2, 1), PartPose.rotation(0, 1.2F, 0));
+		r.addOrReplaceChild("s4", CubeListBuilder.create().texOffs(24, 0).addBox(-0.5F, -7, -0.5F, 1, 1, 1, new CubeDeformation(-0.15F)),
+			PartPose.rotation(0, 1.8F, 0));
+		unicornHorn = bake(m, 32, 16);
+
+		// propeller cap: colourful cap with a visor, the blade spins
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("cap", CubeListBuilder.create().texOffs(0, 0).addBox(-4, -9.6F, -4, 8, 2, 8, new CubeDeformation(0.3F)), PartPose.ZERO);
+		r.addOrReplaceChild("visor", CubeListBuilder.create().texOffs(0, 12).addBox(-4, -8.0F, -7.2F, 8, 1, 3), PartPose.ZERO);
+		r.addOrReplaceChild("stem", CubeListBuilder.create().texOffs(0, 18).addBox(-0.5F, -11.8F, -0.5F, 1, 2, 1), PartPose.ZERO);
+		propellerCap = bake(m, 64, 32);
+		propellerBlade = single(CubeListBuilder.create().texOffs(8, 18).addBox(-3.5F, -0.5F, -0.5F, 7, 1, 1, new CubeDeformation(0, -0.3F, -0.05F)), 64, 32);
+
+		// jetpack: two tanks with nozzles on a frame; the stripes are tinted
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("tankL", CubeListBuilder.create().texOffs(0, 0).addBox(-3.4F, 1.5F, 2.3F, 2, 6, 2), PartPose.ZERO);
+		r.addOrReplaceChild("tankR", CubeListBuilder.create().texOffs(0, 0).addBox(1.4F, 1.5F, 2.3F, 2, 6, 2), PartPose.ZERO);
+		r.addOrReplaceChild("frame", CubeListBuilder.create().texOffs(0, 10).addBox(-3, 2.5F, 2.05F, 6, 2, 1), PartPose.ZERO);
+		r.addOrReplaceChild("nozzleL", CubeListBuilder.create().texOffs(16, 0).addBox(-3.4F, 7.5F, 2.3F, 2, 1, 2, new CubeDeformation(-0.2F)), PartPose.ZERO);
+		r.addOrReplaceChild("nozzleR", CubeListBuilder.create().texOffs(16, 0).addBox(1.4F, 7.5F, 2.3F, 2, 1, 2, new CubeDeformation(-0.2F)), PartPose.ZERO);
+		jetpack = bake(m, 64, 32);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("sL", CubeListBuilder.create().texOffs(24, 0).addBox(-3.4F, 3.5F, 2.3F, 2, 1, 2, new CubeDeformation(0.05F)), PartPose.ZERO);
+		r.addOrReplaceChild("sR", CubeListBuilder.create().texOffs(24, 0).addBox(1.4F, 3.5F, 2.3F, 2, 1, 2, new CubeDeformation(0.05F)), PartPose.ZERO);
+		jetpackStripes = bake(m, 64, 32);
+
+		// guitar (body tinted, neck and head wooden); origin = middle of the body's back side
+		guitarBody = single(CubeListBuilder.create().texOffs(0, 0).addBox(-3, -3.5F, 0, 6, 7, 1), 64, 32);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("neck", CubeListBuilder.create().texOffs(16, 0).addBox(-0.5F, -10.5F, 0.1F, 1, 7, 1, new CubeDeformation(0, 0, -0.1F)), PartPose.ZERO);
+		r.addOrReplaceChild("head", CubeListBuilder.create().texOffs(22, 0).addBox(-1, -12.5F, 0, 2, 2, 1), PartPose.ZERO);
+		guitarNeck = bake(m, 64, 32);
+
+		// sword on the back: blade pointing down (+y) from the guard at the origin, hilt above
+		swordBlade = single(CubeListBuilder.create().texOffs(0, 0).addBox(-0.5F, 1, -0.5F, 1, 11, 1, new CubeDeformation(0, 0, -0.2F)), 32, 16);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("guard", CubeListBuilder.create().texOffs(8, 0).addBox(-2, 0, -0.5F, 4, 1, 1), PartPose.ZERO);
+		r.addOrReplaceChild("grip", CubeListBuilder.create().texOffs(8, 4).addBox(-0.5F, -3, -0.5F, 1, 3, 1, new CubeDeformation(-0.05F)), PartPose.ZERO);
+		r.addOrReplaceChild("pommel", CubeListBuilder.create().texOffs(8, 10).addBox(-0.5F, -4, -0.5F, 1, 1, 1, new CubeDeformation(0.05F)), PartPose.ZERO);
+		swordHilt = bake(m, 32, 16);
 	}
 
 	private static ModelPart single(CubeListBuilder cubes, int w, int h) {

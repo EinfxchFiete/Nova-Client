@@ -13,6 +13,17 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
  */
 public abstract class HudModule extends Module {
 	public static final int PADDING = 3;
+	private static long frame;
+
+	/** Counter of drawn HUD frames (for per-frame caches). */
+	public static long hudFrame() {
+		return frame;
+	}
+
+	/** Called once before the HUD (or the HUD editor) is drawn. */
+	public static void nextFrame() {
+		frame++;
+	}
 
 	public enum Anchor {
 		START, CENTER, END;

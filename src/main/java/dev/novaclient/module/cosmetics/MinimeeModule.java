@@ -12,9 +12,11 @@ public class MinimeeModule extends Module {
 
 	public final TextSetting name = add(new TextSetting("Spielername", "", 16));
 	public final ModeSetting mode = add(new ModeSetting("Position", "Kette", CosmeticRegistry.MINIMEE_MODES.values().toArray(new String[0])));
+	public final ModeSetting anim = add(new ModeSetting("Animation", "Keine", CosmeticRegistry.MINIMEE_ANIMS.values().toArray(new String[0])));
+	public final ModeSetting size = add(new ModeSetting("Größe", "Normal", CosmeticRegistry.MINIMEE_SIZES.values().toArray(new String[0])));
 
 	public MinimeeModule() {
-		super("Minimee", "Mini-Version eines Spielers als Kette, an der Hosentasche oder auf dem Kopf", Category.COSMETICS, false);
+		super("Minimee", "Mini-Version eines Spielers: Kette, Hosentasche, Kopf, Schulter, Huckepack, Hand oder schwebend", Category.COSMETICS, false);
 		instance = this;
 	}
 
@@ -33,5 +35,13 @@ public class MinimeeModule extends Module {
 
 	public String modeId() {
 		return CosmeticRegistry.idForName(CosmeticRegistry.MINIMEE_MODES, mode.get());
+	}
+
+	public String animId() {
+		return CosmeticRegistry.validMinimeeAnim(CosmeticRegistry.idForName(CosmeticRegistry.MINIMEE_ANIMS, anim.get()));
+	}
+
+	public String sizeId() {
+		return CosmeticRegistry.validMinimeeSize(CosmeticRegistry.idForName(CosmeticRegistry.MINIMEE_SIZES, size.get()));
 	}
 }

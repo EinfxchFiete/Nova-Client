@@ -40,6 +40,15 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 	private static final Identifier BACKPACK = tex("backpack");
 	private static final Identifier TAILS = tex("tails");
 	private static final Identifier SCARF = tex("scarf");
+	private static final Identifier WITCHHAT = tex("witchhat");
+	private static final Identifier SANTAHAT = tex("santahat");
+	private static final Identifier CHEFHAT = tex("chefhat");
+	private static final Identifier FOXEARS = tex("foxears");
+	private static final Identifier UNICORN = tex("unicorn");
+	private static final Identifier PROPELLER = tex("propeller");
+	private static final Identifier JETPACK = tex("jetpack");
+	private static final Identifier GUITAR = tex("guitar");
+	private static final Identifier BACKSWORD = tex("backsword");
 
 	/** Chosen colour, or the cosmetic's own default when "Normal". */
 	private static int color(String name, float time, int normal) {
@@ -87,6 +96,8 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 	}
 
 	private void minimee(PoseStack pose, SubmitNodeCollector c, int light, AvatarRenderState state, Loadout l) {
+		float time = state.ageInTicks / 20.0F;
+		boolean chestArmor = !state.chestEquipment.isEmpty() && state.chestEquipment.getItem() != Items.ELYTRA;
 		pose.pushPose();
 		switch (l.minimeeMode()) {
 			case "head" -> {
@@ -94,10 +105,9 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 				float top = -8.6F;
 				if (!state.headEquipment.isEmpty()) {
 					top = -9.8F;
-				} else if (l.head().equals("tophat")) {
-					top = -16.1F;
 				} else {
 					top = switch (l.head()) {
+						case "tophat" -> -16.1F;
 						case "crown" -> -10.3F;
 						case "cowboyhat" -> -12.6F;
 						case "partyhat" -> -15.4F;
@@ -105,18 +115,35 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 						case "viking" -> -9.6F;
 						case "flowercrown" -> -9.4F;
 						case "headphones" -> -9.4F;
+						case "witchhat" -> -14.6F;
+						case "santahat" -> -15.2F;
+						case "chefhat" -> -15.4F;
+						case "propeller" -> -12.4F;
 						default -> -8.6F;
 					};
 				}
-				Minimees.head(pose, c, light, l.minimee(), top);
+				Minimees.head(pose, c, light, state, l, time, top);
 			}
 			case "pocket" -> {
 				getParentModel().rightLeg.translateAndRotate(pose);
-				Minimees.pocket(pose, c, light, l.minimee());
+				Minimees.pocket(pose, c, light, state, l, time);
 			}
+			case "hand" -> {
+				getParentModel().rightArm.translateAndRotate(pose);
+				Minimees.hand(pose, c, light, state, l, time);
+			}
+			case "shoulder" -> {
+				getParentModel().body.translateAndRotate(pose);
+				Minimees.shoulder(pose, c, light, state, l, time, chestArmor);
+			}
+			case "back" -> {
+				getParentModel().body.translateAndRotate(pose);
+				Minimees.back(pose, c, light, state, l, time, chestArmor);
+			}
+			case "float" -> Minimees.floating(pose, c, light, state, l, time);
 			default -> {
 				getParentModel().body.translateAndRotate(pose);
-				Minimees.neck(pose, c, light, l.minimee(), !state.chestEquipment.isEmpty() && state.chestEquipment.getItem() != Items.ELYTRA);
+				Minimees.neck(pose, c, light, state, l, time, chestArmor);
 			}
 		}
 		pose.popPose();
@@ -269,6 +296,93 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 				part(c, CosmeticModels.beanie, pose, RenderTypes.entityCutout(BEANIE), light, col);
 				part(c, CosmeticModels.beaniePom, pose, RenderTypes.entityCutout(BEANIE), light, 0xFFFFFFFF);
 			}
+			case "witchhat" -> {
+				if (helmet) {
+					return;
+				}
+				RenderType type = RenderTypes.entityCutout(WITCHHAT);
+				int col = color(l.headColor(), time, 0xFF3E2A5C);
+				part(c, CosmeticModels.witchHat, pose, type, light, col);
+				part(c, CosmeticModels.witchBand, pose, type, light, 0xFFFF9800);
+				// the bent top sways a little when you walk
+				float sway = Mth.sin(time * 2.2F) * 0.06F + Math.min(1.0F, state.walkAnimationSpeed) * 0.12F;
+				pose.pushPose();
+				pose.translate(0, -14.4F / 16F, 1.0F / 16F);
+				pose.rotate(Axis.XP, -0.35F - sway);
+				part(c, CosmeticModels.witchTop, pose, type, light, col);
+				pose.translate(0, -2.6F / 16F, 0);
+				pose.rotate(Axis.XP, -0.55F - sway);
+				part(c, CosmeticModels.witchTip, pose, type, light, col);
+				pose.popPose();
+			}
+			case "santahat" -> {
+				if (helmet) {
+					return;
+				}
+				RenderType type = RenderTypes.entityCutout(SANTAHAT);
+				int col = color(l.headColor(), time, 0xFFD32F2F);
+				part(c, CosmeticModels.santaFur, pose, type, light, 0xFFFFFFFF);
+				part(c, CosmeticModels.santaBody, pose, type, light, col);
+				float swing = Mth.sin(time * 3.0F) * 0.08F + Math.min(1.0F, state.walkAnimationSpeed) * 0.25F;
+				pose.pushPose();
+				pose.translate(0, -15.0F / 16F, 0.4F / 16F);
+				pose.rotate(Axis.XP, -0.7F - swing);
+				pose.rotate(Axis.ZP, 0.45F);
+				part(c, CosmeticModels.santaDroop1, pose, type, light, col);
+				pose.translate(0, -2.6F / 16F, 0);
+				pose.rotate(Axis.XP, -0.6F - swing);
+				pose.rotate(Axis.ZP, 0.3F);
+				part(c, CosmeticModels.santaDroop2, pose, type, light, col);
+				pose.translate(0, -2.4F / 16F, 0);
+				part(c, CosmeticModels.santaPom, pose, type, light, 0xFFFFFFFF);
+				pose.popPose();
+			}
+			case "chefhat" -> {
+				if (!helmet) {
+					part(c, CosmeticModels.chefHat, pose, RenderTypes.entityCutout(CHEFHAT), light, color(l.headColor(), time, 0xFFFFFFFF));
+				}
+			}
+			case "foxears" -> {
+				if (helmet) {
+					return;
+				}
+				int col = color(l.headColor(), time, 0xFFE8742A);
+				for (int i = 0; i < 2; i++) {
+					float side = i == 0 ? -1 : 1;
+					float phase = (time + i * 1.3F) % 3.5F;
+					float twitch = phase < 0.25F ? Mth.sin(phase / 0.25F * Mth.PI) * 0.4F : 0;
+					pose.pushPose();
+					pose.translate(side * 2.7F / 16F, -7.9F / 16F, -0.4F / 16F);
+					pose.rotate(Axis.ZP, side * (0.22F + twitch));
+					pose.rotate(Axis.XP, -0.1F);
+					part(c, CosmeticModels.foxEar, pose, RenderTypes.entityCutout(FOXEARS), light, col);
+					part(c, CosmeticModels.foxEarInner, pose, RenderTypes.entityCutout(FOXEARS), light, 0xFFFFFFFF);
+					pose.popPose();
+				}
+			}
+			case "unicorn" -> {
+				pose.pushPose();
+				pose.translate(0, -7.2F / 16F, -3.4F / 16F);
+				pose.rotate(Axis.XP, 0.5F);
+				pose.rotate(Axis.YP, time * 1.2F);
+				int col = color(l.headColor(), time, 0xFFFFE9A6);
+				part(c, CosmeticModels.unicornHorn, pose, RenderTypes.entityCutout(UNICORN), light, col);
+				pose.popPose();
+			}
+			case "propeller" -> {
+				if (helmet) {
+					return;
+				}
+				RenderType type = RenderTypes.entityCutout(PROPELLER);
+				part(c, CosmeticModels.propellerCap, pose, type, light, 0xFFFFFFFF);
+				// spins faster when you run
+				float spin = time * (9.0F + Math.min(1.0F, state.walkAnimationSpeed) * 14.0F);
+				pose.pushPose();
+				pose.translate(0, -12.1F / 16F, 0);
+				pose.rotate(Axis.YP, spin);
+				part(c, CosmeticModels.propellerBlade, pose, type, light, color(l.headColor(), time, 0xFFFFD54F));
+				pose.popPose();
+			}
 			default -> {
 			}
 		}
@@ -341,6 +455,31 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 				part(c, CosmeticModels.scarfEnd, pose, RenderTypes.entityCutout(SCARF), light, col);
 				pose.popPose();
 			}
+			case "jetpack" -> {
+				pose.pushPose();
+				pose.translate(0, 0, armor / 16F);
+				part(c, CosmeticModels.jetpack, pose, RenderTypes.entityCutout(JETPACK), light, 0xFFFFFFFF);
+				part(c, CosmeticModels.jetpackStripes, pose, RenderTypes.entityCutout(JETPACK), light, color(l.extraColor(), time, 0xFFE53935));
+				pose.popPose();
+			}
+			case "guitar" -> {
+				pose.pushPose();
+				// diagonal on the back: body low on the left, neck over the right shoulder; the strings face outwards
+				pose.translate(1.2F / 16F, 7.4F / 16F, (2.15F + armor) / 16F);
+				pose.rotate(Axis.ZP, -0.62F);
+				part(c, CosmeticModels.guitarBody, pose, RenderTypes.entityCutout(GUITAR), light, color(l.extraColor(), time, 0xFFC27A3A));
+				part(c, CosmeticModels.guitarNeck, pose, RenderTypes.entityCutout(GUITAR), light, 0xFFFFFFFF);
+				pose.popPose();
+			}
+			case "backsword" -> {
+				pose.pushPose();
+				// hilt over the right shoulder, blade diagonally down to the left hip
+				pose.translate(-2.6F / 16F, 0.4F / 16F, (2.7F + armor) / 16F);
+				pose.rotate(Axis.ZP, -0.62F);
+				part(c, CosmeticModels.swordBlade, pose, RenderTypes.entityCutout(BACKSWORD), light, color(l.extraColor(), time, 0xFF7FE8E4));
+				part(c, CosmeticModels.swordHilt, pose, RenderTypes.entityCutout(BACKSWORD), light, 0xFFFFFFFF);
+				pose.popPose();
+			}
 			default -> {
 			}
 		}
@@ -348,15 +487,23 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 
 	private void wings(PoseStack pose, SubmitNodeCollector c, int light, AvatarRenderState state, Loadout l, float time) {
 		boolean normal = l.wingsColor().isEmpty() || l.wingsColor().equals("Normal");
-		// coloured wings use a grey version of the texture: tinting the coloured one gave muddy colours
-		Identifier texture = tex("wings_" + l.wings() + (normal ? "" : "_tint"));
+		boolean phoenix = l.wings().equals("phoenix");
+		// coloured wings use a grey version of the texture: tinting the coloured one gave muddy colours.
+		// Phoenix wings are animated (4 flame frames, 8 per second).
+		String name = "wings_" + l.wings() + (normal ? "" : "_tint");
+		if (phoenix) {
+			name += "_f" + (int) (time * 8.0F) % 4;
+		}
+		Identifier texture = tex(name);
 		boolean moving = state.walkAnimationSpeed > 0.15F;
 		float speed = moving ? 5.5F : 2.2F;
 		float amp = state.isCrouching ? 0.08F : moving ? 0.45F : 0.25F;
 		float flap = (Mth.sin(time * speed) + 1.0F) / 2.0F * amp;
 		int tint = normal ? 0xFFFFFFFF : CosmeticRegistry.tint(l.wingsColor(), time);
-		RenderType type = l.wings().equals("phoenix") ? RenderTypes.entityTranslucentEmissive(texture) : RenderTypes.entityTranslucent(texture);
-		if (l.wings().equals("phoenix")) {
+		// all wings use the double sided translucent type: the left wing is mirrored (scale -1), and the emissive type
+		// culls back faces, which made one phoenix wing vanish from most angles. Phoenix wings glow via full light.
+		RenderType type = RenderTypes.entityTranslucent(texture);
+		if (phoenix) {
 			light = LightCoordsUtil.FULL_BRIGHT;
 		}
 		for (int side = -1; side <= 1; side += 2) {

@@ -11,6 +11,7 @@ public class WingsModule extends Module {
 
 	public final ModeSetting type = add(new ModeSetting("Flügel", "Engelsflügel", CosmeticRegistry.WINGS.values().toArray(new String[0])));
 	public final ModeSetting color = add(new ModeSetting("Farbe", "Normal", CosmeticRegistry.COLORS.keySet().toArray(new String[0])));
+	public final dev.novaclient.setting.BoolSetting particles = add(new dev.novaclient.setting.BoolSetting("Partikel (Phönix, Fee, Eis)", true));
 
 	public WingsModule() {
 		super("Flügel", "Animierte Engels-, Drachen- oder Schmetterlingsflügel", Category.COSMETICS, false);

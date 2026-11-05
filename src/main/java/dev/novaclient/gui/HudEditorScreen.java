@@ -122,6 +122,7 @@ public class HudEditorScreen extends Screen {
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+		HudModule.nextFrame();
 		int accent = ThemeModule.accent();
 		g.fill(width / 2, 0, width / 2 + 1, height, 0x18FFFFFF);
 		g.fill(0, height / 2, width, height / 2 + 1, 0x18FFFFFF);

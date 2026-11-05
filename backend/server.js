@@ -22,17 +22,21 @@ const MAX_BODY = 32 * 1024;
 const MAX_PLAYERS_PER_SYNC = 200;
 
 const HEADS = new Set(['bandana', 'crown', 'tophat', 'horns', 'catears', 'halo',
-  'partyhat', 'cowboyhat', 'bunnyears', 'headphones', 'sunglasses', 'viking', 'flowercrown', 'beanie']);
-const EXTRAS = new Set(['backpack', 'cattail', 'foxtail', 'deviltail', 'scarf']);
-const WINGS = new Set(['angel', 'dragon', 'butterfly', 'bat', 'fairy', 'phoenix']);
+  'partyhat', 'cowboyhat', 'bunnyears', 'headphones', 'sunglasses', 'viking', 'flowercrown', 'beanie',
+  'witchhat', 'santahat', 'chefhat', 'foxears', 'unicorn', 'propeller']);
+const EXTRAS = new Set(['backpack', 'cattail', 'foxtail', 'deviltail', 'scarf', 'jetpack', 'guitar', 'backsword']);
+const WINGS = new Set(['angel', 'dragon', 'butterfly', 'bat', 'fairy', 'phoenix', 'ice']);
 const COLORS = new Set(['Normal', 'Rot', 'Orange', 'Gelb', 'Grün', 'Türkis', 'Blau', 'Lila', 'Pink', 'Schwarz', 'Regenbogen']);
 const CAPES = new Set(['nova', 'galaxy', 'fire', 'ocean', 'forest', 'gold', 'ice', 'rainbow', 'cherry', 'checker', 'lava', 'night', 'sunset', 'matrix',
   'anim:nova', 'anim:galaxy', 'anim:fire', 'anim:ocean', 'anim:rainbow', 'anim:matrix',
   'anim:aurora', 'anim:lava', 'anim:storm', 'anim:sakura', 'anim:ender', 'anim:snow', 'anim:neon',
-  'anim:hearts', 'anim:glitch', 'anim:portal']);
-const MINIMEE_MODES = new Set(['neck', 'pocket', 'head']);
+  'anim:hearts', 'anim:glitch', 'anim:portal', 'anim:fireworks', 'anim:autumn', 'anim:bubbles', 'anim:meteor']);
+const MINIMEE_MODES = new Set(['neck', 'pocket', 'head', 'shoulder', 'back', 'hand', 'float']);
+const MINIMEE_ANIMS = new Set(['none', 'wave', 'dance', 'kick']);
+const MINIMEE_SIZES = new Set(['small', 'normal', 'big']);
 const EMOTES = new Map([['wave', 3000], ['cheer', 3000], ['dance', 6000], ['clap', 3000], ['facepalm', 2500], ['point', 2500],
-  ['bow', 2500], ['salute', 2500], ['zombie', 4000], ['shrug', 2000], ['think', 3000]]);
+  ['bow', 2500], ['salute', 2500], ['zombie', 4000], ['shrug', 2000], ['think', 3000],
+  ['headbang', 3000], ['airguitar', 4000], ['flex', 2500], ['panic', 3000]]);
 
 const FRIEND_TTL = 24 * 60 * 60 * 1000;
 const MAX_FRIENDS = 200;
@@ -168,7 +172,8 @@ function sanitizeStatus(s, now) {
   };
   if (c.minimee && typeof c.minimee === 'object' && typeof c.minimee.name === 'string'
       && /^[A-Za-z0-9_]{1,16}$/.test(c.minimee.name) && MINIMEE_MODES.has(c.minimee.mode)) {
-    out.cosmetics.minimee = { name: c.minimee.name, mode: c.minimee.mode };
+    out.cosmetics.minimee = { name: c.minimee.name, mode: c.minimee.mode,
+      anim: MINIMEE_ANIMS.has(c.minimee.anim) ? c.minimee.anim : 'none', size: MINIMEE_SIZES.has(c.minimee.size) ? c.minimee.size : 'normal' };
   }
   if (s.song && typeof s.song === 'object') {
     const title = cleanText(s.song.title, 80);

@@ -10,7 +10,7 @@ const mods = require('./mods');
 
 const GAME_VERSION = '26.3';
 const LAUNCHER_NAME = 'NovaLauncher';
-const LAUNCHER_VERSION = '1.4.0';
+const LAUNCHER_VERSION = '1.5.0';
 
 /** group:artifact[:classifier] of a maven name, used to drop duplicate libraries. */
 function libKey(name) {
@@ -38,7 +38,7 @@ function collectArgs(list, vars, features) {
 /**
  * Installs everything needed and starts the game.
  * account: { name, uuid, accessToken, xuid }
- * profile: { id, name, ramMb, novaEnabled, jvmArgs, width, height }
+ * profile: { id, name, ramMb, novaEnabled, perfMods, jvmArgs, width, height }
  * Returns the child process.
  */
 async function launch({ account, profile, resourcesDir, javaPath, progress, onLog }) {
@@ -48,7 +48,7 @@ async function launch({ account, profile, resourcesDir, javaPath, progress, onLo
   const mc = await minecraft.install(GAME_VERSION, progress);
   const fab = await fabric.install(GAME_VERSION, progress);
   const javaExe = javaPath && fs.existsSync(javaPath) ? javaPath : await java.ensure(mc.version.javaVersion.component, progress);
-  await mods.ensure(instanceDir, GAME_VERSION, profile.novaEnabled !== false, resourcesDir, progress);
+  await mods.ensure(instanceDir, GAME_VERSION, profile.novaEnabled !== false, resourcesDir, progress, profile.perfMods !== false);
 
   const fabricKeys = new Set(fab.libraryNames.map(libKey));
   const cp = [

@@ -308,6 +308,7 @@ function registerIpc() {
       name: String((data && data.name) || 'Neues Profil').slice(0, 32),
       ramMb: s.settings.defaultRamMb,
       novaEnabled: true,
+      perfMods: true,
       jvmArgs: '',
       width: 0,
       height: 0,
@@ -323,11 +324,12 @@ function registerIpc() {
   handle('profiles:update', (id, patch) => {
     const p = store.load().profiles.find((x) => x.id === id);
     if (!p) throw new Error('Profil nicht gefunden');
-    for (const k of ['name', 'ramMb', 'novaEnabled', 'jvmArgs', 'width', 'height', 'color']) {
+    for (const k of ['name', 'ramMb', 'novaEnabled', 'perfMods', 'jvmArgs', 'width', 'height', 'color']) {
       if (k in patch) p[k] = patch[k];
     }
     p.name = String(p.name || 'Profil').slice(0, 32);
     p.ramMb = Math.max(1024, Math.min(32768, Number(p.ramMb) || 4096));
+    p.perfMods = p.perfMods !== false;
     store.save();
     return publicState();
   });
@@ -364,18 +366,37 @@ function registerIpc() {
     const token = await session(a);
     profile.lastPlayed = Date.now();
     store.save();
+    const perfMods = profile.perfMods !== false;
+    let startedAt = 0;
+    let inGame = false;
     game = await launch({
       account: { name: a.name, uuid: a.uuid, accessToken: token, xuid: '', clientId: s.settings.clientId },
       profile,
       resourcesDir: RESOURCES,
       javaPath: s.settings.javaPath,
       progress: (stage, done, total) => send('game:progress', { stage, done, total }),
-      onLog: (line) => send('game:log', line),
+      onLog: (line) => {
+        // resources are loaded (texture atlases exist): later crashes are not start-up problems
+        if (!inGame && /Created: .*textures\/atlas/.test(line)) inGame = true;
+        send('game:log', line);
+      },
     });
+    startedAt = Date.now();
     send('game:state', { running: true });
     game.on('exit', (code) => {
       game = null;
-      send('game:state', { running: false, code });
+      let perfModsDisabled = false;
+      // crashed while starting with performance mods: switch them off for this profile so the next start works
+      if (perfMods && code && code !== 0 && !inGame && Date.now() - startedAt < 180000) {
+        const st = store.load();
+        const p = st.profiles.find((x) => x.id === profile.id);
+        if (p && p.perfMods !== false) {
+          p.perfMods = false;
+          store.save();
+          perfModsDisabled = true;
+        }
+      }
+      send('game:state', { running: false, code, perfModsDisabled });
       if (win && !win.isDestroyed()) {
         win.show();
       }

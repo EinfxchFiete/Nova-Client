@@ -31,7 +31,8 @@ public class MusicModule extends HudModule {
 
 	@Override
 	public void tick() {
-		if (isEnabled()) {
+		// the lyrics module uses the same song detection
+		if (isEnabled() || LyricsModule.needsSong()) {
 			NowPlaying.start();
 		} else {
 			NowPlaying.stop();
@@ -40,7 +41,9 @@ public class MusicModule extends HudModule {
 
 	@Override
 	protected void onDisable() {
-		NowPlaying.stop();
+		if (!LyricsModule.needsSong()) {
+			NowPlaying.stop();
+		}
 	}
 
 	private NowPlaying.Song song() {

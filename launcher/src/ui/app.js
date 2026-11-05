@@ -14,10 +14,10 @@ let logLines = [];
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444', '#ec4899', '#64748b'];
 const NEWS = [
+  { t: 'Nova Client 1.8.0', title: 'Songtext am Himmel', g: 'linear-gradient(135deg,#6366f1,#ec4899)', text: 'Der Songtext deines Songs schwebt wie Karaoke am Himmel. Dazu FPS-Boost, Performance-Mods im Launcher, 6 neue Hüte, Eisflügel, Jetpack, Gitarre und mehr.' },
+  { t: 'Verbessert', title: 'Begleiter & Minimees', g: 'linear-gradient(135deg,#10b981,#f59e0b)', text: 'Laufende Begleiter gehen jetzt richtig über den Boden, Minimees mit 7 Positionen, Animationen und Größen, reparierte Phönixflügel mit Flammen.' },
   { t: 'Nova Client 1.7.0', title: 'Freunde & Startmenü', g: 'linear-gradient(135deg,#22c55e,#0ea5e9)', text: 'Neues Startmenü (Umschalttaste): Module, Cosmetics, Freunde. Freunde hinzufügen, sehen wer online ist und beitreten. Dazu Item-Physik und mehr.' },
   { t: 'Nova Client 1.6.0', title: 'Noch mehr Cosmetics', g: 'linear-gradient(135deg,#f97316,#ec4899)', text: '8 neue Kopf-Cosmetics, Extras (Rucksack, Schwänze, Schal), 3 neue Flügel, 3 animierte Capes, 5 Emotes, Minimap, Schadenszahlen und mehr.' },
-  { t: 'Nova Client 1.5.0', title: 'Minimees & Song-Cover', g: 'linear-gradient(135deg,#db2777,#f59e0b)', text: 'Minimees als Kette, an der Hosentasche oder auf dem Kopf, Song-Cover und Zeit über dem Namen, 7 neue animierte Capes, 15 neue Begleiter und /playtime.' },
-  { t: 'Verbessert', title: 'Ein Cosmetics-Menü', g: 'linear-gradient(135deg,#8b5cf6,#22d3ee)', text: 'Alle Cosmetics in einem Menü mit 3D-Vorschau, einfärbbare Flügel, Hörner und Kronen-Steine, echter Ping und Wegpunkte pro Welt.' },
 ];
 
 // ---------------------------------------------------------------- helpers
@@ -375,7 +375,12 @@ api.on('game:state', (s) => {
     setTimeout(() => $('#progress').classList.add('hidden'), 1500);
   } else {
     $('#progress').classList.add('hidden');
-    if (s.code && s.code !== 0) toast(`Minecraft wurde mit Fehlercode ${s.code} beendet – siehe Konsole.`, true);
+    if (s.perfModsDisabled) {
+      toast('Minecraft ist beim Start abgestürzt. Die Performance-Mods wurden für dieses Profil ausgeschaltet – starte einfach nochmal.', true);
+      call('state').then((st) => { state = st; renderTop(); if (typeof renderProfiles === 'function') renderProfiles(); }).catch(() => {});
+    } else if (s.code && s.code !== 0) {
+      toast(`Minecraft wurde mit Fehlercode ${s.code} beendet – siehe Konsole.`, true);
+    }
   }
   setStatus();
 });
@@ -457,7 +462,7 @@ function renderProfiles() {
     p.id === state.activeProfile ? el('span', { class: 'badge' }, 'AKTIV') : null,
     el('div', { class: 'icon', style: `background:${p.color}` }, p.name.trim().charAt(0).toUpperCase() || 'N'),
     el('div', { class: 'name' }, p.name),
-    el('div', { class: 'meta' }, `${(p.ramMb / 1024).toFixed(1).replace('.0', '')} GB RAM · ${p.novaEnabled ? 'Nova Client' : 'ohne Nova'}`),
+    el('div', { class: 'meta' }, `${(p.ramMb / 1024).toFixed(1).replace('.0', '')} GB RAM · ${p.novaEnabled ? 'Nova Client' : 'ohne Nova'}${p.perfMods !== false ? ' · FPS-Mods' : ''}`),
     el('div', { class: 'meta' }, ago(p.lastPlayed))));
   }
   grid.append(el('div', { class: 'profile-card new', onclick: async () => {
@@ -488,6 +493,9 @@ function renderProfileEditor() {
   const nova = el('input', { type: 'checkbox' });
   nova.checked = p.novaEnabled !== false;
   nova.addEventListener('change', () => update({ novaEnabled: nova.checked }, true));
+  const perf = el('input', { type: 'checkbox' });
+  perf.checked = p.perfMods !== false;
+  perf.addEventListener('change', () => update({ perfMods: perf.checked }, true));
   const jvm = el('input', { value: p.jvmArgs || '', placeholder: 'z. B. -XX:+UseZGC', spellcheck: 'false' });
   jvm.addEventListener('change', () => update({ jvmArgs: jvm.value }));
   const w = el('input', { type: 'number', min: 0, value: p.width || '', placeholder: 'Breite' });
@@ -505,6 +513,8 @@ function renderProfileEditor() {
     el('div', { class: 'field' }, el('span', {}, 'Farbe')), colors,
     el('label', { class: 'field' }, el('span', {}, 'Arbeitsspeicher: ', ramLabel), ram),
     el('label', { class: 'toggle-row' }, el('span', {}, 'Nova Client aktiv'), el('label', { class: 'switch' }, nova, el('i'))),
+    el('label', { class: 'toggle-row', title: 'Sodium, Lithium, FerriteCore, EntityCulling und ImmediatelyFast werden automatisch von Modrinth installiert und aktuell gehalten.' },
+      el('span', {}, 'Performance-Mods (mehr FPS)'), el('label', { class: 'switch' }, perf, el('i'))),
     el('div', { class: 'field' }, el('span', {}, 'Fenstergröße (leer = Standard)'), el('div', { class: 'res-row' }, w, h)),
     el('label', { class: 'field' }, el('span', {}, 'Zusätzliche Java-Argumente'), jvm),
     el('div', { class: 'editor-actions' },

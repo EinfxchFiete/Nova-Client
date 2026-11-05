@@ -63,7 +63,7 @@ async function login(port, name, joinIt = true) {
     let r = await post(port, '/v1/sync', {
       status: {
         cosmetics: { cape: 'anim:aurora', head: 'crown', headColor: 'Rot', wings: 'hacker', wingsColor: '§cevil',
-          minimee: { name: 'Flipp1009', mode: 'neck' }, extra: 'foxtail', extraColor: 'Blau' },
+          minimee: { name: 'Flipp1009', mode: 'shoulder', anim: 'wave', size: 'huge' }, extra: 'foxtail', extraColor: 'Blau' },
         song: { title: `§4${longTitle}\n`, artist: 'Nova', pos: 61000, len: 200000, playing: true },
         emote: { id: 'wave', age: 100 },
       },
@@ -76,7 +76,7 @@ async function login(port, name, joinIt = true) {
     const seen = r.json.players[a.json.uuid];
     assert.ok(seen, 'B should see A');
     assert.strictEqual(seen.cosmetics.cape, 'anim:aurora');
-    assert.deepStrictEqual(seen.cosmetics.minimee, { name: 'Flipp1009', mode: 'neck' });
+    assert.deepStrictEqual(seen.cosmetics.minimee, { name: 'Flipp1009', mode: 'shoulder', anim: 'wave', size: 'normal' });
     assert.strictEqual(seen.cosmetics.extra, 'foxtail');
     assert.strictEqual(seen.cosmetics.extraColor, 'Blau');
     assert.strictEqual(seen.song.len, 200000);
@@ -94,6 +94,14 @@ async function login(port, name, joinIt = true) {
     r = await post(port, '/v1/sync', { status: {}, players: [a.json.uuid] }, b.json.token);
     assert.strictEqual(r.json.players[a.json.uuid].cosmetics.minimee, undefined, 'invalid minimee must be dropped');
     assert.strictEqual(r.json.players[a.json.uuid].song.len, undefined, 'invalid song length must be dropped');
+
+    // 1.8 cosmetics and emotes are accepted
+    r = await post(port, '/v1/sync', { status: { cosmetics: { cape: 'anim:meteor', head: 'witchhat', wings: 'ice', extra: 'jetpack' },
+      emote: { id: 'headbang', age: 10 } }, players: [] }, a.json.token);
+    r = await post(port, '/v1/sync', { status: {}, players: [a.json.uuid] }, b.json.token);
+    const v18 = r.json.players[a.json.uuid];
+    assert.deepStrictEqual([v18.cosmetics.cape, v18.cosmetics.head, v18.cosmetics.wings, v18.cosmetics.extra, v18.emote.id],
+      ['anim:meteor', 'witchhat', 'ice', 'jetpack', 'headbang']);
 
     // friends: A adds B -> B gets a request, A sees "not mutual"; B accepts -> both see each other online + server
     r = await post(port, '/v1/sync', { status: { server: 'Play.Example.net:25566' }, players: [], friends: [b.json.uuid] }, a.json.token);

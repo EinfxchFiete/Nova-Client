@@ -137,6 +137,9 @@ public final class ModuleManager {
 		register(new MovementStatusModule());
 		register(new HotbarNumbersModule());
 		register(new MusicModule());
+		register(new dev.novaclient.module.hud.LyricsModule());
+		register(new dev.novaclient.module.hud.TpsModule());
+		register(new dev.novaclient.module.hud.SessionStatsModule());
 		register(new ItemCounterModule("Item-Zähler", "Zählt das gehaltene Item im ganzen Inventar", "Gehaltenes Item", Anchor.START, 2, Anchor.START, 196));
 
 		zoom = register(new ZoomModule());
@@ -156,6 +159,8 @@ public final class ModuleManager {
 		register(new dev.novaclient.module.visual.ItemPhysicsModule());
 		register(new dev.novaclient.module.visual.ScoreboardNumbersModule());
 		register(new dev.novaclient.module.visual.HitMarkerModule());
+		register(new dev.novaclient.module.visual.FpsBoostModule());
+		register(new dev.novaclient.module.visual.NoFogModule());
 
 		register(new ToggleSprintModule());
 		register(new ToggleSneakModule());
@@ -174,6 +179,8 @@ public final class ModuleManager {
 		register(new dev.novaclient.module.utility.CompactChatModule());
 		register(new dev.novaclient.module.utility.LongChatModule());
 		register(new dev.novaclient.module.utility.FriendsModule());
+		register(new dev.novaclient.module.utility.BreakReminderModule());
+		register(new dev.novaclient.module.utility.TotemPopsModule());
 
 		register(new CapeModule());
 		register(new HeadCosmeticModule());

@@ -47,6 +47,8 @@ public final class CoverArt {
 	private static final class Entry {
 		volatile State state = State.LOADING;
 		volatile @Nullable Identifier texture;
+		/** A bright, saturated colour from the cover (0 = unknown). */
+		volatile int color;
 	}
 
 	private static final Map<String, Entry> CACHE = new LinkedHashMap<>(16, 0.75F, true);
@@ -74,6 +76,15 @@ public final class CoverArt {
 			LOADER.execute(() -> load(entry, title, artist));
 		}
 		return e.state == State.READY ? e.texture : null;
+	}
+
+	/** The main colour of the cover (bright and saturated, ARGB), or 0 while loading / if there is none. */
+	public static synchronized int color(String title, String artist) {
+		if (get(title, artist) == null) {
+			return 0;
+		}
+		Entry e = CACHE.get(key(title, artist));
+		return e == null ? 0 : e.color;
 	}
 
 	/** For tests: use this image as the cover of the song. */
@@ -149,9 +160,37 @@ public final class CoverArt {
 				ni.setPixel(x, y, scaled.getRGB(x, y) | 0xFF000000);
 			}
 		}
+		e.color = mainColor(scaled);
 		Identifier id = Identifier.fromNamespaceAndPath(NovaClient.MOD_ID, "dynamic/cover_" + (counter++));
 		Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(() -> "Nova cover", ni));
 		e.texture = id;
 		e.state = State.READY;
+	}
+
+	/** Average hue of the colourful pixels (weighted by saturation and brightness), as a bright colour. */
+	static int mainColor(BufferedImage img) {
+		double hx = 0;
+		double hy = 0;
+		double weight = 0;
+		float[] hsb = new float[3];
+		for (int y = 0; y < img.getHeight(); y += 2) {
+			for (int x = 0; x < img.getWidth(); x += 2) {
+				int rgb = img.getRGB(x, y);
+				java.awt.Color.RGBtoHSB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, hsb);
+				double w = hsb[1] * hsb[1] * hsb[2];
+				hx += Math.cos(hsb[0] * Math.PI * 2) * w;
+				hy += Math.sin(hsb[0] * Math.PI * 2) * w;
+				weight += w;
+			}
+		}
+		if (weight < 0.02 * img.getWidth() * img.getHeight() / 4.0) {
+			// a grey cover: soft white
+			return 0xFFE8E8F0;
+		}
+		float hue = (float) (Math.atan2(hy, hx) / (Math.PI * 2));
+		if (hue < 0) {
+			hue += 1;
+		}
+		return 0xFF000000 | (java.awt.Color.HSBtoRGB(hue, 0.62F, 1.0F) & 0xFFFFFF);
 	}
 }

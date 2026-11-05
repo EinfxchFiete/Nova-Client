@@ -16,7 +16,7 @@ cfg.accounts = [{
   refreshToken: null, mcToken: { enc: false, data: Buffer.from('invalid-test-token').toString('base64') }, mcExpiresAt: Date.now() + 3600e3,
 }];
 cfg.activeAccount = '0123456789abcdef0123456789abcdef';
-cfg.profiles = [{ id: 'test-profile', name: 'UI Test', ramMb: 3072, novaEnabled: true, jvmArgs: '', width: 0, height: 0, color: '#8b5cf6', lastPlayed: 0 }];
+cfg.profiles = [{ id: 'test-profile', name: 'UI Test', ramMb: 3072, novaEnabled: true, perfMods: false, jvmArgs: '', width: 0, height: 0, color: '#8b5cf6', lastPlayed: 0 }];
 cfg.activeProfile = 'test-profile';
 fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2));
 if (process.argv[2]) {

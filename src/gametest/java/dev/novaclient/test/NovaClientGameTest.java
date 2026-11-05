@@ -725,6 +725,57 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042) instanceof net.minecraft.world.entity.animal.bee.Bee),
 				"companion did not change to a bee");
 			ctx.takeScreenshot("38_companion_bee");
+			// every buddy once: it must exist, tick (animations) and walkers must stand on the ground
+			java.util.List<String> buddies = ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.getModes());
+			// open space and a camera from behind, so the buddies are in the picture
+			sp.getServer().runCommand("tp @a 70 -60 70 0 30");
+			ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+			ctx.waitTicks(10);
+			StringBuilder buddyReport = new StringBuilder();
+			for (int bi = 0; bi < buddies.size(); bi++) {
+				String buddyName = buddies.get(bi);
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set(buddyName));
+				ctx.waitTicks(4);
+				int t0 = ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042) == null ? -1 : mc.level.getEntity(-4_242_042).tickCount);
+				ctx.waitTicks(12);
+				final String nameForCheck = buddyName;
+				String info = ctx.computeOnClient(mc -> {
+					var e = mc.level.getEntity(-4_242_042);
+					if (e == null) {
+						return "MISSING";
+					}
+					var m = (dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter");
+					return e.getType().toShortString() + " ticks=" + e.tickCount + " dy=" + String.format(java.util.Locale.ROOT, "%.2f", e.getY() - mc.player.getY())
+						+ " walks=" + m.walks();
+				});
+				buddyReport.append(nameForCheck).append(": ").append(info).append(" (t0=").append(t0).append(")\n");
+				check(!info.equals("MISSING"), "buddy " + buddyName + " was not spawned");
+				int t1 = ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042).tickCount);
+				check(t1 > t0, "buddy " + buddyName + " is not ticked (no animation): " + info);
+				boolean walker = ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).walks());
+				double dy = ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042).getY() - mc.player.getY());
+				if (walker) {
+					check(Math.abs(dy) < 0.45, "walking buddy " + buddyName + " is not on the ground: dy=" + dy);
+				} else {
+					check(dy > 1.0, "flying buddy " + buddyName + " is not in the air: dy=" + dy);
+				}
+				ctx.takeScreenshot("38b_buddy_" + bi);
+			}
+			NovaClient.LOGGER.info("NOVA BUDDIES\n{}", buddyReport);
+			// a walker really walks after you (legs move) when you go away
+			ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set("Kupfergolem"));
+			ctx.waitTicks(10);
+			sp.getServer().runCommand("execute as @p at @s run tp @s ~4 ~ ~");
+			float maxSpeed = 0;
+			for (int i = 0; i < 12; i++) {
+				ctx.waitTick();
+				maxSpeed = Math.max(maxSpeed, ctx.computeOnClient(mc ->
+					((net.minecraft.world.entity.LivingEntity) mc.level.getEntity(-4_242_042)).walkAnimation.speed()));
+			}
+			check(maxSpeed > 0.1, "copper golem did not walk (legs) after the player: walk speed " + maxSpeed);
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("38c_copper_golem_walked");
+			sp.getServer().runCommand("tp @a 40 -60 40 180 0");
 			ctx.runOnClient(mc -> {
 				module("Begleiter").setEnabled(false);
 				mc.options.setCameraType(CameraType.FIRST_PERSON);
@@ -935,27 +986,58 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					"wings colour click failed");
 				ctx.waitTicks(2);
 				ctx.takeScreenshot("48b_wings_green");
-				// minimee: tile + type a name
+				// minimee: type a name (the settings are at the top), then pick a position tile below them
 				click(ctx, at.apply(s -> s.tabCenter(3)), LMB);
-				click(ctx, at.apply(s -> s.tileCenter("Hosentasche")), LMB);
+				ctx.waitTick();
+				ctx.takeScreenshot("48c_minimee_tab");
 				click(ctx, at.apply(s -> s.rowCenter("Spielername")), LMB);
 				input.typeChars("Flipp1009!");
 				input.pressKey(InputConstants.KEY_RETURN);
 				ctx.waitTick();
+				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).scrollTo("Hosentasche"));
+				ctx.waitTick();
+				click(ctx, at.apply(s -> s.tileCenter("Hosentasche")), LMB);
 				check(ctx.computeOnClient(mc -> {
 					var m = (dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee");
 					return m.isEnabled() && m.mode.get().equals("Hosentasche") && m.name.get().equals("Flipp1009") && m.playerName().equals("Flipp1009");
 				}), "minimee settings wrong: " + ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).name.get()));
-				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(160));
-				ctx.waitTicks(3);
-				ctx.takeScreenshot("48c_minimee_pocket");
-				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).mode.set("Auf dem Kopf"));
-				ctx.waitTicks(2);
-				ctx.takeScreenshot("48d_minimee_head");
+				// the animation row cycles its mode on click
+				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).scrollTo("Spielername"));
+				ctx.waitTick();
+				click(ctx, at.apply(s -> s.rowCenter("Animation")), LMB);
+				check(!ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).anim.get()).equals("Keine"),
+					"minimee animation row click did not change the animation");
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).anim.set("Keine"));
+				// every position from the front and from behind
+				String[] miniModes = ctx.computeOnClient(mc -> dev.novaclient.cosmetics.CosmeticRegistry.MINIMEE_MODES.keySet().toArray(new String[0]));
+				for (String id : miniModes) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).mode.set(dev.novaclient.cosmetics.CosmeticRegistry.MINIMEE_MODES.get(id)));
+					for (int yaw : new int[] {200, 20}) {
+						ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(yaw));
+						ctx.waitTicks(2);
+						ctx.takeScreenshot("48d_minimee_" + id + "_" + (yaw == 200 ? "front" : "back"));
+					}
+				}
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Loadout.fromJson(dev.novaclient.cosmetics.Cosmetics.local().toJson()).minimeeMode())
+					.equals(miniModes[miniModes.length - 1]), "minimee mode lost in the JSON round trip");
+				// animations and sizes on the neck chain
 				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).mode.set("Kette"));
 				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(200));
-				ctx.waitTicks(2);
-				ctx.takeScreenshot("48e_minimee_neck");
+				for (String anim : new String[] {"Winken", "Tanzen", "Zappeln"}) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).anim.set(anim));
+					ctx.waitTicks(4);
+					ctx.takeScreenshot("48e_minimee_anim_" + dev.novaclient.cosmetics.CosmeticRegistry.MINIMEE_ANIMS.entrySet().stream()
+						.filter(e -> e.getValue().equals(anim)).findFirst().orElseThrow().getKey());
+				}
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).anim.set("Keine"));
+				for (String miniSize : new String[] {"Klein", "Groß"}) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).size.set(miniSize));
+					ctx.waitTicks(2);
+					ctx.takeScreenshot("48e_minimee_size_" + (miniSize.equals("Groß") ? "big" : "small"));
+				}
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).size.set("Normal"));
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Minimees.cachedModels()) <= 7 * 4 * 16 * 2,
+					"too many cached minimee models");
 				// companion tab
 				click(ctx, at.apply(s -> s.tabCenter(4)), LMB);
 				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).scrollTo("Fuchs"));
@@ -1009,6 +1091,24 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					ctx.waitTicks(2);
 					ctx.takeScreenshot("49w_wings_" + wing.getKey());
 				}
+				// the phoenix from all sides, also with a colour (the tint textures) and with the cape off
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.WingsModule) module("Flügel")).type.set("Phönixflügel"));
+				for (int yaw : new int[] {60, 100, 150, 200, 260, 330}) {
+					ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(yaw));
+					ctx.waitTicks(2);
+					ctx.takeScreenshot("49p_phoenix_yaw" + yaw);
+				}
+				ctx.runOnClient(mc -> {
+					((dev.novaclient.module.cosmetics.WingsModule) module("Flügel")).color.set("Blau");
+					module("Cape").setEnabled(false);
+					((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(20);
+				});
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("49p_phoenix_blue");
+				ctx.runOnClient(mc -> {
+					((dev.novaclient.module.cosmetics.WingsModule) module("Flügel")).color.set("Normal");
+					module("Cape").setEnabled(true);
+				});
 				ctx.setScreen(() -> null);
 				ctx.runOnClient(mc -> module("Begleiter").setEnabled(false));
 				ctx.waitTicks(2);
@@ -1214,6 +1314,328 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					module(n).setEnabled(false);
 				}
 			});
+
+			// ================================================================ 1.8: lyrics in the sky, phoenix and minimee in the world
+			{
+				var lrc = String.join("\n",
+					"[ti:Nova Hymne]",
+					"[00:01.00]Willkommen im Nova Client",
+					"[00:04.00][00:30.00]Wir singen bis zum Himmel",
+					"[00:07.50]♪",
+					"[00:16.00]<00:16.00>Dein <00:16.50>Song <00:17.00>steht <00:17.40>jetzt <00:17.80>ganz <00:18.20>oben",
+					"[00:21.00]Ende");
+				var parsed = dev.novaclient.music.Lyrics.parse(lrc);
+				check(parsed.lines().size() == 6, "lrc parse: wrong line count " + parsed.lines());
+				check(parsed.lines().get(0).startMs() == 1000 && parsed.lines().get(5).startMs() == 30_000, "lrc parse: times wrong " + parsed.lines());
+				check(parsed.lines().get(2).isBreak(), "lrc parse: note line should be a break");
+				var words = parsed.lines().get(3);
+				check(words.text().equals("Dein Song steht jetzt ganz oben") && words.wordChars() != null && words.wordChars()[1] == 5
+					&& words.wordMs()[2] == 17_000, "lrc parse: word timings wrong " + words.text() + " " + java.util.Arrays.toString(words.wordChars()));
+				check(dev.novaclient.music.Lyrics.parse("[offset:500]\n[00:02.00]Y").lines().get(0).startMs() == 1500, "lrc offset wrong");
+				check(dev.novaclient.music.Lyrics.cleanTitle("Song - Remastered 2011").equals("Song")
+					&& dev.novaclient.music.Lyrics.cleanTitle("Song (feat. Someone)").equals("Song")
+					&& dev.novaclient.music.Lyrics.firstArtist("A, B & C").equals("A"), "title cleaning wrong");
+
+				ctx.runOnClient(mc -> {
+					dev.novaclient.music.Lyrics.putForTest("Nova Hymne", "EinfxchFiete", lrc);
+					dev.novaclient.music.CoverArt.putForTest("Nova Hymne", "EinfxchFiete", testCover(0x2196F3));
+					var m = dev.novaclient.module.hud.LyricsModule.get();
+					m.resetToDefaults();
+					m.setEnabled(true);
+					if (!mc.gui.hud.isHidden()) { mc.gui.hud.toggle(); }
+					mc.options.setCameraType(CameraType.FIRST_PERSON);
+					mc.player.setYRot(30);
+					mc.player.setXRot(-18);
+					dev.novaclient.music.NowPlaying.setOverride(new dev.novaclient.music.NowPlaying.Song("Nova Hymne", "EinfxchFiete", true, "Spotify",
+						0, 60_000, System.currentTimeMillis()));
+				});
+				check(ctx.computeOnClient(mc -> dev.novaclient.music.NowPlaying.status()) != null, "song detection status missing");
+				java.util.function.LongConsumer at = ms -> ctx.runOnClient(mc -> dev.novaclient.music.NowPlaying.setOverride(
+					new dev.novaclient.music.NowPlaying.Song("Nova Hymne", "EinfxchFiete", true, "Spotify", ms, 60_000, System.currentTimeMillis())));
+				ctx.waitFor(mc -> {
+					var f = dev.novaclient.module.hud.LyricsModule.get().frame();
+					return f != null && f.title() > 0.8F;
+				}, 200);
+				check(ctx.computeOnClient(mc -> dev.novaclient.music.LyricsSky.lastSubmits()) > 0, "no lyrics submitted to the sky");
+				ctx.takeScreenshot("62_lyrics_intro");
+				at.accept(2000);
+				ctx.waitFor(mc -> {
+					var f = dev.novaclient.module.hud.LyricsModule.get().frame();
+					return f != null && f.current() == 0 && f.change() >= 1 && f.title() < 0.05F;
+				}, 200);
+				at.accept(2000);
+				ctx.waitTicks(1);
+				ctx.takeScreenshot("62b_lyrics_singing");
+				at.accept(4050);
+				ctx.waitFor(mc -> {
+					var f = dev.novaclient.module.hud.LyricsModule.get().frame();
+					return f != null && f.current() == 1 && f.leaving() == 0;
+				}, 100);
+				ctx.takeScreenshot("62c_lyrics_transition");
+				at.accept(11_000);
+				ctx.waitFor(mc -> {
+					var f = dev.novaclient.module.hud.LyricsModule.get().frame();
+					return f != null && f.current() < 0 && f.dots() > 0.3F && f.dots() < 0.6F && f.change() >= 1;
+				}, 200);
+				ctx.takeScreenshot("62d_lyrics_dots");
+				ctx.runOnClient(mc -> dev.novaclient.module.hud.LyricsModule.get().color.set("Regenbogen"));
+				at.accept(17_150);
+				ctx.waitFor(mc -> {
+					var f = dev.novaclient.module.hud.LyricsModule.get().frame();
+					return f != null && f.current() == 3 && f.change() >= 1;
+				}, 200);
+				at.accept(17_150);
+				float wordFill = ctx.computeOnClient(mc -> {
+					var f = dev.novaclient.module.hud.LyricsModule.get().frame();
+					var l = f.track().line(3);
+					return dev.novaclient.module.hud.LyricsModule.fill(l, 17_150, f.track().nextStart(3));
+				});
+				check(wordFill > 10 && wordFill < 16, "word timed fill wrong: " + wordFill);
+				ctx.waitTicks(1);
+				ctx.takeScreenshot("62e_lyrics_words_rainbow");
+				// the second time tag of a line
+				at.accept(30_500);
+				ctx.waitFor(mc -> {
+					var f = dev.novaclient.module.hud.LyricsModule.get().frame();
+					return f != null && f.current() == 5 && f.track().line(5).text().equals("Wir singen bis zum Himmel");
+				}, 200);
+				// the text follows the view when you turn around
+				ctx.runOnClient(mc -> mc.player.setYRot(150));
+				ctx.waitFor(mc -> Math.abs(net.minecraft.util.Mth.wrapDegrees(dev.novaclient.music.LyricsSky.anchorYaw() - 150)) < 20, 600);
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("62f_lyrics_followed");
+				// depth tested and in the HUD
+				ctx.runOnClient(mc -> {
+					var m = dev.novaclient.module.hud.LyricsModule.get();
+					m.color.set("Cover");
+					m.throughBlocks.set(false);
+					m.hud.set(true);
+					if (mc.gui.hud.isHidden()) { mc.gui.hud.toggle(); }
+				});
+				at.accept(31_200);
+				ctx.waitTicks(3);
+				check(ctx.computeOnClient(mc -> dev.novaclient.module.hud.LyricsModule.get().getWidth(false)) > 0, "lyrics HUD not shown");
+				ctx.takeScreenshot("62g_lyrics_hud_cover");
+				// optional: the real LRCLIB lookup (only logged, the test must not depend on the internet)
+				ctx.runOnClient(mc -> dev.novaclient.music.Lyrics.state("Blinding Lights", "The Weeknd", 200_000));
+				for (int i = 0; i < 100 && ctx.computeOnClient(mc -> dev.novaclient.music.Lyrics.state("Blinding Lights", "The Weeknd", 200_000))
+					== dev.novaclient.music.Lyrics.State.LOADING; i++) {
+					ctx.waitTicks(5);
+				}
+				NovaClient.LOGGER.info("NOVA LYRICS LRCLIB " + ctx.computeOnClient(mc -> {
+					var t = dev.novaclient.music.Lyrics.get("Blinding Lights", "The Weeknd", 200_000);
+					return dev.novaclient.music.Lyrics.state("Blinding Lights", "The Weeknd", 200_000) + " lines="
+						+ (t == null ? 0 : t.lines().size()) + (t == null || t.lines().size() < 3 ? "" : " third=" + t.lines().get(2).text());
+				}));
+				ctx.runOnClient(mc -> {
+					dev.novaclient.module.hud.LyricsModule.get().resetToDefaults();
+					dev.novaclient.module.hud.LyricsModule.get().setEnabled(false);
+					dev.novaclient.music.NowPlaying.setOverride(null);
+					mc.player.setXRot(0);
+				});
+				ctx.waitTicks(2);
+				check(ctx.computeOnClient(mc -> dev.novaclient.music.LyricsSky.lastSubmits()) == 0, "lyrics still drawn after switching off");
+
+				// phoenix wings with flames and the piggyback minimee on the cape, in the world from behind
+				ctx.runOnClient(mc -> {
+					var wings = (dev.novaclient.module.cosmetics.WingsModule) module("Flügel");
+					wings.type.set("Phönixflügel");
+					wings.color.set("Normal");
+					wings.setEnabled(true);
+					module("Cape").setEnabled(true);
+					var mini = (dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee");
+					mini.mode.set("Huckepack");
+					mini.setEnabled(true);
+					if (!mc.gui.hud.isHidden()) { mc.gui.hud.toggle(); }
+					mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+				});
+				ctx.waitTicks(30);
+				ctx.takeScreenshot("63_phoenix_minimee_world");
+				input.holdKey(o -> o.keyUp);
+				ctx.waitTicks(12);
+				ctx.takeScreenshot("63b_phoenix_minimee_walking");
+				input.releaseKey(o -> o.keyUp);
+				ctx.runOnClient(mc -> {
+					module("Flügel").setEnabled(false);
+					module("Minimee").setEnabled(false);
+					if (mc.gui.hud.isHidden()) { mc.gui.hud.toggle(); }
+					mc.options.setCameraType(CameraType.FIRST_PERSON);
+				});
+				ctx.waitTicks(2);
+			}
+
+			// ================================================================ 1.8: FPS boost, new modules, new emotes and capes
+			{
+				// FPS boost: far entities, far block entities and too many particles are skipped
+				check(enabled(ctx, "FPS-Boost"), "FPS boost should be on by default");
+				// the shortest entity distance, so the "far" pig is still inside the (small) tracking range of the test world
+				ctx.runOnClient(mc -> dev.novaclient.module.visual.FpsBoostModule.get().entityDistance.set(16.0));
+				sp.getServer().runCommand("execute at @p run summon minecraft:pig ~30 ~ ~ {NoAI:1b,Tags:[\"novafar\"]}");
+				sp.getServer().runCommand("execute at @p run summon minecraft:pig ~5 ~ ~ {NoAI:1b,Tags:[\"novanear\"]}");
+				sp.getServer().runCommand("execute at @p run setblock ~56 ~ ~ minecraft:chest");
+				sp.getServer().runCommand("execute at @p run setblock ~6 ~ ~2 minecraft:chest");
+				ctx.waitTicks(20);
+				String cull = ctx.computeOnClient(mc -> {
+					var cam = mc.gameRenderer.mainCamera().position();
+					String far = "?";
+					String near = "?";
+					for (var e : mc.level.entitiesForRendering()) {
+						if (e instanceof net.minecraft.world.entity.animal.pig.Pig) {
+							boolean draw = dev.novaclient.module.visual.FpsBoostModule.shouldDraw(e, cam.x, cam.y, cam.z);
+							if (e.distanceToSqr(mc.player) > 20 * 20) {
+								far = String.valueOf(draw);
+							} else {
+								near = String.valueOf(draw);
+							}
+						}
+					}
+					var bp = mc.player.blockPosition();
+					var farChest = mc.level.getBlockEntity(bp.offset(56, 0, 0));
+					var nearChest = mc.level.getBlockEntity(bp.offset(6, 0, 2));
+					var d = mc.getBlockEntityRenderDispatcher();
+					return far + " " + near + " " + (farChest == null ? "none" : String.valueOf(d.tryExtractRenderState(farChest, 0, null, false) != null))
+						+ " " + (nearChest == null ? "none" : String.valueOf(d.tryExtractRenderState(nearChest, 0, null, false) != null));
+				});
+				check(cull.equals("false true false true"), "FPS boost culling wrong (far pig, near pig, far chest, near chest): " + cull);
+				ctx.runOnClient(mc -> {
+					var boost = dev.novaclient.module.visual.FpsBoostModule.get();
+					boost.maxParticles.set(500.0);
+					for (int i = 0; i < 3000; i++) {
+						mc.level.addParticle(net.minecraft.core.particles.ParticleTypes.END_ROD, mc.player.getX(), mc.player.getY() + 1, mc.player.getZ(), 0, 0.01, 0);
+					}
+				});
+				ctx.waitTicks(3);
+				String particles = ctx.computeOnClient(mc -> mc.particleEngine.countParticles());
+				int total = Integer.parseInt(particles.substring(particles.lastIndexOf(' ') + 1));
+				check(total <= 1000, "particle limit not applied: " + particles);
+				ctx.runOnClient(mc -> dev.novaclient.module.visual.FpsBoostModule.get().resetToDefaults());
+				sp.getServer().runCommand("kill @e[type=minecraft:pig]");
+				sp.getServer().runCommand("execute at @p run setblock ~56 ~ ~ minecraft:air");
+				sp.getServer().runCommand("execute at @p run setblock ~6 ~ ~2 minecraft:air");
+
+				// no fog
+				check(ctx.computeOnClient(mc -> {
+					module("Kein Nebel").setEnabled(true);
+					var fog = new net.minecraft.client.renderer.fog.FogData();
+					fog.renderDistanceStart = 100;
+					fog.environmentalEnd = 50;
+					dev.novaclient.module.visual.NoFogModule.apply(fog, mc.player, true);
+					var water = new net.minecraft.client.renderer.fog.FogData();
+					water.environmentalEnd = 20;
+					dev.novaclient.module.visual.NoFogModule.apply(water, mc.player, false);
+					module("Kein Nebel").setEnabled(false);
+					return fog.renderDistanceStart > 1.0E6F && fog.environmentalEnd > 1.0E6F && water.environmentalEnd == 20;
+				}), "no fog module wrong");
+
+				// TPS from the time packets
+				ctx.runOnClient(mc -> module("TPS").setEnabled(true));
+				ctx.waitFor(mc -> dev.novaclient.util.TpsTracker.tps() > 0, 400);
+				float tps = ctx.computeOnClient(mc -> dev.novaclient.util.TpsTracker.tps());
+				NovaClient.LOGGER.info("NOVA TPS " + tps);
+				check(tps > 1 && tps <= 20.01F, "TPS out of range: " + tps);
+
+				// session statistics count walking but not teleports
+				ctx.runOnClient(mc -> {
+					module("Sitzungsstatistik").setEnabled(true);
+					mc.player.setYRot(0);
+					mc.player.setXRot(0);
+				});
+				ctx.waitTicks(2);
+				double before = ctx.computeOnClient(mc -> ((dev.novaclient.module.hud.SessionStatsModule) module("Sitzungsstatistik")).distance());
+				sp.getServer().runCommand("execute as @p at @s run tp @s ~30 ~ ~");
+				ctx.waitTicks(3);
+				input.holdKey(o -> o.keyUp);
+				ctx.waitTicks(20);
+				input.releaseKey(o -> o.keyUp);
+				ctx.waitTicks(2);
+				double walked = ctx.computeOnClient(mc -> ((dev.novaclient.module.hud.SessionStatsModule) module("Sitzungsstatistik")).distance()) - before;
+				check(walked > 1 && walked < 15, "session distance wrong (teleport counted?): " + walked);
+				ctx.takeScreenshot("64_tps_session_hud");
+
+				// break reminder
+				ctx.runOnClient(mc -> {
+					var b = (dev.novaclient.module.utility.BreakReminderModule) module("Pausen-Erinnerung");
+					b.minutes.set(15.0);
+					b.setEnabled(true);
+					b.addPlayedForTest(15 * 60_000L);
+				});
+				ctx.waitTicks(3);
+				check(ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active().stream().anyMatch(t -> t.startsWith("Zeit für eine Pause"))),
+					"break reminder not shown: " + ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active()));
+
+				// the new emotes and capes in the world
+				ctx.runOnClient(mc -> {
+					if (!mc.gui.hud.isHidden()) {
+						mc.gui.hud.toggle();
+					}
+					mc.player.setYRot(0);
+					mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+					((dev.novaclient.module.cosmetics.EmotesModule) module("Emotes")).switchCamera.set(false);
+				});
+				for (String emote : new String[] {"headbang", "airguitar", "flex", "panic"}) {
+					ctx.runOnClient(mc -> dev.novaclient.emote.Emotes.play(emote));
+					ctx.waitTicks(8);
+					check(emote.equals(ctx.computeOnClient(mc -> {
+						var a = dev.novaclient.emote.Emotes.localActive();
+						return a == null ? "" : a.id();
+					})), "emote not playing: " + emote);
+					ctx.takeScreenshot("65_emote_" + emote);
+				}
+				ctx.runOnClient(mc -> {
+					dev.novaclient.emote.Emotes.stop();
+					((dev.novaclient.module.cosmetics.EmotesModule) module("Emotes")).switchCamera.set(true);
+					mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+					module("Cape").setEnabled(true);
+					module("Flügel").setEnabled(false);
+					module("Extras").setEnabled(false);
+				});
+				for (String cape : new String[] {"Feuerwerk (animiert)", "Herbstlaub (animiert)", "Blubberblasen (animiert)", "Sternschnuppen (animiert)"}) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CapeModule) module("Cape")).design.set(cape));
+					ctx.waitTicks(4);
+					ctx.takeScreenshot("65b_cape_" + cape.substring(0, 4).toLowerCase(java.util.Locale.ROOT).replace("ü", "ue"));
+				}
+				// jetpack flames while in the air
+				ctx.runOnClient(mc -> {
+					var ex = (dev.novaclient.module.cosmetics.ExtrasModule) module("Extras");
+					ex.type.set("Jetpack");
+					ex.setEnabled(true);
+					module("Cape").setEnabled(false);
+				});
+				int flamesBefore = ctx.computeOnClient(mc -> dev.novaclient.cosmetics.WingParticles.jetpackFlames());
+				input.holdKey(o -> o.keyJump);
+				ctx.waitFor(mc -> !mc.player.onGround(), 40);
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("65c_jetpack_jump");
+				input.releaseKey(o -> o.keyJump);
+				ctx.waitTicks(10);
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.WingParticles.jetpackFlames()) > flamesBefore, "no jetpack flames while jumping");
+				ctx.runOnClient(mc -> {
+					module("Extras").setEnabled(false);
+					module("Cape").setEnabled(true);
+					if (mc.gui.hud.isHidden()) {
+						mc.gui.hud.toggle();
+					}
+					mc.options.setCameraType(CameraType.FIRST_PERSON);
+				});
+				// totem pops: a real totem saves you, the packet is counted
+				ctx.runOnClient(mc -> module("Totem-Pops").setEnabled(true));
+				sp.getServer().runCommand("effect clear @a");
+				sp.getServer().runCommand("item replace entity @p weapon.offhand with minecraft:totem_of_undying");
+				ctx.waitTicks(3);
+				sp.getServer().runCommand("damage @p 1000 minecraft:generic");
+				ctx.waitFor(mc -> ((dev.novaclient.module.utility.TotemPopsModule) module("Totem-Pops")).pops(mc.player.getUUID()) == 1, 100);
+				check(ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active().stream().anyMatch(t -> t.contains("Totem verbraucht (1)"))),
+					"totem notification missing");
+				ctx.takeScreenshot("64b_totem_pop");
+				sp.getServer().runCommand("effect clear @a");
+				sp.getServer().runCommand("effect give @a minecraft:instant_health 1 10");
+
+				ctx.runOnClient(mc -> {
+					for (String n : new String[] {"TPS", "Sitzungsstatistik", "Pausen-Erinnerung", "Totem-Pops"}) {
+						module(n).setEnabled(false);
+					}
+				});
+			}
 
 			// ---------------------------------------------------------------- config round trip incl. mode setting
 			ctx.runOnClient(mc -> {

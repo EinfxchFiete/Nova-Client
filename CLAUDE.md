@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.7.0** (86 Module), **Nova Launcher 1.4.0**, Nova-Server 1.3 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.0** (93 Module), **Nova Launcher 1.5.0**, Nova-Server 1.4 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -194,6 +194,11 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 | FirstPersonHandsMixin | `FirstPersonHandsAndItemsRenderer.submitArmWithItem` HEAD push / RETURN pop | Hand-Größe (Skalierung um die Handposition) |
 | MinecraftTitleMixin | `Minecraft.createTitle` RETURN | Fenstertitel „Nova Client 1.5.0 · Minecraft 26.3 · Server“ |
 | PlayerTabOverlayMixin (neu) | `extractRenderState` ModifyConstant 13 → 26 | breitere Ping-Spalte, damit „35ms“ den Namen nicht überlappt |
+| EntityRendererCullMixin | `EntityRenderer.shouldRender` HEAD | FPS-Boost: Entities hinter der Entity-Sichtweite nicht zeichnen (Spieler/Bosse/Kamera/Begleiter ausgenommen) |
+| BlockEntityRenderDispatcherMixin | `tryExtractRenderState` HEAD | FPS-Boost: Block-Entities hinter der Block-Entity-Sichtweite überspringen (global gerenderte bleiben) |
+| ParticleGroupMixin | `ParticleGroup.add` HEAD | FPS-Boost: Partikel-Limit pro Gruppe (Vanilla 16384) |
+| FogRendererMixin | `FogRenderer.setupFog` RETURN | „Kein Nebel“: Sichtweiten-/Umgebungsnebel weit weg (nicht in Wasser/Lava, nicht bei Blindheit/Dunkelheit) |
+| ClientPacketListenerMixin (1.8) | `handleSetTime` TAIL, `handleEntityEvent` TAIL | TPS-Messung (`util/TpsTracker`), Totem-Pops (Event 35). TAIL, weil der erste Aufruf auf dem Netzwerk-Thread abbricht |
 | *(Test)* HeadlessGlBackendMixin | `GlBackend.createWindow` vor `SDL_CreateWindow` | setzt SDL-GL-Attribut 22 (sRGB) auf 0, weil Xvfb kein sRGB kann – **nur im Gametest** |
 
 ### Alle 72 Module (Name = Config-Schlüssel, Standard an/aus)
@@ -356,6 +361,14 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 42. **/playtime als Client-Befehl** (Fabric `ClientCommandRegistrationCallback`); zählt nur, wenn das Spiel nicht pausiert ist,
     speichert alle 30 s und beim Beenden. Achtung: überdeckt einen eventuellen Server-Befehl /playtime.
 43. **Kill-Effekt Standard „Totem“**: Der Blitz sah im Xvfb-Test orange aus [UNSICHER, ob nur die Testgrafik] → als Option behalten.
+44. **Songtexte von LRCLIB** (frei, ohne Konto, synchronisierte LRC) statt Spotify-/Musixmatch-API (Konto/Schlüssel nötig, Lizenz).
+    Nur Titel, Interpret und Länge werden gesendet; kein Speichern auf der Platte.
+45. **Songtext als Welt-Text** (`COLLECT_SUBMITS`, `SEE_THROUGH`) statt Bildschirm-Overlay: wirkt „am Himmel“, Wolken/Hand liegen
+    natürlich darüber. Distanz fest 30 Blöcke vor der Kamera (wie die Sonne), Größe in Grad pro Font-Pixel (0,45° bei Größe 1).
+46. **Laufende Begleiter über `moveOrInterpolateTo`** statt Position setzen: nur so berechnet Vanilla die Laufanimation.
+47. **Minimee-Animationen als vorberechnete Posen** (16 Frames pro Animation, gecachte Modelle) – gleicher Grund wie Entscheidung 22.
+48. **FPS-Boost standardmäßig an** mit milden Werten (Entities 64 = Vanilla-Nähe, Block-Entities 48, 4000 Partikel/Gruppe).
+49. **Performance-Mods im Launcher standardmäßig an**, neueste Release-Version, mit Absturz-Schutz (siehe Changelog 17).
 
 ### Verworfene Ansätze (nicht erneut versuchen)
 - `gradlew` aus einem fremden geklonten Repo ausführen → blockiert.
@@ -462,6 +475,50 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
       Scoreboard-Zahlen aus (`PlayerScoreEntryMixin`), Trefferanzeige.
     - Bugfix: Kill-Effekt-Blitz blieb für immer stehen (clientseitige Blitze werden nicht getickt) → nach 20 Ticks entfernt.
 
+**05.11.2026**
+17. Wunschliste (Begleiter laufen nicht/Kupfergolem schwebt, Minimees verbuggt + mehr, Songtext am Himmel „wie LyricsSky, sehr
+    satisfying“, mehr FPS, mehr Cosmetics, Phönixflügel kaputt, mehr Module) → **v1.8.0** + **Launcher 1.5.0** + **Server 1.4**:
+    - **Begleiter** (`CompanionModule` neu): Arten mit Bewegung FLY/WALK/HOP. Laufwesen stehen auf dem Boden (Kollisions-Oberkante
+      unter der Zielposition suchen) und bewegen sich per `entity.moveOrInterpolateTo(...)` → Vanilla `aiStep` animiert die Beine;
+      Teleport (>12 Blöcke) per `SteppedInterpolationHandler.cancel()` + `snapTo` + `setOldPosAndRot`. Babys über `AgeableMob.setAge(-24000)`,
+      Größe über `Attributes.SCALE`. Neu: Fledermaus, Mini-Ghast, Lohe, Breeze, Phantom, Happy Ghast, Kupfergolem, Schneegolem u. a. (24 Arten).
+    - **Minimees** (`Minimees` neu): 7 Positionen (Kette, Hosentasche, Kopf, Schulter, Huckepack, Hand, Schwebend), Animationen
+      (Keine/Winken/Tanzen/Zappeln, 16 vorberechnete Posen pro Animation, Modelle gecacht `mode:anim:frame:slim`), Größen Klein/Normal/Groß;
+      Pendeln beim Laufen über den PoseStack. Huckepack mit Cape reitet **auf dem Cape** (gleicher Drehpunkt/Winkel wie `PlayerCapeModel`),
+      sonst war er unter dem Cape unsichtbar. Loadout + Server: `minimee:{name, mode, anim, size}`.
+    - **Phönixflügel**: neue Texturen (4 Flammen-Frames, `tools/assets/cosmetic_assets_v4.py`), Render-Typ `entityTranslucent` +
+      Vollhelligkeit (vorher `entityTranslucentEmissive` mit Back-Face-Culling → der gespiegelte Flügel verschwand). Kleine Flammen
+      (`cosmetics/WingParticles`, auch Fee/Eis, abschaltbar „Partikel (Phönix, Fee, Eis)“).
+    - **Songtext am Himmel** (Modul „Songtext“, HUD-Kategorie, `module/hud/LyricsModule` + `music/LyricsSky` + `music/Lyrics`): Texte von
+      **LRCLIB** (`/api/get` mit Länge, sonst `/api/search`; nur synchronisierte LRC, Wort-Zeiten `<mm:ss.xx>` werden genutzt; Cache im RAM,
+      Netzwerkfehler → nach 60 s neu). Zeichnen in `LevelRenderEvents.COLLECT_SUBMITS` (PoseStack = kamerarelativ): Anker 30 Blöcke vor der
+      Kamera in „Höhe am Himmel“, folgt der Blickrichtung mit 16°-Totzone, jeder Buchstabe einzeln (`submitText`, `Font.DisplayMode.SEE_THROUGH`
+      = ohne Tiefentest/Nebel). **Trick:** alle Teile mit derselben Pose-Translation (nur skalieren) → gleiche Kameradistanz → der
+      See-through-Pass zeichnet in Abgabe-Reihenfolge. Karaoke-Füllung, „Hüpfen“ der Buchstaben am Fortschritt, Aufblitzen am Zeilenende,
+      Zeilenwechsel mit Gleiten/Ausblenden, nächste Zeile klein darunter, 3 Punkte bei Pausen, Titelkarte am Anfang. Farben Theme/Cover
+      (`CoverArt.color`)/Regenbogen/Weiß, optional im HUD. NowPlaying läuft auch, wenn nur „Songtext“ an ist (`MusicModule.tick`).
+    - **Mehr FPS**: Modul **FPS-Boost** (standardmäßig **an**: Entities 64, Block-Entities 48, max. 4000 Partikel pro Gruppe);
+      HUD-Texte (`TextHudModule`) einmal pro Frame berechnen (`HudModule.nextFrame()/hudFrame()`), `Waypoints.here` pro Tick gecacht.
+      Launcher: Profil-Schalter **„Performance-Mods (mehr FPS)“** (`perfMods`, Standard an) → `mods.ensurePerfMods` lädt Sodium, Lithium,
+      FerriteCore, EntityCulling, ImmediatelyFast (neueste **Release**-Version für 26.3, sonst neueste) und merkt sie in `nova-managed.json`
+      (`perf`); eigene Kopien des Nutzers (Dateiname) werden erkannt und nicht doppelt installiert; ausgeschaltet → entfernt.
+      **Absturz-Schutz:** endet das Spiel mit Fehlercode, bevor die Textur-Atlanten geladen sind (< 3 min), schaltet der Launcher
+      `perfMods` für das Profil aus und zeigt einen Hinweis. **Nicht im Spiel zusammen getestet:** Die Cloud-Umgebung hat das Starten der
+      heruntergeladenen Mods im Gametest blockiert (Sicherheitsprüfung, fremder Code). Stattdessen statisch geprüft (Klassendateien
+      gelesen mit `tools/testing/mixin_overlap_scan.py <Ordner mit entpackten Mod-Jars>`): keine `@Overwrite` auf Methoden, in die Nova injiziert; gemeinsame Methoden
+      (`EntityRenderer.shouldRender` – Sodium `@WrapMethod`, `FogRenderer.setupFog` – Sodium `@Inject`,
+      `BlockEntityRenderDispatcher.tryExtractRenderState` – EntityCulling `@Inject`) nutzen verträgliche Injektoren.
+      Die Launcher-Tests (`launch-test.js`, `ui-launch-test.js`) setzen `perfMods: false`. Vom Nutzer Rückmeldung holen!
+    - **Cosmetics** (`tools/assets/cosmetic_assets_v5.py`): Hexenhut, Weihnachtsmütze, Kochmütze, Fuchsohren, Einhorn-Horn,
+      Propellermütze (dreht sich), Eisflügel, Extras Jetpack (Flammen in der Luft), Gitarre (Noten, wenn Musik läuft), Rückenschwert,
+      animierte Capes Feuerwerk/Herbstlaub/Blubberblasen/Sternschnuppen, Emotes Headbangen/Luftgitarre/Muskeln zeigen/Panik.
+    - **Module**: Songtext, FPS-Boost, Kein Nebel, TPS (`util/TpsTracker`, aus den Zeit-Paketen), Sitzungsstatistik (Strecke ohne
+      Teleports, Tode), Pausen-Erinnerung, Totem-Pops.
+    - Gametest: alle Begleiter (Boden/Luft), Kupfergolem läuft mit Beinanimation, alle Minimee-Positionen vorne/hinten, Animationen,
+      Größen, Phönix aus 6 Winkeln + in der Welt, Songtext-Phasen (Intro, Singen, Wechsel, Punkte, Wort-Zeiten, Folgen, HUD),
+      echte LRCLIB-Abfrage (nur geloggt), FPS-Boost-Culling + Partikel-Limit, Kein Nebel, TPS, Sitzung, Pause, Totem (echtes Totem per
+      `/damage`), neue Emotes/Capes/Jetpack.
+
 ---
 
 ## 6. BEKANNTE PROBLEME & BUGS
@@ -506,6 +563,9 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 - Custom Crosshair blendet die Vanilla-Angriffsanzeige mit aus.
 - Gametest-Szene: In der Frontansicht war die Kamera sehr nah, solange ein Rüstungsständer im Weg stand (nur Test).
 - E-Mail-Adresse des Nutzers steht als Commit-Autor in der (öffentlichen) Git-Historie; Umschreiben angeboten, **keine Antwort** [OFFEN].
+- Songtext: Zeitstempel kommen vom Player (Windows SMTC / playerctl). Liefert ein Player keine Position, gibt es nur die Titelkarte.
+  Timing unter Windows nicht getestet; der Nutzer kann mit „Versatz (Sekunden)“ nachjustieren.
+- Rucksack, Jetpack, Gitarre und Schwanz-Extras werden von einem Cape teilweise verdeckt (bewusst, wie bei Elytra).
 
 ---
 
@@ -521,6 +581,17 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
+- **STAND BEI UNTERBRECHUNG (05.11.2026, Nutzer: „stop merke dir wo du bist“):** Code für **v1.8.0** (Changelog 17) ist fertig,
+  committet und gepusht. Letzter kompletter Gametest: **NOVA GAMETEST PASSED** (93 Module), `backend` → `npm test` PASSED.
+  Versionsnummern sind schon erhöht (gradle.properties/NovaClient.VERSION 1.8.0, launcher package.json/LAUNCHER_VERSION 1.5.0, NEWS).
+  **Noch offen (Release-Schritte, in dieser Reihenfolge):**
+  1. `./gradlew build` → `build/libs/nova-client-1.8.0.jar`, nach `launcher/resources/nova-client.jar` kopieren.
+  2. Launcher-Tests: `xvfb-run … node test/ui-test.js` (Screenshots ansehen, neue Profil-Option „Performance-Mods“ + 4 News-Karten),
+     `tools/testing/build-headless-mod.sh /tmp/headless.jar`, `node test/launch-test.js /tmp/headless.jar`, `node test/ui-launch-test.js …`.
+  3. `npm run dist:win`, `node scripts/set-exe-icon.js …`, ZIP bauen (Abschnitt 1).
+  4. `nova-client-1.8.0.zip` (Jar darin) + `Nova-Launcher-Windows.zip` per SendUserFile an den Nutzer (sein Wunsch: Jar als ZIP + Launcher).
+  5. Render-Deploy prüfen (`/health`), README/CLAUDE.md sind schon aktualisiert.
+- Zuletzt ausgeliefert: 1.7.0 (`nova-client-1.7.0.zip` + Launcher 1.4.0).
 - Halbfertig im Code: nichts bekannt.
 - Besprochen, aber nicht im Repo: Standard-Client-ID im Launcher vorbelegen (Idee, siehe 8), E-Mail aus Git-Historie entfernen (Angebot).
 
@@ -529,6 +600,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 ## 8. OFFENE AUFGABEN & IDEEN
 
 ### To-dos nach Priorität
+0. **Feedback zu 1.8.0 holen:** Laufen Sodium & Co. zusammen mit Nova unter Windows (Launcher-Schalter „Performance-Mods“)?
+   Passt das Songtext-Timing (Spotify/SMTC) – sonst „Versatz (Sekunden)“? Gefallen die neuen Cosmetics?
 1. ~~Server-URL einbauen~~ **erledigt in 1.4.1**. Offen: Feedback, ob das Netzwerk mit echten Konten funktioniert
    (Render-Logs im Dashboard unter „Logs“ zeigen Anmeldungen/Fehler).
 2. Nach Mojang-Freischaltung: echten Login/Skin-Upload/Spielstart unter Windows mit dem Nutzer testen; Idee: die Client-ID

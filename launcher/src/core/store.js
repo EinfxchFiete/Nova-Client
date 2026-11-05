@@ -8,7 +8,7 @@ const DEFAULTS = () => ({
   settings: { clientId: '', closeOnLaunch: false, javaPath: '', defaultRamMb: 4096 },
   accounts: [],
   activeAccount: null,
-  profiles: [{ id: 'nova-standard', name: 'Nova Standard', ramMb: 4096, novaEnabled: true, jvmArgs: '', width: 0, height: 0, color: '#8b5cf6', lastPlayed: 0 }],
+  profiles: [{ id: 'nova-standard', name: 'Nova Standard', ramMb: 4096, novaEnabled: true, perfMods: true, jvmArgs: '', width: 0, height: 0, color: '#8b5cf6', lastPlayed: 0 }],
   activeProfile: 'nova-standard',
   skins: [],
 });

@@ -260,6 +260,12 @@ public class CosmeticsScreen extends Screen {
 			}
 			case 3 -> {
 				MinimeeModule mini = MinimeeModule.get();
+				// who + how first, so it is visible without scrolling; the positions below
+				out.add(Item.setting(mini.name, "Spielername"));
+				out.add(Item.hint("Leer = du selbst. Jeder Minecraft-Name geht."));
+				out.add(Item.setting(mini.anim, mini.anim.getName()));
+				out.add(Item.setting(mini.size, mini.size.getName()));
+				out.add(Item.header("Position", null));
 				out.add(Item.tile("Kein Minimee", "", !mini.isEnabled(), () -> mini.setEnabled(false)));
 				for (String name : CosmeticRegistry.MINIMEE_MODES.values()) {
 					out.add(Item.tile(name, "Mini-Spieler", mini.isEnabled() && mini.mode.get().equals(name), () -> {
@@ -267,9 +273,6 @@ public class CosmeticsScreen extends Screen {
 						mini.setEnabled(true);
 					}));
 				}
-				out.add(Item.header("Wer soll es sein?", null));
-				out.add(Item.setting(mini.name, "Spielername"));
-				out.add(Item.hint("Leer = du selbst. Jeder Minecraft-Name geht."));
 			}
 			case 4 -> {
 				CompanionModule buddy = (CompanionModule) NovaClient.modules().byName("Begleiter");

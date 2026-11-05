@@ -9,7 +9,8 @@ process.env.NOVA_LAUNCHER_HOME = process.env.NOVA_LAUNCHER_HOME || path.join(__d
 const { launch } = require('../src/core/launch');
 
 const extraMod = process.argv[2];
-const profile = { id: 'test-profile', name: 'Test', ramMb: 3072, novaEnabled: true, jvmArgs: '' };
+// perfMods off: the test only starts Fabric API + Nova (+ the headless helper mod)
+const profile = { id: 'test-profile', name: 'Test', ramMb: 3072, novaEnabled: true, perfMods: false, jvmArgs: '' };
 const account = { name: 'NovaTester', uuid: crypto.randomUUID().replace(/-/g, ''), accessToken: 'invalid-test-token', xuid: '0' };
 
 (async () => {

@@ -67,6 +67,7 @@ public final class Waypoints {
 	}
 
 	private static void save() {
+		version++;
 		JsonObject root = new JsonObject();
 		for (var e : ALL.entrySet()) {
 			if (e.getValue().isEmpty()) {
@@ -106,13 +107,27 @@ public final class Waypoints {
 		return key == null ? List.of() : List.copyOf(ALL.getOrDefault(key, List.of()));
 	}
 
-	/** Waypoints of the current world in your dimension. */
-	public static List<Waypoint> here(Minecraft mc) {
-		if (mc.player == null) {
+	private static int version;
+	private static int hereVersion = -1;
+	private static long hereTick = Long.MIN_VALUE;
+	private static Object hereLevel;
+	private static List<Waypoint> hereCache = List.of();
+
+	/** Waypoints of the current world in your dimension (cached for the current game tick, the HUD asks every frame). */
+	public static synchronized List<Waypoint> here(Minecraft mc) {
+		if (mc.player == null || mc.level == null) {
 			return List.of();
 		}
+		long tick = mc.level.getGameTime();
+		if (tick == hereTick && hereVersion == version && hereLevel == mc.level) {
+			return hereCache;
+		}
 		String dim = dimension(mc.player);
-		return inWorld(mc).stream().filter(w -> w.dimension().equals(dim)).toList();
+		hereCache = inWorld(mc).stream().filter(w -> w.dimension().equals(dim)).toList();
+		hereTick = tick;
+		hereVersion = version;
+		hereLevel = mc.level;
+		return hereCache;
 	}
 
 	public static @Nullable Waypoint nearest(Minecraft mc) {

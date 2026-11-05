@@ -33,7 +33,9 @@ public final class Cosmetics {
 			miniOn ? mini.playerName() : "",
 			miniOn ? mini.modeId() : "",
 			extras != null && extras.isEnabled() ? extras.currentId() : "",
-			extras != null && extras.isEnabled() ? extras.color.get() : "");
+			extras != null && extras.isEnabled() ? extras.color.get() : "",
+			miniOn ? mini.animId() : "none",
+			miniOn ? mini.sizeId() : "normal");
 	}
 
 	/** Loadout for the player with this entity id, or null if nothing should be drawn. */
