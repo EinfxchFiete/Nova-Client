@@ -586,6 +586,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
   Launcher UI-Test, Launch-Test und UI-Launch-Test PASSED (Launcher-Tests ohne Performance-Mods, siehe Changelog 17).
   Render geprüft: `/health` → `{"ok":true,"version":"1.4"}` (Server zeigt seit 1.4 seine Version auf `/` und `/health`, so sieht man,
   ob ein Deploy live ist), `/v1/auth/start` ok, `/v1/auth/dev` 404 (richtig).
+- Nutzer-Entscheidung (06.11.2026): **Performance-Mods testet der Nutzer selbst** (Schalter bleibt standardmäßig an); 1.8.0 hat er
+  **noch nicht getestet** und meldet sich.
 - **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?
 - Halbfertig im Code: nichts bekannt.
 - Besprochen, aber nicht im Repo: Standard-Client-ID im Launcher vorbelegen (Idee, siehe 8), E-Mail aus Git-Historie entfernen (Angebot).
