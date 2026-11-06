@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.8.1** (96 Module), **Nova Launcher 1.5.1**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.2** (96 Module), **Nova Launcher 1.5.2**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -528,6 +528,15 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
     `player.respawn()` nach Verzögerung), Hunger-Warnung. Texturen `tools/assets/cosmetic_assets_v6.py`. Gametest PASSED (96 Module),
     Launcher-Tests PASSED. Server-Version auf `/health` jetzt `1.5`.
 
+19. Nutzer schickte 5 Pet-Pakete (ZIPs für MythicMobs/ModelEngine/MCPets): **CUBEES Starter/Biomes1/Currets** (MCModels,
+    Lizenz „Use its models … outside CUBEES, or in a product, plugin, pack or map of your own“ **verboten**, ebenso Weitergabe und
+    KI-Nutzung) → **nicht eingebaut**, nur Lizenz/Struktur gelesen. **Sleepy the Otter (Nocsy, MCModels)**: keine Lizenz, die Einbau/
+    Weitergabe erlaubt → nicht eingebaut (Nutzer müsste beim Autor nachfragen). **Blobfish (QueenOfAnts)**: README „free to use/edit
+    … on your projects“ → **eingebaut** als Begleiter „Blobfisch“ (**v1.8.2**, Launcher 1.5.2): `tools/assets/bbmodel_pet.py`
+    wandelt .bbmodel (Per-Face-UV) in Box-UV-Textur `textures/pets/<name>.png` + `models/pets/<name>.json`; `cosmetics/PetModels`
+    baut daraus ModelParts, `cosmetics/PetRenderer` (COLLECT_SUBMITS) zeichnet das Modell an einer **unsichtbaren Allay** (Begleiter-
+    Logik fliegt), Animation: Schwanz wedelt, Nase atmet, Körper wippt. Credits in README. Gametest PASSED.
+
 ---
 
 ## 6. BEKANNTE PROBLEME & BUGS
@@ -590,8 +599,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 06.11.2026: v1.8.1 fertig und ausgeliefert** (Changelog 18): `nova-client-1.8.1.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
-  (Launcher 1.5.1 inkl. Nova 1.8.1). Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
+- **Stand 06.11.2026: v1.8.2 fertig und ausgeliefert** (Changelog 19): `nova-client-1.8.2.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
+  (Launcher 1.5.2 inkl. Nova 1.8.2). Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
 - Nutzer-Entscheidung (06.11.2026): **Performance-Mods testet der Nutzer selbst** (Schalter bleibt standardmäßig an); 1.8.x hat er
   **noch nicht getestet** (kann gerade nicht) und meldet sich.
 - **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?

@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class NovaClient implements ClientModInitializer {
 	public static final String MOD_ID = "novaclient";
 	public static final String NAME = "Nova Client";
-	public static final String VERSION = "1.8.1";
+	public static final String VERSION = "1.8.2";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static ModuleManager modules;
@@ -89,6 +89,7 @@ public class NovaClient implements ClientModInitializer {
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), (graphics, deltaTracker) -> renderHud(graphics));
 		// song lyrics in the sky
 		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS.register(dev.novaclient.music.LyricsSky::submit);
+		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS.register(dev.novaclient.cosmetics.PetRenderer::submit);
 		HudElementRegistry.replaceElement(VanillaHudElements.MOB_EFFECTS, original -> (graphics, deltaTracker) -> {
 			if (!(modules.potionEffects.isEnabled() && modules.potionEffects.hideVanilla.isOn())) {
 				original.extractRenderState(graphics, deltaTracker);

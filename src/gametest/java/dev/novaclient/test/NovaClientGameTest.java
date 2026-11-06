@@ -762,6 +762,19 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				ctx.takeScreenshot("38b_buddy_" + bi);
 			}
 			NovaClient.LOGGER.info("NOVA BUDDIES\n{}", buddyReport);
+			// the blobfish pet: own model on an invisible carrier
+			ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set("Blobfisch"));
+			ctx.waitTicks(12);
+			check(ctx.computeOnClient(mc -> {
+				var b = ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).getBuddy();
+				return b != null && b.isInvisible() && dev.novaclient.cosmetics.PetModels.get("blobfish") != null
+					&& dev.novaclient.cosmetics.PetRenderer.lastSubmits() == 1;
+			}), "blobfish pet not drawn");
+			ctx.takeScreenshot("38d_pet_blobfish");
+			ctx.runOnClient(mc -> mc.player.setYRot(mc.player.getYRot() + 90));
+			ctx.waitTicks(15);
+			ctx.takeScreenshot("38e_pet_blobfish_side");
+			ctx.runOnClient(mc -> mc.player.setYRot(mc.player.getYRot() - 90));
 			// a walker really walks after you (legs move) when you go away
 			ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set("Kupfergolem"));
 			ctx.waitTicks(10);

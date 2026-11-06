@@ -37,7 +37,10 @@ public class CompanionModule extends Module {
 	private enum Motion { FLY, WALK, HOP }
 
 	/** One buddy type: entity, size and how it moves. {@code baby}: spawn the baby version instead of scaling. */
-	private record Kind(EntityType<?> type, double scale, Motion motion, boolean baby) {
+	private record Kind(EntityType<?> type, double scale, Motion motion, boolean baby, @Nullable String model) {
+		Kind(EntityType<?> type, double scale, Motion motion, boolean baby) {
+			this(type, scale, motion, baby, null);
+		}
 	}
 
 	private static final Map<String, Kind> KINDS = new LinkedHashMap<>();
@@ -67,6 +70,8 @@ public class CompanionModule extends Module {
 		KINDS.put("Schneegolem", new Kind(EntityTypes.SNOW_GOLEM, 0.32, Motion.WALK, false));
 		KINDS.put("Hase", new Kind(EntityTypes.RABBIT, 1.0, Motion.HOP, false));
 		KINDS.put("Schleim", new Kind(EntityTypes.SLIME, 1.0, Motion.HOP, false));
+		// pets with their own model: an invisible allay does the flying, PetRenderer draws the model
+		KINDS.put("Blobfisch", new Kind(EntityTypes.ALLAY, 1.0, Motion.FLY, false, "blobfish"));
 	}
 
 	public final ModeSetting type = add(new ModeSetting("Begleiter", "Allay", KINDS.keySet().toArray(new String[0])));
@@ -80,6 +85,7 @@ public class CompanionModule extends Module {
 
 	public CompanionModule() {
 		super("Begleiter", "Ein Begleiter neben dir: " + KINDS.size() + " Tiere, Flugtiere schweben, die anderen laufen mit", Category.COSMETICS, false);
+		instance = this;
 	}
 
 	private Kind kind() {
@@ -88,6 +94,17 @@ public class CompanionModule extends Module {
 
 	public @Nullable Entity getBuddy() {
 		return buddy;
+	}
+
+	private static CompanionModule instance;
+
+	public static CompanionModule get() {
+		return instance;
+	}
+
+	/** Name of the own pet model of the current buddy (see PetModels), or null for a normal mob. */
+	public @Nullable String customModel() {
+		return buddy == null ? null : kind().model();
 	}
 
 	/** True if the chosen buddy walks/hops on the ground (tests). */
@@ -235,6 +252,9 @@ public class CompanionModule extends Module {
 		}
 		e.setNoGravity(true);
 		e.setSilent(true);
+		if (k.model() != null) {
+			e.setInvisible(true);
+		}
 		e.noPhysics = true;
 		double y = k.motion() == Motion.FLY ? p.getY() + 1.6 : p.getY();
 		e.snapTo(p.getX(), y, p.getZ(), p.getYRot(), 0);
