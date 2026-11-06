@@ -76,6 +76,14 @@ public final class CosmeticModels {
 	public static ModelPart guitarNeck;
 	public static ModelPart swordBlade;
 	public static ModelPart swordHilt;
+	// 1.8.1
+	public static ModelPart mushroomCap;
+	public static ModelPart mushroomSpots;
+	public static ModelPart mushroomRing;
+	public static ModelPart pirateHat;
+	public static ModelPart pirateBand;
+	public static ModelPart antennaStalk;
+	public static ModelPart antennaBall;
 
 	private static boolean built;
 
@@ -173,6 +181,35 @@ public final class CosmeticModels {
 
 		buildV16();
 		buildV18();
+		buildV181();
+	}
+
+	/** Models of the 1.8.1 cosmetics (head space). */
+	private static void buildV181() {
+		MeshDefinition m = new MeshDefinition();
+		PartDefinition r = m.getRoot();
+		r.addOrReplaceChild("base", CubeListBuilder.create().texOffs(0, 0).addBox(-5.5F, -10, -5.5F, 11, 2, 11), PartPose.ZERO);
+		r.addOrReplaceChild("top", CubeListBuilder.create().texOffs(0, 14).addBox(-4, -12, -4, 8, 2, 8), PartPose.ZERO);
+		mushroomCap = bake(m, 64, 64);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		float[][] spots = {{-3, -12.3F, -1}, {1, -12.3F, 1.2F}, {-0.8F, -12.3F, -3.2F}, {-5.4F, -10.3F, 0.5F}, {3.5F, -10.3F, -2.5F}, {0.5F, -10.3F, 3.6F}};
+		for (int i = 0; i < spots.length; i++) {
+			r.addOrReplaceChild("s" + i, CubeListBuilder.create().texOffs(44, 0).addBox(spots[i][0], spots[i][1], spots[i][2], 2, 1, 2,
+				new CubeDeformation(0, -0.35F, 0)), PartPose.ZERO);
+		}
+		mushroomSpots = bake(m, 64, 64);
+		mushroomRing = single(CubeListBuilder.create().texOffs(0, 26).addBox(-4.5F, -8.4F, -4.5F, 9, 1, 9, new CubeDeformation(0.2F)), 64, 64);
+
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("brim", CubeListBuilder.create().texOffs(0, 0).addBox(-6, -8.6F, -6, 12, 1, 12), PartPose.ZERO);
+		r.addOrReplaceChild("crown", CubeListBuilder.create().texOffs(0, 13).addBox(-4.5F, -11.6F, -4.5F, 9, 3, 9), PartPose.ZERO);
+		pirateHat = bake(m, 64, 64);
+		pirateBand = single(CubeListBuilder.create().texOffs(0, 27).addBox(-4.5F, -9.6F, -4.5F, 9, 1, 9, new CubeDeformation(0.15F)), 64, 64);
+
+		antennaStalk = single(CubeListBuilder.create().texOffs(0, 0).addBox(-0.5F, -5, -0.5F, 1, 5, 1, new CubeDeformation(-0.2F)), 32, 16);
+		antennaBall = single(CubeListBuilder.create().texOffs(8, 0).addBox(-1, -2, -1, 2, 2, 2), 32, 16);
 	}
 
 	/** Models of the 1.8.0 cosmetics (head space for hats, body space for extras). */

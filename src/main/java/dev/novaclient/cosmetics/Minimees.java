@@ -152,6 +152,26 @@ public final class Minimees {
 				m.rightLeg.xRot += s * 0.55F;
 				m.leftLeg.xRot -= s * 0.55F;
 			}
+			case "cheer" -> {
+				if (!hanging(mode) && !mode.equals("back")) {
+					// both arms up, pumping
+					m.rightArm.xRot = -2.9F + Math.abs(s) * 0.35F;
+					m.leftArm.xRot = -2.9F + Math.abs(s) * 0.35F;
+					m.rightArm.zRot = 0.35F;
+					m.leftArm.zRot = -0.35F;
+				} else {
+					// holding on: happy kicking and looking up
+					m.rightLeg.xRot += Math.abs(s) * -0.5F;
+					m.leftLeg.xRot += Math.abs(c) * -0.5F;
+				}
+				m.head.xRot = -0.3F;
+			}
+			case "nod" -> {
+				// nodding to the beat (two nods per loop), swaying a little
+				m.head.xRot = Math.abs(Mth.sin(t * 2.0F)) * 0.45F;
+				m.head.zRot = s * 0.08F;
+				m.body.zRot = s * 0.05F;
+			}
 			default -> {
 				// a little breathing for everyone
 				m.head.xRot += s * 0.04F;

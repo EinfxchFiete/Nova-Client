@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.8.0** (93 Module), **Nova Launcher 1.5.0**, Nova-Server 1.4 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.1** (96 Module), **Nova Launcher 1.5.1**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -519,6 +519,15 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
       echte LRCLIB-Abfrage (nur geloggt), FPS-Boost-Culling + Partikel-Limit, Kein Nebel, TPS, Sitzung, Pause, Totem (echtes Totem per
       `/damage`), neue Emotes/Capes/Jetpack.
 
+
+**06.11.2026**
+18. Nutzer: „Weiter“, kann gerade nicht testen → **v1.8.1** + **Launcher 1.5.1** + **Server 1.5**: Kopf-Cosmetics Pilzhut (`mushroom`,
+    weiße Punkte als eigener Teil), Piratenhut (`piratehat`, Totenkopf auf der Front, Band einfärbbar), Alien-Antennen (`antennae`,
+    federn, Kugeln leuchten); Libellenflügel (`dragonfly`); animierte Capes Aquarium/Wolken; Minimee-Animationen Jubeln (`cheer`) und
+    Kopfnicken (`nod`); Module Chat-Filter (`ChatComponentMixin` HEAD cancel, Wörter mit Komma), Auto-Respawn (nicht Hardcore,
+    `player.respawn()` nach Verzögerung), Hunger-Warnung. Texturen `tools/assets/cosmetic_assets_v6.py`. Gametest PASSED (96 Module),
+    Launcher-Tests PASSED. Server-Version auf `/health` jetzt `1.5`.
+
 ---
 
 ## 6. BEKANNTE PROBLEME & BUGS
@@ -581,13 +590,10 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 06.11.2026: v1.8.0 fertig und ausgeliefert** (Changelog 17): `nova-client-1.8.0.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
-  (Launcher 1.5.0 inkl. Nova 1.8.0) per SendUserFile geschickt. Tests: Gametest PASSED (93 Module), `backend` npm test PASSED,
-  Launcher UI-Test, Launch-Test und UI-Launch-Test PASSED (Launcher-Tests ohne Performance-Mods, siehe Changelog 17).
-  Render geprüft: `/health` → `{"ok":true,"version":"1.4"}` (Server zeigt seit 1.4 seine Version auf `/` und `/health`, so sieht man,
-  ob ein Deploy live ist), `/v1/auth/start` ok, `/v1/auth/dev` 404 (richtig).
-- Nutzer-Entscheidung (06.11.2026): **Performance-Mods testet der Nutzer selbst** (Schalter bleibt standardmäßig an); 1.8.0 hat er
-  **noch nicht getestet** und meldet sich.
+- **Stand 06.11.2026: v1.8.1 fertig und ausgeliefert** (Changelog 18): `nova-client-1.8.1.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
+  (Launcher 1.5.1 inkl. Nova 1.8.1). Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
+- Nutzer-Entscheidung (06.11.2026): **Performance-Mods testet der Nutzer selbst** (Schalter bleibt standardmäßig an); 1.8.x hat er
+  **noch nicht getestet** (kann gerade nicht) und meldet sich.
 - **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?
 - Halbfertig im Code: nichts bekannt.
 - Besprochen, aber nicht im Repo: Standard-Client-ID im Launcher vorbelegen (Idee, siehe 8), E-Mail aus Git-Historie entfernen (Angebot).

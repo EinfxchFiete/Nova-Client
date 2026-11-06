@@ -22,20 +22,20 @@ const MAX_BODY = 32 * 1024;
 const MAX_PLAYERS_PER_SYNC = 200;
 
 /** Server version, shown on / and /health (lets you see that a deploy is live). */
-const VERSION = '1.4';
+const VERSION = '1.5';
 
 const HEADS = new Set(['bandana', 'crown', 'tophat', 'horns', 'catears', 'halo',
   'partyhat', 'cowboyhat', 'bunnyears', 'headphones', 'sunglasses', 'viking', 'flowercrown', 'beanie',
-  'witchhat', 'santahat', 'chefhat', 'foxears', 'unicorn', 'propeller']);
+  'witchhat', 'santahat', 'chefhat', 'foxears', 'unicorn', 'propeller', 'mushroom', 'piratehat', 'antennae']);
 const EXTRAS = new Set(['backpack', 'cattail', 'foxtail', 'deviltail', 'scarf', 'jetpack', 'guitar', 'backsword']);
-const WINGS = new Set(['angel', 'dragon', 'butterfly', 'bat', 'fairy', 'phoenix', 'ice']);
+const WINGS = new Set(['angel', 'dragon', 'butterfly', 'bat', 'fairy', 'phoenix', 'ice', 'dragonfly']);
 const COLORS = new Set(['Normal', 'Rot', 'Orange', 'Gelb', 'Grün', 'Türkis', 'Blau', 'Lila', 'Pink', 'Schwarz', 'Regenbogen']);
 const CAPES = new Set(['nova', 'galaxy', 'fire', 'ocean', 'forest', 'gold', 'ice', 'rainbow', 'cherry', 'checker', 'lava', 'night', 'sunset', 'matrix',
   'anim:nova', 'anim:galaxy', 'anim:fire', 'anim:ocean', 'anim:rainbow', 'anim:matrix',
   'anim:aurora', 'anim:lava', 'anim:storm', 'anim:sakura', 'anim:ender', 'anim:snow', 'anim:neon',
-  'anim:hearts', 'anim:glitch', 'anim:portal', 'anim:fireworks', 'anim:autumn', 'anim:bubbles', 'anim:meteor']);
+  'anim:hearts', 'anim:glitch', 'anim:portal', 'anim:fireworks', 'anim:autumn', 'anim:bubbles', 'anim:meteor', 'anim:aquarium', 'anim:clouds']);
 const MINIMEE_MODES = new Set(['neck', 'pocket', 'head', 'shoulder', 'back', 'hand', 'float']);
-const MINIMEE_ANIMS = new Set(['none', 'wave', 'dance', 'kick']);
+const MINIMEE_ANIMS = new Set(['none', 'wave', 'dance', 'kick', 'cheer', 'nod']);
 const MINIMEE_SIZES = new Set(['small', 'normal', 'big']);
 const EMOTES = new Map([['wave', 3000], ['cheer', 3000], ['dance', 6000], ['clap', 3000], ['facepalm', 2500], ['point', 2500],
   ['bow', 2500], ['salute', 2500], ['zombie', 4000], ['shrug', 2000], ['think', 3000],

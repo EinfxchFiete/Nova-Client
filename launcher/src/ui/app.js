@@ -14,10 +14,10 @@ let logLines = [];
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444', '#ec4899', '#64748b'];
 const NEWS = [
+  { t: 'Nova Client 1.8.1', title: 'Noch mehr Zeug', g: 'linear-gradient(135deg,#0ea5e9,#a3e635)', text: 'Pilzhut, Piratenhut, Alien-Antennen, Libellenflügel, Capes Aquarium und Wolken, Minimee-Animationen Jubeln und Kopfnicken. Neue Module: Chat-Filter, Auto-Respawn, Hunger-Warnung.' },
   { t: 'Nova Client 1.8.0', title: 'Songtext am Himmel', g: 'linear-gradient(135deg,#6366f1,#ec4899)', text: 'Der Songtext deines Songs schwebt wie Karaoke am Himmel. Dazu FPS-Boost, Performance-Mods im Launcher, 6 neue Hüte, Eisflügel, Jetpack, Gitarre und mehr.' },
   { t: 'Verbessert', title: 'Begleiter & Minimees', g: 'linear-gradient(135deg,#10b981,#f59e0b)', text: 'Laufende Begleiter gehen jetzt richtig über den Boden, Minimees mit 7 Positionen, Animationen und Größen, reparierte Phönixflügel mit Flammen.' },
   { t: 'Nova Client 1.7.0', title: 'Freunde & Startmenü', g: 'linear-gradient(135deg,#22c55e,#0ea5e9)', text: 'Neues Startmenü (Umschalttaste): Module, Cosmetics, Freunde. Freunde hinzufügen, sehen wer online ist und beitreten. Dazu Item-Physik und mehr.' },
-  { t: 'Nova Client 1.6.0', title: 'Noch mehr Cosmetics', g: 'linear-gradient(135deg,#f97316,#ec4899)', text: '8 neue Kopf-Cosmetics, Extras (Rucksack, Schwänze, Schal), 3 neue Flügel, 3 animierte Capes, 5 Emotes, Minimap, Schadenszahlen und mehr.' },
 ];
 
 // ---------------------------------------------------------------- helpers

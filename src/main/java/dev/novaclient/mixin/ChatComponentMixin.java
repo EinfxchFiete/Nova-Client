@@ -47,6 +47,10 @@ public abstract class ChatComponentMixin {
 	)
 	private Component novaclient$modify(Component message) {
 		novaclient$merged = false;
+		if (dev.novaclient.module.utility.ChatFilterModule.hides(message)) {
+			// filtered: dropped by novaclient$filter, do not touch the merge state
+			return message;
+		}
 		Component result = message;
 		if (CompactChatModule.active()) {
 			String text = message.getString();
@@ -61,6 +65,20 @@ public abstract class ChatComponentMixin {
 			novaclient$lastText = text;
 		}
 		return ChatTimestampsModule.apply(result);
+	}
+
+	/** Chat filter: drop the message before it is added. */
+	@Inject(
+		method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;"
+			+ "Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+		at = @At("HEAD"),
+		cancellable = true
+	)
+	private void novaclient$filter(Component message, net.minecraft.network.chat.MessageSignature signature,
+		net.minecraft.client.multiplayer.chat.GuiMessageSource source, net.minecraft.client.multiplayer.chat.GuiMessageTag tag, CallbackInfo ci) {
+		if (dev.novaclient.module.utility.ChatFilterModule.hides(message)) {
+			ci.cancel();
+		}
 	}
 
 	@Inject(

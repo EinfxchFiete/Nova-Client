@@ -49,6 +49,9 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 	private static final Identifier JETPACK = tex("jetpack");
 	private static final Identifier GUITAR = tex("guitar");
 	private static final Identifier BACKSWORD = tex("backsword");
+	private static final Identifier MUSHROOM = tex("mushroom");
+	private static final Identifier PIRATEHAT = tex("piratehat");
+	private static final Identifier ANTENNAE = tex("antennae");
 
 	/** Chosen colour, or the cosmetic's own default when "Normal". */
 	private static int color(String name, float time, int normal) {
@@ -119,6 +122,8 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 						case "santahat" -> -15.2F;
 						case "chefhat" -> -15.4F;
 						case "propeller" -> -12.4F;
+						case "mushroom" -> -12.3F;
+						case "piratehat" -> -11.6F;
 						default -> -8.6F;
 					};
 				}
@@ -368,6 +373,41 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 				int col = color(l.headColor(), time, 0xFFFFE9A6);
 				part(c, CosmeticModels.unicornHorn, pose, RenderTypes.entityCutout(UNICORN), light, col);
 				pose.popPose();
+			}
+			case "mushroom" -> {
+				if (helmet) {
+					return;
+				}
+				RenderType type = RenderTypes.entityCutout(MUSHROOM);
+				part(c, CosmeticModels.mushroomRing, pose, type, light, 0xFFFFFFFF);
+				part(c, CosmeticModels.mushroomCap, pose, type, light, color(l.headColor(), time, 0xFFD32F2F));
+				part(c, CosmeticModels.mushroomSpots, pose, type, light, 0xFFFFFFFF);
+			}
+			case "piratehat" -> {
+				if (helmet) {
+					return;
+				}
+				RenderType type = RenderTypes.entityCutout(PIRATEHAT);
+				part(c, CosmeticModels.pirateHat, pose, type, light, 0xFFFFFFFF);
+				part(c, CosmeticModels.pirateBand, pose, type, light, color(l.headColor(), time, 0xFFFFC107));
+			}
+			case "antennae" -> {
+				RenderType type = RenderTypes.entityCutout(ANTENNAE);
+				int col = color(l.headColor(), time, 0xFF76FF03);
+				float walk = Math.min(1.0F, state.walkAnimationSpeed);
+				for (int i = 0; i < 2; i++) {
+					float side = i == 0 ? -1 : 1;
+					// springy bobbing, more when you walk
+					float bob = Mth.sin(time * 5.0F + i * 1.9F) * (0.07F + walk * 0.12F);
+					pose.pushPose();
+					pose.translate(side * 2.2F / 16F, -(helmet ? 9.6F : 8.0F) / 16F, -0.5F / 16F);
+					pose.rotate(Axis.ZP, side * 0.32F + bob);
+					pose.rotate(Axis.XP, Mth.sin(time * 3.7F + i) * 0.08F);
+					part(c, CosmeticModels.antennaStalk, pose, type, light, 0xFFFFFFFF);
+					pose.translate(0, -4.6F / 16F, 0);
+					part(c, CosmeticModels.antennaBall, pose, type, LightCoordsUtil.FULL_BRIGHT, col);
+					pose.popPose();
+				}
 			}
 			case "propeller" -> {
 				if (helmet) {

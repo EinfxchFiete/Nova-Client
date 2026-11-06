@@ -181,6 +181,9 @@ public final class ModuleManager {
 		register(new dev.novaclient.module.utility.FriendsModule());
 		register(new dev.novaclient.module.utility.BreakReminderModule());
 		register(new dev.novaclient.module.utility.TotemPopsModule());
+		register(new dev.novaclient.module.utility.ChatFilterModule());
+		register(new dev.novaclient.module.utility.AutoRespawnModule());
+		register(new dev.novaclient.module.utility.HungerWarningModule());
 
 		register(new CapeModule());
 		register(new HeadCosmeticModule());

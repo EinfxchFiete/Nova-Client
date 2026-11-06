@@ -53,7 +53,7 @@ async function login(port, name, joinIt = true) {
     assert.strictEqual(bad.status, 403, 'unconfirmed login must fail');
 
     const health = await (await fetch(`http://127.0.0.1:${port}/health`)).json();
-    assert.deepStrictEqual(health, { ok: true, version: '1.4' });
+    assert.deepStrictEqual(health, { ok: true, version: '1.5' });
     const a = await login(port, 'Flipp1009');
     assert.strictEqual(a.status, 200);
     assert.strictEqual(a.json.uuid, '0c68d1f1-ba5c-4356-833b-5f1cb4e4530c');
@@ -98,12 +98,13 @@ async function login(port, name, joinIt = true) {
     assert.strictEqual(r.json.players[a.json.uuid].song.len, undefined, 'invalid song length must be dropped');
 
     // 1.8 cosmetics and emotes are accepted
-    r = await post(port, '/v1/sync', { status: { cosmetics: { cape: 'anim:meteor', head: 'witchhat', wings: 'ice', extra: 'jetpack' },
+    r = await post(port, '/v1/sync', { status: { cosmetics: { cape: 'anim:clouds', head: 'antennae', wings: 'dragonfly', extra: 'jetpack', minimee: { name: 'Flipp1009', mode: 'float', anim: 'nod' } },
       emote: { id: 'headbang', age: 10 } }, players: [] }, a.json.token);
     r = await post(port, '/v1/sync', { status: {}, players: [a.json.uuid] }, b.json.token);
     const v18 = r.json.players[a.json.uuid];
     assert.deepStrictEqual([v18.cosmetics.cape, v18.cosmetics.head, v18.cosmetics.wings, v18.cosmetics.extra, v18.emote.id],
-      ['anim:meteor', 'witchhat', 'ice', 'jetpack', 'headbang']);
+      ['anim:clouds', 'antennae', 'dragonfly', 'jetpack', 'headbang']);
+    assert.strictEqual(v18.cosmetics.minimee.anim, 'nod');
 
     // friends: A adds B -> B gets a request, A sees "not mutual"; B accepts -> both see each other online + server
     r = await post(port, '/v1/sync', { status: { server: 'Play.Example.net:25566' }, players: [], friends: [b.json.uuid] }, a.json.token);

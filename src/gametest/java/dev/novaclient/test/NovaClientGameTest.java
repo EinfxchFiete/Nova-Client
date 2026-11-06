@@ -1023,7 +1023,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				// animations and sizes on the neck chain
 				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).mode.set("Kette"));
 				ctx.runOnClient(mc -> ((dev.novaclient.gui.CosmeticsScreen) mc.gui.screen()).setYaw(200));
-				for (String anim : new String[] {"Winken", "Tanzen", "Zappeln"}) {
+				for (String anim : new String[] {"Winken", "Tanzen", "Zappeln", "Jubeln", "Kopfnicken"}) {
 					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).anim.set(anim));
 					ctx.waitTicks(4);
 					ctx.takeScreenshot("48e_minimee_anim_" + dev.novaclient.cosmetics.CosmeticRegistry.MINIMEE_ANIMS.entrySet().stream()
@@ -1036,7 +1036,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					ctx.takeScreenshot("48e_minimee_size_" + (miniSize.equals("Groß") ? "big" : "small"));
 				}
 				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.MinimeeModule) module("Minimee")).size.set("Normal"));
-				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Minimees.cachedModels()) <= 7 * 4 * 16 * 2,
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.Minimees.cachedModels()) <= 7 * 6 * 16 * 2,
 					"too many cached minimee models");
 				// companion tab
 				click(ctx, at.apply(s -> s.tabCenter(4)), LMB);
@@ -1589,7 +1589,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					module("Flügel").setEnabled(false);
 					module("Extras").setEnabled(false);
 				});
-				for (String cape : new String[] {"Feuerwerk (animiert)", "Herbstlaub (animiert)", "Blubberblasen (animiert)", "Sternschnuppen (animiert)"}) {
+				for (String cape : new String[] {"Feuerwerk (animiert)", "Herbstlaub (animiert)", "Blubberblasen (animiert)", "Sternschnuppen (animiert)", "Aquarium (animiert)", "Wolken (animiert)"}) {
 					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CapeModule) module("Cape")).design.set(cape));
 					ctx.waitTicks(4);
 					ctx.takeScreenshot("65b_cape_" + cape.substring(0, 4).toLowerCase(java.util.Locale.ROOT).replace("ü", "ue"));
@@ -1617,6 +1617,28 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					}
 					mc.options.setCameraType(CameraType.FIRST_PERSON);
 				});
+				// 1.8.1: chat filter and hunger warning
+				ctx.runOnClient(mc -> {
+					var f = (dev.novaclient.module.utility.ChatFilterModule) module("Chat-Filter");
+					f.words.set("werbung, spam");
+					f.setEnabled(true);
+					mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Kauft Ränge! SPAM SPAM"));
+					mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Hallo Nova Filter"));
+				});
+				ctx.waitTicks(2);
+				check(ctx.computeOnClient(mc -> chatContains(mc, "Hallo Nova Filter") && !chatContains(mc, "Kauft Ränge")
+					&& ((dev.novaclient.module.utility.ChatFilterModule) module("Chat-Filter")).hidden() >= 1), "chat filter wrong");
+				ctx.runOnClient(mc -> module("Chat-Filter").setEnabled(false));
+				ctx.runOnClient(mc -> module("Hunger-Warnung").setEnabled(true));
+				sp.getServer().runCommand("gamemode survival @a");
+				sp.getServer().runOnServer(server -> server.getPlayerList().getPlayers().get(0).getFoodData().setFoodLevel(4));
+				ctx.waitFor(mc -> mc.player.getFoodData().getFoodLevel() == 4, 100);
+				ctx.waitTicks(3);
+				check(ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active().stream().anyMatch(t -> t.startsWith("Du hast Hunger"))),
+					"hunger warning not shown: " + ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active()));
+				sp.getServer().runOnServer(server -> server.getPlayerList().getPlayers().get(0).getFoodData().setFoodLevel(20));
+				ctx.runOnClient(mc -> module("Hunger-Warnung").setEnabled(false));
+
 				// totem pops: a real totem saves you, the packet is counted
 				ctx.runOnClient(mc -> module("Totem-Pops").setEnabled(true));
 				sp.getServer().runCommand("effect clear @a");
@@ -1658,6 +1680,10 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			sp.getServer().runCommand("kill @a");
 			ctx.waitTicks(20);
 			ctx.takeScreenshot("36_death_coords");
+			// auto respawn (1.8.1): the death screen closes by itself
+			ctx.runOnClient(mc -> module("Auto-Respawn").setEnabled(true));
+			ctx.waitFor(mc -> !(mc.gui.screen() instanceof net.minecraft.client.gui.screens.DeathScreen) && mc.player != null && mc.player.isAlive(), 400);
+			ctx.runOnClient(mc -> module("Auto-Respawn").setEnabled(false));
 		}
 		NovaClient.LOGGER.info("NOVA GAMETEST PASSED");
 	}

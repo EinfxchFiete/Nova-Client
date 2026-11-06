@@ -47,6 +47,9 @@ public final class CosmeticRegistry {
 		HEADS.put("foxears", "Fuchsohren");
 		HEADS.put("unicorn", "Einhorn-Horn");
 		HEADS.put("propeller", "Propellermütze");
+		HEADS.put("mushroom", "Pilzhut");
+		HEADS.put("piratehat", "Piratenhut");
+		HEADS.put("antennae", "Alien-Antennen");
 
 		EXTRAS.put("backpack", "Rucksack");
 		EXTRAS.put("cattail", "Katzenschwanz");
@@ -64,6 +67,7 @@ public final class CosmeticRegistry {
 		WINGS.put("fairy", "Feenflügel");
 		WINGS.put("phoenix", "Phönixflügel");
 		WINGS.put("ice", "Eisflügel");
+		WINGS.put("dragonfly", "Libellenflügel");
 
 		COLORS.put("Normal", 0xFFFFFF);
 		COLORS.put("Rot", 0xE53935);
@@ -97,6 +101,8 @@ public final class CosmeticRegistry {
 		ANIMATED_CAPES.put("anim:autumn", "Herbstlaub (animiert)");
 		ANIMATED_CAPES.put("anim:bubbles", "Blubberblasen (animiert)");
 		ANIMATED_CAPES.put("anim:meteor", "Sternschnuppen (animiert)");
+		ANIMATED_CAPES.put("anim:aquarium", "Aquarium (animiert)");
+		ANIMATED_CAPES.put("anim:clouds", "Wolken (animiert)");
 
 		MINIMEE_MODES.put("neck", "Kette");
 		MINIMEE_MODES.put("pocket", "Hosentasche");
@@ -110,6 +116,8 @@ public final class CosmeticRegistry {
 		MINIMEE_ANIMS.put("wave", "Winken");
 		MINIMEE_ANIMS.put("dance", "Tanzen");
 		MINIMEE_ANIMS.put("kick", "Zappeln");
+		MINIMEE_ANIMS.put("cheer", "Jubeln");
+		MINIMEE_ANIMS.put("nod", "Kopfnicken");
 
 		MINIMEE_SIZES.put("small", "Klein");
 		MINIMEE_SIZES.put("normal", "Normal");
