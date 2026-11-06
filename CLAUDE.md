@@ -581,17 +581,10 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **STAND BEI UNTERBRECHUNG (05.11.2026, Nutzer: „stop merke dir wo du bist“):** Code für **v1.8.0** (Changelog 17) ist fertig,
-  committet und gepusht. Letzter kompletter Gametest: **NOVA GAMETEST PASSED** (93 Module), `backend` → `npm test` PASSED.
-  Versionsnummern sind schon erhöht (gradle.properties/NovaClient.VERSION 1.8.0, launcher package.json/LAUNCHER_VERSION 1.5.0, NEWS).
-  **Noch offen (Release-Schritte, in dieser Reihenfolge):**
-  1. `./gradlew build` → `build/libs/nova-client-1.8.0.jar`, nach `launcher/resources/nova-client.jar` kopieren.
-  2. Launcher-Tests: `xvfb-run … node test/ui-test.js` (Screenshots ansehen, neue Profil-Option „Performance-Mods“ + 4 News-Karten),
-     `tools/testing/build-headless-mod.sh /tmp/headless.jar`, `node test/launch-test.js /tmp/headless.jar`, `node test/ui-launch-test.js …`.
-  3. `npm run dist:win`, `node scripts/set-exe-icon.js …`, ZIP bauen (Abschnitt 1).
-  4. `nova-client-1.8.0.zip` (Jar darin) + `Nova-Launcher-Windows.zip` per SendUserFile an den Nutzer (sein Wunsch: Jar als ZIP + Launcher).
-  5. Render-Deploy prüfen (`/health`), README/CLAUDE.md sind schon aktualisiert.
-- Zuletzt ausgeliefert: 1.7.0 (`nova-client-1.7.0.zip` + Launcher 1.4.0).
+- **Stand 05.11.2026: v1.8.0 fertig und ausgeliefert** (Changelog 17): `nova-client-1.8.0.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
+  (Launcher 1.5.0 inkl. Nova 1.8.0). Tests: Gametest PASSED (93 Module), `backend` npm test PASSED, Launcher UI-Test, Launch-Test
+  und UI-Launch-Test PASSED (die Launcher-Tests ohne Performance-Mods, siehe Changelog 17).
+- **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?
 - Halbfertig im Code: nichts bekannt.
 - Besprochen, aber nicht im Repo: Standard-Client-ID im Launcher vorbelegen (Idee, siehe 8), E-Mail aus Git-Historie entfernen (Angebot).
 
