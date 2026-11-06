@@ -192,8 +192,12 @@ def main():
 
     # ---------------------------------------------------------------- animations
     animations = {}
+    names = {a['name'] for a in d.get('animations', [])}
     for a in d.get('animations', []):
-        if a['name'] not in ANIMS:
+        export = a['name']
+        if export == 'pet1' and 'pet' not in names:
+            export = 'pet'  # Nocsy's otter: pet1/pet2
+        if export not in ANIMS:
             continue
         out_bones = {}
         for uuid, an in a.get('animators', {}).items():
@@ -223,7 +227,9 @@ def main():
             chans = {ch: ks for ch, ks in chans.items() if any(abs(x - neutral[ch]) > 1e-4 for r in ks for x in r[1:7])}
             if chans:
                 out_bones[str(index[bname])] = chans
-        animations[a['name']] = {'length': a.get('length', 1) or 1, 'loop': a.get('loop', 'loop'), 'bones': out_bones}
+        # the pet animation repeats while you pet it, even if the model plays it once
+        animations[export] = {'length': a.get('length', 1) or 1, 'loop': 'loop' if export == 'pet' else a.get('loop', 'loop'),
+                              'bones': out_bones}
 
     T0 = tex[used[0]]
     order = [int(x) for x in str(T0['frame_order']).replace(',', ' ').split()] if animated and T0['frame_order'] else None

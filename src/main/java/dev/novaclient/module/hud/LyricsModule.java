@@ -3,7 +3,10 @@ package dev.novaclient.module.hud;
 import dev.novaclient.music.CoverArt;
 import dev.novaclient.music.Lyrics;
 import dev.novaclient.music.NowPlaying;
+import dev.novaclient.music.MusicData;
 import dev.novaclient.setting.BoolSetting;
+import dev.novaclient.setting.KeySetting;
+import dev.novaclient.util.Notifications;
 import dev.novaclient.setting.ModeSetting;
 import dev.novaclient.setting.NumberSetting;
 import dev.novaclient.util.Render;
@@ -31,11 +34,20 @@ public class LyricsModule extends HudModule {
 	public final BoolSetting follow = add(new BoolSetting("Folgt der Blickrichtung", true));
 	public final BoolSetting throughBlocks = add(new BoolSetting("Durch Blöcke sichtbar", true));
 	public final BoolSetting nextLine = add(new BoolSetting("Nächste Zeile zeigen", true));
-	public final NumberSetting offset = add(new NumberSetting("Versatz (Sekunden)", 0.0, -3.0, 3.0, 0.1));
+	public final NumberSetting offset = add(new NumberSetting("Versatz (Sekunden)", 0.0, -5.0, 5.0, 0.05));
+	public final ModeSetting style = add(new ModeSetting("Stil", "Karaoke", "Karaoke", "Wort für Wort", "Ganze Zeile"));
+	public final BoolSetting early = add(new BoolSetting("Zeile kurz vorher einblenden", true));
+	public final KeySetting earlierKey = add(new KeySetting("Taste: Songtext früher", 0));
+	public final KeySetting laterKey = add(new KeySetting("Taste: Songtext später", 0));
+
+	/** A new line is shown this long before it is sung, so you can read it in time (the fill still starts on time). */
+	public static final long LEAD_MS = 250;
+	/** One press of the early/later keys moves the lyrics of the song by this much. */
+	public static final long NUDGE_MS = 100;
 
 	/** What to show in this frame; shared by the sky and the HUD. */
 	public record Frame(float alpha, NowPlaying.Song song, Lyrics.State state, Lyrics.@Nullable Track track, long pos,
-		int current, int leaving, float change, float title, float dots, float dotsOut, int next, boolean paused) {
+		int current, int leaving, float change, float title, float dots, float dotsOut, int next, boolean paused, boolean hidden) {
 	}
 
 	/** Draws text centred at a point of the lyrics layout (font pixels, y down, (0, 0) = the current line). */
@@ -74,6 +86,41 @@ public class LyricsModule extends HudModule {
 
 	public static LyricsModule get() {
 		return instance;
+	}
+
+	@Override
+	public void tick() {
+		boolean inGame = mc().gui.screen() == null;
+		boolean earlier = earlierKey.consumePress(inGame);
+		boolean later = laterKey.consumePress(inGame);
+		if (isEnabled() && (earlier || later)) {
+			NowPlaying.Song s = NowPlaying.current();
+			if (s != null) {
+				nudge(s, earlier ? NUDGE_MS : -NUDGE_MS);
+			}
+		}
+	}
+
+	/** Moves the lyrics of this song: positive = earlier. Shows the new offset as a notification. */
+	public static void nudge(NowPlaying.Song s, long ms) {
+		String key = Lyrics.key(s);
+		long v = MusicData.offset(key) + ms;
+		MusicData.setOffset(key, v);
+		Notifications.push("Songtext " + describeOffset(v) + " (nur dieser Song)", ThemeModule.accent());
+	}
+
+	/** "0,3 s früher", "0,5 s später", "genau". */
+	public static String describeOffset(long ms) {
+		if (ms == 0) {
+			return "ohne Versatz";
+		}
+		String v = String.format(java.util.Locale.GERMANY, "%.1f s", Math.abs(ms) / 1000.0);
+		return v + (ms > 0 ? " früher" : " später");
+	}
+
+	/** Offset of this song in ms (setting + per song), positive = lyrics earlier. */
+	public long totalOffset(NowPlaying.Song s) {
+		return Math.round(offset.get() * 1000) + MusicData.offset(Lyrics.key(s));
 	}
 
 	/** True if the module needs the song detection running. */
@@ -186,16 +233,17 @@ public class LyricsModule extends HudModule {
 			cached = null;
 			return null;
 		}
-		long pos = s.hasTimeline() ? s.positionNow() + Math.round(offset.get() * 1000) : -1;
-		Lyrics.State state = Lyrics.state(s.title(), s.artist(), s.lengthMs());
-		Lyrics.Track track = state == Lyrics.State.READY ? Lyrics.get(s.title(), s.artist(), s.lengthMs()) : null;
+		long pos = s.hasTimeline() ? s.positionNow() + totalOffset(s) : -1;
+		boolean hidden = MusicData.hidden(Lyrics.key(s));
+		Lyrics.State state = hidden ? Lyrics.State.MISSING : Lyrics.state(s);
+		Lyrics.Track track = state == Lyrics.State.READY ? Lyrics.get(s) : null;
 		boolean synced = track != null && !track.instrumental() && !track.lines().isEmpty() && pos >= 0;
 
 		int display = -1;
 		float dots = -1;
 		int next = -1;
 		if (synced) {
-			int idx = track.indexAt(pos);
+			int idx = track.indexAt(pos + (early.isOn() ? LEAD_MS : 0));
 			Lyrics.Line line = track.line(idx);
 			next = nextText(track, idx + 1);
 			long nextAt = next >= 0 ? track.lines().get(next).startMs() : -1;
@@ -238,7 +286,7 @@ public class LyricsModule extends HudModule {
 			titleTarget = beforeFirst || since < 4500 && display < 0 && dots < 0 ? 1 : 0;
 		}
 		titleAlpha = approach(titleAlpha, titleTarget, dt, 4);
-		cached = new Frame(presence, s, state, track, pos, display, leaving, change, titleAlpha, dots, dotsOut, next, !s.playing());
+		cached = new Frame(presence, s, state, track, pos, display, leaving, change, titleAlpha, dots, dotsOut, next, !s.playing(), hidden);
 		return cached;
 	}
 
@@ -246,6 +294,9 @@ public class LyricsModule extends HudModule {
 	private static String status(Frame f) {
 		if (f.track() != null && f.track().instrumental()) {
 			return "♪ Instrumental ♪";
+		}
+		if (f.hidden()) {
+			return "Songtext für diesen Song ausgeblendet";
 		}
 		return switch (f.state()) {
 			case LOADING -> "Songtext wird geladen …";
@@ -377,6 +428,18 @@ public class LyricsModule extends HudModule {
 		}
 		int len = text.length();
 		float filled = fill(l, pos, nextStart);
+		boolean wordByWord = style.is("Wort für Wort");
+		if (style.is("Ganze Zeile")) {
+			// the whole line lights up at once
+			filled = pos >= l.startMs() ? len : 0;
+		} else if (wordByWord && filled > 0) {
+			// whole words: a word appears as soon as it is being sung
+			int end = (int) Math.ceil(filled);
+			while (end < len && !Character.isWhitespace(text.charAt(end))) {
+				end++;
+			}
+			filled = Math.max(filled, end);
+		}
 		boolean singing = filled > 0 && filled < len;
 		long end = fillEnd(l, nextStart);
 		float flash = pos >= end ? Math.max(0, 1 - (pos - end) / 380F) : 0;
@@ -395,7 +458,7 @@ public class LyricsModule extends HudModule {
 				if (flash > 0) {
 					sung = Render.mix(sung, 0xFFFFFFFF, 0.55F * flash);
 				}
-				int col = Render.mix(UNSUNG, sung, f);
+				int col = Render.mix(wordByWord ? 0x18FFFFFF : UNSUNG, sung, f);
 				float cx = (x + w / 2F) * scale;
 				float cy = yBase + (wave - 1.8F * bump - 0.8F * flash) * scale;
 				p.draw(c, cx, cy, scale * (1 + 0.24F * bump + 0.06F * flash), fade(col, alpha), true);

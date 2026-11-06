@@ -11,11 +11,12 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-/** The start menu on the menu key: Module, Cosmetics or Friends (keys 1, 2, 3). */
+/** The start menu on the menu key: Module, Cosmetics, Friends or Music (keys 1 to 4). */
 public class NovaHubScreen extends Screen {
 	private static final int LEFT = InputConstants.MOUSE_BUTTON_LEFT;
-	private static final String[] TITLES = {"Module", "Cosmetics", "Freunde"};
-	private static final String[] ICONS = {"☰", "✦", "❤"};
+	private static final String[] TITLES = {"Module", "Cosmetics", "Freunde", "Musik"};
+	private static final String[] ICONS = {"☰", "✦", "❤", "♪"};
+	private static final int CARDS = TITLES.length;
 
 	public NovaHubScreen() {
 		super(Component.literal("Nova Client"));
@@ -27,7 +28,7 @@ public class NovaHubScreen extends Screen {
 	}
 
 	private int cardW() {
-		return Math.min(130, (width - 60) / 3);
+		return Math.min(120, (width - 70) / CARDS);
 	}
 
 	private int cardH() {
@@ -38,7 +39,7 @@ public class NovaHubScreen extends Screen {
 	private int[] card(int i) {
 		int w = cardW();
 		int gap = 12;
-		int total = w * 3 + gap * 2;
+		int total = w * CARDS + gap * (CARDS - 1);
 		int x0 = (width - total) / 2 + i * (w + gap);
 		int y0 = height / 2 - cardH() / 2 + 8;
 		return new int[] {x0, y0, x0 + w, y0 + cardH()};
@@ -54,6 +55,10 @@ public class NovaHubScreen extends Screen {
 		return switch (i) {
 			case 0 -> NovaClient.modules().getModules().size() + " Module, HUD, Profile";
 			case 1 -> "Capes, Kopf, Flügel …";
+			case 3 -> {
+				dev.novaclient.music.NowPlaying.Song s = dev.novaclient.music.NowPlaying.current();
+				yield s != null ? "♪ " + s.title() : "Songtext, Verlauf, Top";
+			}
 			default -> {
 				int online = Friends.onlineCount();
 				int req = Friends.requests().size();
@@ -68,7 +73,7 @@ public class NovaHubScreen extends Screen {
 		int[] c0 = card(0);
 		g.centeredText(font, Component.literal("NOVA CLIENT"), width / 2, c0[1] - 30, accent);
 		g.centeredText(font, Component.literal("Was möchtest du öffnen?"), width / 2, c0[1] - 18, 0xFFB0B0C0);
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < CARDS; i++) {
 			int[] c = card(i);
 			boolean hover = Render.inside(mouseX, mouseY, c[0], c[1], c[2], c[3]);
 			int bg = hover ? Render.mix(0xFF16161E, accent, 0.25F) : Render.alpha(0xFF101016, ThemeModule.menuAlpha());
@@ -101,6 +106,7 @@ public class NovaHubScreen extends Screen {
 			case 0 -> minecraft.gui.setScreen(new ClickGuiScreen(this));
 			case 1 -> minecraft.gui.setScreen(new CosmeticsScreen(this));
 			case 2 -> minecraft.gui.setScreen(new FriendsScreen(this));
+			case 3 -> minecraft.gui.setScreen(new MusicScreen(this));
 			default -> minecraft.gui.setScreen(new HudEditorScreen(this));
 		}
 	}
@@ -108,7 +114,7 @@ public class NovaHubScreen extends Screen {
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		if (event.button() == LEFT) {
-			for (int i = 0; i < 3; i++) {
+			for (int i = 0; i < CARDS; i++) {
 				int[] c = card(i);
 				if (Render.inside(event.x(), event.y(), c[0], c[1], c[2], c[3])) {
 					open(i);
@@ -117,7 +123,7 @@ public class NovaHubScreen extends Screen {
 			}
 			int[] hb = hudButton();
 			if (Render.inside(event.x(), event.y(), hb[0], hb[1], hb[2], hb[3])) {
-				open(3);
+				open(4);
 				return true;
 			}
 		}
@@ -137,6 +143,10 @@ public class NovaHubScreen extends Screen {
 		}
 		if (key == InputConstants.KEY_3 || key == InputConstants.KEY_NUMPAD3) {
 			open(2);
+			return true;
+		}
+		if (key == InputConstants.KEY_4 || key == InputConstants.KEY_NUMPAD4) {
+			open(3);
 			return true;
 		}
 		return super.keyPressed(event);

@@ -9,4 +9,8 @@ cubee_*.*         CUBEES (Starter 1.3, Biomes 1 1.2, Currets 1.1) by Cubes Studi
                   Client -Cubes Studio"). This permission is for Nova Client only: do not take these models from
                   this repository for other projects.
 
+otter.*          Sleepy the Otter 3.0.0 by Nocsy, sold on MCModels. Nocsy gave Nova Client explicit permission to use
+                  the model and to publish it in this public repository (Discord, 2026-11-06: "Sure, you can use the
+                  models, and Claude can add them to the repo"). This permission is for Nova Client only.
+
 All models were converted from Blockbench (.bbmodel) with tools/assets/bbmodel_pet.py.

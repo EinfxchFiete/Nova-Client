@@ -783,7 +783,7 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.runOnClient(mc -> mc.player.setYRot(mc.player.getYRot() - 90));
 			// CUBEES: close-ups (no HUD, first person, looking at the frozen pet from the front, the side and the back)
 			String[] cubees = {"Cubee Feuer", "Cubee Kanone", "Cubee Bomber-Creeper", "Cubee Glitzerhexe", "Cubee Hoodie-Fuchs", "Cubee TNT",
-				"Cubee Baby-Ghast", "Blobfisch"};
+				"Cubee Baby-Ghast", "Blobfisch", "Otter"};
 			ctx.runOnClient(mc -> {
 				mc.options.setCameraType(CameraType.FIRST_PERSON);
 				if (!mc.gui.hud.isHidden()) {
@@ -1518,6 +1518,182 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				});
 				ctx.waitTicks(2);
 				check(ctx.computeOnClient(mc -> dev.novaclient.music.LyricsSky.lastSubmits()) == 0, "lyrics still drawn after switching off");
+
+				// ================================================================ 1.8.4: music menu, lyrics sync and matching
+				// clock smoothing: small jitter is corrected slowly, a seek is taken over at once
+				{
+					long now0 = System.currentTimeMillis();
+					var base = new dev.novaclient.music.NowPlaying.Song("A", "B", true, "Spotify", 10_000, 200_000, now0);
+					var jitter = new dev.novaclient.music.NowPlaying.Song("A", "B", true, "Spotify", 10_240, 200_000, now0);
+					var smooth = dev.novaclient.music.NowPlaying.smoothForTest(base, jitter);
+					check(Math.abs(smooth.positionNow() - (base.positionNow() + 60)) < 40, "jitter not smoothed: " + smooth.positionNow());
+					var seek = new dev.novaclient.music.NowPlaying.Song("A", "B", true, "Spotify", 90_000, 200_000, now0);
+					check(Math.abs(dev.novaclient.music.NowPlaying.smoothForTest(base, seek).positionNow() - 90_000) < 40, "seek not taken over");
+					var other = new dev.novaclient.music.NowPlaying.Song("C", "B", true, "Spotify", 10_100, 200_000, now0);
+					check(dev.novaclient.music.NowPlaying.smoothForTest(base, other) == other, "new song must not be smoothed");
+				}
+				// which lyrics fit: title, artist and length must match; video titles are turned into song + artist
+				{
+					String[] q = dev.novaclient.music.Lyrics.query("The Weeknd - Blinding Lights (Official Video)", "TheWeekndVEVO", "Browser");
+					check(q[0].equals("Blinding Lights") && q[1].equals("The Weeknd"), "video title not parsed: " + java.util.Arrays.toString(q));
+					String[] q2 = dev.novaclient.music.Lyrics.query("Bohemian Rhapsody - Remastered 2011", "Queen", "Spotify");
+					check(q2[0].equals("Bohemian Rhapsody - Remastered 2011") && q2[1].equals("Queen"), "spotify title changed: " + java.util.Arrays.toString(q2));
+					String[] q3 = dev.novaclient.music.Lyrics.query("Atemlos durch die Nacht", "Helene Fischer - Topic", "Browser");
+					check(q3[0].equals("Atemlos durch die Nacht") && q3[1].equals("Helene Fischer"), "topic channel not parsed: " + java.util.Arrays.toString(q3));
+					java.util.function.Function<String[], Double> sc = a -> {
+						var o = new com.google.gson.JsonObject();
+						o.addProperty("trackName", a[0]);
+						o.addProperty("artistName", a[1]);
+						o.addProperty("duration", Double.parseDouble(a[2]));
+						return dev.novaclient.music.Lyrics.scoreForTest(o, "Mr. Brightside", "The Killers", 222);
+					};
+					check(!Double.isNaN(sc.apply(new String[] {"Mr Brightside", "The Killers", "223"})), "same song rejected");
+					check(Double.isNaN(sc.apply(new String[] {"Mr. Brightside", "Some Cover Band", "222"})), "cover by another artist accepted");
+					check(Double.isNaN(sc.apply(new String[] {"Mr. Brightside", "The Killers", "250"})), "other version (length) accepted");
+					check(Double.isNaN(sc.apply(new String[] {"Somebody Told Me", "The Killers", "222"})), "other song accepted");
+					check(sc.apply(new String[] {"Mr. Brightside", "The Killers", "222"}) > sc.apply(new String[] {"Mr. Brightside", "The Killers", "227"}),
+						"closer length must win");
+				}
+				java.nio.file.Path musicFile = java.nio.file.Path.of(System.getProperty("java.io.tmpdir"), "nova-music-" + System.nanoTime() + ".json");
+				var lrc2 = String.join("\n",
+					"[00:02.00]Erste Zeile vom Testsong",
+					"[00:06.00]Zweite Zeile kommt hier",
+					"[00:10.00]Dritte Zeile zum Klicken",
+					"[00:14.00]Vierte Zeile",
+					"[00:18.00]Fünfte Zeile",
+					"[00:22.00]Sechste Zeile",
+					"[00:26.00]Ende vom Lied");
+				ctx.runOnClient(mc -> {
+					dev.novaclient.music.MusicData.useFileForTest(musicFile);
+					dev.novaclient.music.Lyrics.putForTest("Testsong", "Nova Band", lrc2);
+					dev.novaclient.music.CoverArt.putForTest("Testsong", "Nova Band", testCover(0x43A047));
+					var lm = dev.novaclient.module.hud.LyricsModule.get();
+					lm.resetToDefaults();
+					lm.setEnabled(true);
+					module("Musik").setEnabled(true);
+					if (mc.gui.hud.isHidden()) { mc.gui.hud.toggle(); }
+					dev.novaclient.music.NowPlaying.setOverride(new dev.novaclient.music.NowPlaying.Song("Testsong", "Nova Band", true, "Spotify",
+						7_000, 120_000, System.currentTimeMillis()));
+				});
+				ctx.waitTicks(10);
+				// song change: notification and history
+				check(ctx.computeOnClient(mc -> dev.novaclient.util.Notifications.active().stream().anyMatch(t -> t.contains("Testsong"))),
+					"no notification for the new song");
+				check(ctx.computeOnClient(mc -> !dev.novaclient.music.MusicData.recent().isEmpty()
+					&& dev.novaclient.music.MusicData.recent().get(0).title().equals("Testsong")), "song not in the history");
+				// the next line is shown a little before it is sung
+				ctx.runOnClient(mc -> dev.novaclient.music.NowPlaying.setOverride(new dev.novaclient.music.NowPlaying.Song("Testsong", "Nova Band", true,
+					"Spotify", 9_850, 120_000, System.currentTimeMillis())));
+				check(ctx.computeOnClient(mc -> dev.novaclient.module.hud.LyricsModule.get().frame().current()) == 2, "line not shown early");
+				// per-song offset: one "earlier" press = 0.1 s
+				long before = ctx.computeOnClient(mc -> dev.novaclient.module.hud.LyricsModule.get().totalOffset(dev.novaclient.music.NowPlaying.current()));
+				ctx.runOnClient(mc -> dev.novaclient.module.hud.LyricsModule.nudge(dev.novaclient.music.NowPlaying.current(), 100));
+				long after = ctx.computeOnClient(mc -> dev.novaclient.module.hud.LyricsModule.get().totalOffset(dev.novaclient.music.NowPlaying.current()));
+				check(after - before == 100, "offset nudge wrong: " + before + " -> " + after);
+				// /songtext and /song
+				input.pressKey(InputConstants.KEY_T);
+				ctx.waitForScreen(net.minecraft.client.gui.screens.ChatScreen.class);
+				input.typeChars("/songtext später 0.3");
+				input.pressKey(InputConstants.KEY_RETURN);
+				ctx.waitTicks(3);
+				check(ctx.computeOnClient(mc -> chatContains(mc, "Songtext jetzt 0,2 s später")), "/songtext später did not answer");
+				input.pressKey(InputConstants.KEY_T);
+				ctx.waitForScreen(net.minecraft.client.gui.screens.ChatScreen.class);
+				input.typeChars("/song");
+				input.pressKey(InputConstants.KEY_RETURN);
+				ctx.waitTicks(3);
+				check(ctx.computeOnClient(mc -> chatContains(mc, "Testsong – Nova Band")), "/song did not answer");
+				ctx.takeScreenshot("63a_song_commands");
+				// the new lyrics styles in the sky
+				for (String st : new String[] {"Wort für Wort", "Ganze Zeile"}) {
+					ctx.runOnClient(mc -> {
+						dev.novaclient.module.hud.LyricsModule.get().style.set(st);
+						if (!mc.gui.hud.isHidden()) { mc.gui.hud.toggle(); }
+						mc.player.setXRot(-18);
+						dev.novaclient.music.NowPlaying.setOverride(new dev.novaclient.music.NowPlaying.Song("Testsong", "Nova Band", true,
+							"Spotify", 10_600, 120_000, System.currentTimeMillis()));
+					});
+					ctx.waitTicks(12);
+					ctx.takeScreenshot("63g_lyrics_style_" + (st.startsWith("W") ? "word" : "line"));
+				}
+				ctx.runOnClient(mc -> {
+					dev.novaclient.module.hud.LyricsModule.get().style.set("Karaoke");
+					if (mc.gui.hud.isHidden()) { mc.gui.hud.toggle(); }
+					mc.player.setXRot(0);
+				});
+
+				// the music menu from the start menu (key 4)
+				input.pressKey(InputConstants.KEY_RSHIFT);
+				ctx.waitForScreen(dev.novaclient.gui.NovaHubScreen.class);
+				ctx.takeScreenshot("63b_hub_music_card");
+				input.pressKey(InputConstants.KEY_4);
+				ctx.waitForScreen(dev.novaclient.gui.MusicScreen.class);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot("63c_music_lyrics");
+				// click the line that is "being sung": the lyrics move to fit
+				ctx.runOnClient(mc -> dev.novaclient.music.NowPlaying.setOverride(new dev.novaclient.music.NowPlaying.Song("Testsong", "Nova Band", true,
+					"Spotify", 12_000, 120_000, System.currentTimeMillis())));
+				ctx.waitTicks(3);
+				int[] line4 = ctx.computeOnClient(mc -> ((dev.novaclient.gui.MusicScreen) mc.gui.screen()).lineCenter(4));
+				click(ctx, line4, LMB);
+				ctx.waitTicks(2);
+				int cur = ctx.computeOnClient(mc -> dev.novaclient.music.Lyrics.get(dev.novaclient.music.NowPlaying.current())
+					.indexAt(dev.novaclient.music.NowPlaying.current().positionNow()
+						+ dev.novaclient.module.hud.LyricsModule.get().totalOffset(dev.novaclient.music.NowPlaying.current())));
+				check(cur == 4, "click on a line did not sync the lyrics: current line " + cur);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot("63d_music_synced");
+				// player controls
+				click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.MusicScreen) mc.gui.screen()).buttonCenter("⏭")), LMB);
+				check(ctx.computeOnClient(mc -> dev.novaclient.music.NowPlaying.lastControl()).equals("NEXT"), "next button sent nothing");
+				// switch the lyrics off and on for this song
+				click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.MusicScreen) mc.gui.screen()).buttonCenter("Text aus")), LMB);
+				check(ctx.computeOnClient(mc -> dev.novaclient.module.hud.LyricsModule.get().frame().hidden()), "lyrics not hidden");
+				ctx.waitTicks(2);
+				ctx.takeScreenshot("63e_music_hidden");
+				click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.MusicScreen) mc.gui.screen()).buttonCenter("Text zeigen")), LMB);
+				check(!ctx.computeOnClient(mc -> dev.novaclient.module.hud.LyricsModule.get().frame().hidden()), "lyrics not shown again");
+				// statistics: 40 s of listening make one play
+				ctx.runOnClient(mc -> {
+					dev.novaclient.music.MusicData.listened("Testsong", "Nova Band", 40_000, true);
+					dev.novaclient.music.MusicData.played("Blinding Lights", "The Weeknd", "Browser");
+				});
+				for (String tabName : new String[] {"Verlauf", "Top-Songs", "Mitspieler"}) {
+					click(ctx, ctx.computeOnClient(mc -> ((dev.novaclient.gui.MusicScreen) mc.gui.screen()).buttonCenter("tab:" + tabName)), LMB);
+					ctx.waitTicks(3);
+					ctx.takeScreenshot("63f_music_" + tabName.replace("-", "").toLowerCase(java.util.Locale.ROOT));
+				}
+				check(ctx.computeOnClient(mc -> ((dev.novaclient.gui.MusicScreen) mc.gui.screen()).tab()) == 3, "tabs do not switch");
+				check(ctx.computeOnClient(mc -> dev.novaclient.music.MusicData.top(5).get(0).title()).equals("Testsong"), "top songs wrong");
+				input.pressKey(InputConstants.KEY_ESCAPE);
+				ctx.waitTicks(3);
+				String savedMusic;
+				try {
+					savedMusic = java.nio.file.Files.readString(musicFile);
+				} catch (java.io.IOException e) {
+					savedMusic = "";
+				}
+				check(savedMusic.contains("Testsong"), "music data not saved");
+				ctx.runOnClient(mc -> {
+					mc.gui.setScreen(null);
+					dev.novaclient.module.hud.LyricsModule.get().resetToDefaults();
+					dev.novaclient.module.hud.LyricsModule.get().setEnabled(false);
+					module("Musik").setEnabled(false);
+					dev.novaclient.music.NowPlaying.setOverride(null);
+				});
+				ctx.waitTicks(2);
+				// real LRCLIB lookups with the new matching (only logged, the test must not depend on the internet)
+				String[][] real = {{"Mr. Brightside", "The Killers", "Spotify", "222000"}, {"Bohemian Rhapsody - Remastered 2011", "Queen", "Spotify", "354000"},
+					{"The Weeknd - Blinding Lights (Official Video)", "TheWeekndVEVO", "Browser", "201000"}, {"Atemlos durch die Nacht", "Helene Fischer", "Spotify", "219000"}};
+				for (String[] r : real) {
+					var song = new dev.novaclient.music.NowPlaying.Song(r[0], r[1], true, r[2], 0, Long.parseLong(r[3]), System.currentTimeMillis());
+					ctx.runOnClient(mc -> dev.novaclient.music.Lyrics.state(song));
+					for (int i = 0; i < 100 && ctx.computeOnClient(mc -> dev.novaclient.music.Lyrics.state(song)) == dev.novaclient.music.Lyrics.State.LOADING; i++) {
+						ctx.waitTicks(5);
+					}
+					NovaClient.LOGGER.info("NOVA LYRICS MATCH " + r[0] + " / " + r[1] + " -> " + ctx.computeOnClient(mc ->
+						dev.novaclient.music.Lyrics.state(song) + " " + dev.novaclient.music.Lyrics.info(song)));
+				}
 
 				// phoenix wings with flames and the piggyback minimee on the cape, in the world from behind
 				ctx.runOnClient(mc -> {

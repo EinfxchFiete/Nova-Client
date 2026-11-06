@@ -1,7 +1,10 @@
 package dev.novaclient.module.hud;
 
 import dev.novaclient.music.NowPlaying;
+import dev.novaclient.music.MusicData;
 import dev.novaclient.setting.BoolSetting;
+import dev.novaclient.setting.KeySetting;
+import dev.novaclient.util.Notifications;
 import dev.novaclient.util.Render;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
@@ -19,6 +22,21 @@ public class MusicModule extends HudModule {
 	public final BoolSetting onlyPlaying = add(new BoolSetting("Nur wenn Musik läuft", true));
 	public final BoolSetting timestamp = add(new BoolSetting("Zeit anzeigen (1:23 / 3:45)", true));
 	public final BoolSetting cover = add(new BoolSetting("Song-Cover anzeigen (iTunes-Suche)", true));
+	public final BoolSetting notify = add(new BoolSetting("Benachrichtigung bei neuem Song", true));
+	public final BoolSetting history = add(new BoolSetting("Verlauf und Statistik speichern", true));
+	public final KeySetting playPauseKey = add(new KeySetting("Taste: Play/Pause", 0));
+	public final KeySetting nextKey = add(new KeySetting("Taste: Nächster Song", 0));
+	public final KeySetting previousKey = add(new KeySetting("Taste: Vorheriger Song", 0));
+
+	/** A song counts as played after this much listening. */
+	static final long PLAY_MS = 30_000;
+	private String lastKey = "";
+	private String lastTitle = "";
+	private String lastArtist = "";
+	private long listenedMs;
+	private long unsavedMs;
+	private boolean counted;
+	private long lastTickAt;
 
 	public MusicModule() {
 		super("Musik", "Aktueller Song (Spotify, Browser, …) im HUD und über deinem Namen", false, Anchor.START, 2, Anchor.END, 52);
@@ -32,11 +50,73 @@ public class MusicModule extends HudModule {
 	@Override
 	public void tick() {
 		// the lyrics module uses the same song detection
-		if (isEnabled() || LyricsModule.needsSong()) {
+		boolean detecting = isEnabled() || LyricsModule.needsSong();
+		if (detecting) {
 			NowPlaying.start();
 		} else {
 			NowPlaying.stop();
 		}
+		boolean inGame = mc().gui.screen() == null;
+		if (playPauseKey.consumePress(inGame) && detecting) {
+			NowPlaying.control(NowPlaying.Control.PLAY_PAUSE);
+		}
+		if (nextKey.consumePress(inGame) && detecting) {
+			NowPlaying.control(NowPlaying.Control.NEXT);
+		}
+		if (previousKey.consumePress(inGame) && detecting) {
+			NowPlaying.control(NowPlaying.Control.PREVIOUS);
+		}
+		long now = System.currentTimeMillis();
+		long dt = lastTickAt == 0 ? 0 : Math.min(1000, now - lastTickAt);
+		lastTickAt = now;
+		NowPlaying.Song s = detecting ? NowPlaying.current() : null;
+		trackSong(s, dt);
+		MusicData.saveIfNeeded(false);
+	}
+
+	/** Song changes (notification, history) and listening time (statistics). */
+	private void trackSong(NowPlaying.Song s, long dt) {
+		String key = s == null ? "" : MusicData.key(s.title(), s.artist());
+		if (!key.equals(lastKey)) {
+			flushListening();
+			lastKey = key;
+			lastTitle = s == null ? "" : s.title();
+			lastArtist = s == null ? "" : s.artist();
+			listenedMs = 0;
+			counted = false;
+			if (s != null && s.playing()) {
+				if (isEnabled() && notify.isOn()) {
+					Notifications.push("♪ " + format(s), ThemeModule.accent());
+				}
+				if (history.isOn()) {
+					MusicData.played(s.title(), s.artist(), s.source());
+				}
+			} else {
+				// a paused song is not "new" until it plays
+				lastKey = s == null ? "" : "paused:" + key;
+			}
+			return;
+		}
+		if (s != null && s.playing() && history.isOn()) {
+			listenedMs += dt;
+			unsavedMs += dt;
+			if (!counted && listenedMs >= PLAY_MS || unsavedMs >= 10_000) {
+				flushListening();
+			}
+		}
+	}
+
+	private void flushListening() {
+		if (unsavedMs <= 0 || lastKey.isEmpty() || lastKey.startsWith("paused:")) {
+			unsavedMs = 0;
+			return;
+		}
+		boolean countNow = !counted && listenedMs >= PLAY_MS;
+		if (countNow) {
+			counted = true;
+		}
+		MusicData.listened(lastTitle, lastArtist, unsavedMs, countNow);
+		unsavedMs = 0;
 	}
 
 	@Override

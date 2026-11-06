@@ -54,7 +54,7 @@ public final class NowPlaying {
 	private static Thread thread;
 	private static Process process;
 
-	/** Windows PowerShell 5.1 script: prints "title<TAB>artist<TAB>status<TAB>source<TAB>positionMs<TAB>lengthMs" every 2 seconds. */
+	/** Windows PowerShell 5.1 script: prints "title<TAB>artist<TAB>status<TAB>source<TAB>positionMs<TAB>lengthMs" every second. */
 	private static final String WINDOWS_SCRIPT = String.join("\n",
 		"$ErrorActionPreference = 'SilentlyContinue'",
 		"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
@@ -92,7 +92,7 @@ public final class NowPlaying {
 		"  }",
 		"  # stop as soon as Minecraft no longer reads our output (game closed)",
 		"  try { [Console]::Out.WriteLine($line); [Console]::Out.Flush() } catch { break }",
-		"  Start-Sleep -Seconds 2",
+		"  Start-Sleep -Milliseconds 1000",
 		"}");
 
 	private NowPlaying() {
@@ -190,7 +190,7 @@ public final class NowPlaying {
 		try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
 			String line;
 			while (running && (line = r.readLine()) != null) {
-				current = parse(line, 1);
+				current = smooth(current, parse(line, 1));
 			}
 		} finally {
 			p.destroy();
@@ -215,9 +215,116 @@ public final class NowPlaying {
 			if (!p.waitFor(5, TimeUnit.SECONDS)) {
 				p.destroyForcibly();
 			}
-			current = line == null ? null : parse(line, unitsPerMs);
-			Thread.sleep(2000L);
+			current = line == null ? null : smooth(current, parse(line, unitsPerMs));
+			Thread.sleep(1000L);
 		}
+	}
+
+	/** Jumps larger than this are a seek (or a new song): the clock takes the new position at once. */
+	static final long SEEK_MS = 700;
+
+	/**
+	 * Keeps the song clock steady: every sample of the player has a little jitter (the time the helper process needs),
+	 * so small differences are corrected slowly instead of making the lyrics jump back and forth. Seeks, pauses and new
+	 * songs are taken over at once.
+	 */
+	static Song smooth(Song previous, Song next) {
+		if (previous == null || next == null || !next.hasTimeline() || !previous.hasTimeline() || previous.playing() != next.playing()
+			|| !previous.title().equals(next.title()) || !previous.artist().equals(next.artist())) {
+			return next;
+		}
+		long predicted = previous.positionNow();
+		long measured = next.positionNow();
+		long drift = measured - predicted;
+		if (Math.abs(drift) >= SEEK_MS) {
+			return next;
+		}
+		// keep the old clock, moved a quarter of the way towards the measurement
+		long pos = Math.max(0, Math.min(next.lengthMs(), predicted + drift / 4));
+		return new Song(next.title(), next.artist(), next.playing(), next.source(), pos, next.lengthMs(), System.currentTimeMillis());
+	}
+
+	/** Test hook: runs a sample through the clock smoothing like the player detection does. */
+	public static Song smoothForTest(Song previous, Song next) {
+		return smooth(previous, next);
+	}
+
+	// ------------------------------------------------------------------ media keys
+
+	public enum Control {
+		PLAY_PAUSE("TryTogglePlayPauseAsync", 179, "play-pause", "playpause"),
+		NEXT("TrySkipNextAsync", 176, "next", "next track"),
+		PREVIOUS("TrySkipPreviousAsync", 177, "previous", "previous track");
+
+		final String smtc;
+		final int mediaKey;
+		final String playerctl;
+		final String apple;
+
+		Control(String smtc, int mediaKey, String playerctl, String apple) {
+			this.smtc = smtc;
+			this.mediaKey = mediaKey;
+			this.playerctl = playerctl;
+			this.apple = apple;
+		}
+	}
+
+	private static volatile String lastControl = "";
+
+	/** Last control sent (tests). */
+	public static String lastControl() {
+		return lastControl;
+	}
+
+	/** The one-shot PowerShell script for a control (uses the same Windows media controls as the detection). */
+	static String windowsControlScript(Control c) {
+		return String.join("\n",
+			"$ErrorActionPreference = 'SilentlyContinue'",
+			"$smtc = $false",
+			"try {",
+			"  Add-Type -AssemblyName System.Runtime.WindowsRuntime",
+			"  $asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]",
+			"  function Await($op, [Type]$type) { $t = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); $t.Wait(-1) | Out-Null; $t.Result }",
+			"  [void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]",
+			"  $mgr = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])",
+			"  $s = $mgr.GetCurrentSession()",
+			"  if ($s -ne $null) { $smtc = $true; [void](Await ($s." + c.smtc + "()) ([bool])) }",
+			"} catch { }",
+			"if (-not $smtc) { (New-Object -ComObject WScript.Shell).SendKeys([string][char]" + c.mediaKey + ") }");
+	}
+
+	/**
+	 * Play/pause, next or previous song in the player that is playing (in the background, never blocks the game).
+	 * Windows: Windows media controls, media key as fallback. Linux: playerctl. macOS: Spotify / Music.
+	 */
+	public static void control(Control c) {
+		lastControl = c.name();
+		Thread t = new Thread(() -> {
+			try {
+				String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+				String[] cmd;
+				if (os.contains("win")) {
+					String encoded = Base64.getEncoder().encodeToString(windowsControlScript(c).getBytes(StandardCharsets.UTF_16LE));
+					cmd = new String[] {"powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
+						"-EncodedCommand", encoded};
+				} else if (os.contains("mac")) {
+					Song s = current();
+					String app = s != null && "Music".equals(s.source()) ? "Music" : "Spotify";
+					cmd = new String[] {"osascript", "-e", "tell application \"" + app + "\" to " + c.apple};
+				} else {
+					cmd = new String[] {"playerctl", c.playerctl};
+				}
+				Process p = new ProcessBuilder(cmd).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
+				if (!p.waitFor(10, TimeUnit.SECONDS)) {
+					p.destroyForcibly();
+				}
+				// the new state shows up with the next sample (about a second)
+			} catch (Exception e) {
+				NovaClient.LOGGER.debug("Media control failed", e);
+			}
+		}, "Nova Media Control");
+		t.setDaemon(true);
+		t.start();
 	}
 
 	/** Parses "title<TAB>artist<TAB>status<TAB>source[<TAB>position<TAB>length]". */

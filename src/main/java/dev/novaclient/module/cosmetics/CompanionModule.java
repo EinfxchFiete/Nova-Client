@@ -72,6 +72,8 @@ public class CompanionModule extends Module {
 		KINDS.put("Schleim", new Kind(EntityTypes.SLIME, 1.0, Motion.HOP, false));
 		// pets with their own model: an invisible allay does the flying, PetRenderer draws the model
 		KINDS.put("Blobfisch", new Kind(EntityTypes.ALLAY, 1.0, Motion.FLY, false, "blobfish"));
+		// Sleepy the Otter by Nocsy (MCModels), used with the permission of Nocsy (see README, Credits)
+		KINDS.put("Otter", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "otter"));
 		// CUBEES by Cubes Studio (MCModels), used with the permission of Cubes Studio (see README, Credits):
 		// an invisible baby pig does the walking, the baby ghast floats on an invisible allay
 		KINDS.put("Cubee Feuer", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_fire"));

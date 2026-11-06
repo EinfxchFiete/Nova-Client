@@ -90,6 +90,9 @@ public final class Lyrics {
 		volatile @Nullable Track track;
 		/** After a network error the lookup is tried again from this time on (0 = never). */
 		volatile long retryAt;
+		/** All synced lyrics that fit the song, best first, and the one in use. */
+		volatile List<Candidate> candidates = List.of();
+		volatile int index;
 	}
 
 	private static final Map<String, Entry> CACHE = new LinkedHashMap<>(16, 0.75F, true);
@@ -98,7 +101,7 @@ public final class Lyrics {
 	}
 
 	private static String key(String title, String artist) {
-		return (title + "\u0000" + artist).toLowerCase(Locale.ROOT);
+		return MusicData.key(title, artist);
 	}
 
 	private static synchronized Entry entry(String title, String artist, long lengthMs) {
@@ -147,55 +150,210 @@ public final class Lyrics {
 		CACHE.put(key(title, artist), e);
 	}
 
+	// ------------------------------------------------------------------ songs
+
+	/** {title, artist} used for the lyrics of this song (see {@link #query}). */
+	public static String[] query(NowPlaying.Song s) {
+		return query(s.title(), s.artist(), s.source());
+	}
+
+	/** Key of the song's lyrics (for offsets and choices in {@link MusicData}). */
+	public static String key(NowPlaying.Song s) {
+		String[] q = query(s);
+		return key(q[0], q[1]);
+	}
+
+	public static State state(NowPlaying.Song s) {
+		String[] q = query(s);
+		return state(q[0], q[1], s.lengthMs());
+	}
+
+	public static @Nullable Track get(NowPlaying.Song s) {
+		String[] q = query(s);
+		return get(q[0], q[1], s.lengthMs());
+	}
+
+	/** Number of synced lyrics found for this song (you can switch between them), 0 if none / still loading. */
+	public static synchronized int choices(NowPlaying.Song s) {
+		Entry e = CACHE.get(key(s));
+		return e == null ? 0 : e.candidates.size();
+	}
+
+	/** "2/3: Title – Artist (Album)" of the lyrics in use, or "" if none. */
+	public static synchronized String info(NowPlaying.Song s) {
+		Entry e = CACHE.get(key(s));
+		if (e == null || e.candidates.isEmpty() || e.state != State.READY) {
+			return "";
+		}
+		return (e.index + 1) + "/" + e.candidates.size() + ": " + e.candidates.get(e.index).label();
+	}
+
+	/** Uses the next lyrics found for this song (if the first ones belong to another version); remembers the choice. */
+	public static synchronized String next(NowPlaying.Song s) {
+		String k = key(s);
+		Entry e = CACHE.get(k);
+		if (e == null || e.candidates.size() < 2) {
+			return e == null || e.state == State.LOADING ? "Der Songtext wird noch geladen." : "Für diesen Song gibt es keine anderen Songtexte.";
+		}
+		use(e, (e.index + 1) % e.candidates.size());
+		MusicData.setChoice(k, e.candidates.get(e.index).id());
+		return "Songtext " + info(s);
+	}
+
+	/** Forgets the lyrics of this song and loads them again. */
+	public static synchronized void reload(NowPlaying.Song s) {
+		CACHE.remove(key(s));
+	}
+
 	// ------------------------------------------------------------------ download
+
+	/** A search result with its match score; only results whose title, artist and length fit are kept. */
+	private record Candidate(JsonObject json, double score) {
+		long id() {
+			return json.has("id") && !json.get("id").isJsonNull() ? json.get("id").getAsLong() : -1;
+		}
+
+		String label() {
+			String a = string(json, "artistName");
+			String al = string(json, "albumName");
+			return string(json, "trackName") + (a.isEmpty() ? "" : " – " + a) + (al.isEmpty() ? "" : " (" + al + ")");
+		}
+	}
 
 	private static void load(Entry e, String title, String artist, long lengthMs) {
 		try {
 			String t = cleanTitle(title);
 			String a = firstArtist(artist);
 			long seconds = lengthMs > 0 ? Math.round(lengthMs / 1000.0) : -1;
-			JsonObject best = null;
+			Map<Object, JsonObject> found = new LinkedHashMap<>();
 			if (!a.isEmpty() && seconds > 0) {
-				best = getExact(t, a, seconds);
-			}
-			if (best == null && !a.isEmpty()) {
-				best = getExact(t, a, -1);
-			}
-			if (best == null || !hasSynced(best) && !isInstrumental(best)) {
-				JsonObject found = pick(search("track_name=" + enc(t) + (a.isEmpty() ? "" : "&artist_name=" + enc(a))), t, seconds);
-				if (found == null) {
-					found = pick(search("q=" + enc((a + " " + t).trim())), t, seconds);
+				JsonObject exact = getExact(t, a, seconds);
+				if (exact != null) {
+					// LRCLIB's own match for title, artist and length: preferred when the scores are close
+					exact.addProperty("_exact", true);
 				}
-				if (found != null && (best == null || hasSynced(found) || isInstrumental(found))) {
-					best = found;
+				add(found, exact);
+			}
+			add(found, search("track_name=" + enc(t) + (a.isEmpty() ? "" : "&artist_name=" + enc(a))));
+			List<Candidate> ranked = rank(found.values(), t, artist, seconds);
+			if (ranked.stream().noneMatch(c -> hasSynced(c.json()))) {
+				// nothing synced yet: a free search ("artist title") and, without a known length, the exact lookup
+				add(found, search("q=" + enc((a + " " + t).trim())));
+				if (!a.isEmpty() && seconds <= 0) {
+					add(found, getExact(t, a, -1));
 				}
+				ranked = rank(found.values(), t, artist, seconds);
 			}
-			if (best == null) {
-				e.state = State.MISSING;
-				return;
-			}
-			if (isInstrumental(best)) {
-				e.track = new Track(List.of(), true);
-				e.state = State.READY;
-				return;
-			}
-			if (!hasSynced(best)) {
-				e.state = best.has("plainLyrics") && !best.get("plainLyrics").isJsonNull() ? State.PLAIN_ONLY : State.MISSING;
-				return;
-			}
-			Track track = parse(best.get("syncedLyrics").getAsString());
-			if (track.lines().isEmpty()) {
-				e.state = State.MISSING;
-				return;
-			}
-			e.track = track;
-			e.state = State.READY;
+			apply(e, ranked, key(title, artist));
 		} catch (java.io.IOException ex) {
 			e.retryAt = System.currentTimeMillis() + 60_000;
 			e.state = State.MISSING;
 		} catch (Exception ex) {
+			NovaClient.LOGGER.debug("Lyrics lookup failed", ex);
 			e.state = State.MISSING;
 		}
+	}
+
+	private static void add(Map<Object, JsonObject> found, @Nullable JsonElement el) {
+		if (el == null) {
+			return;
+		}
+		if (el.isJsonArray()) {
+			for (JsonElement x : el.getAsJsonArray()) {
+				add(found, x);
+			}
+		} else if (el.isJsonObject()) {
+			JsonObject o = el.getAsJsonObject();
+			Object id = o.has("id") && !o.get("id").isJsonNull() ? (Object) o.get("id").getAsLong() : (Object) o;
+			found.putIfAbsent(id, o);
+		}
+	}
+
+	/** Usable results, best first: synced lyrics before instrumental before plain ones, then by score. */
+	static List<Candidate> rank(java.util.Collection<JsonObject> results, String title, String artist, long seconds) {
+		List<Candidate> out = new ArrayList<>();
+		for (JsonObject o : results) {
+			double s = score(o, title, artist, seconds);
+			if (!Double.isNaN(s)) {
+				out.add(new Candidate(o, s));
+			}
+		}
+		out.sort(Comparator.<Candidate>comparingInt(c -> hasSynced(c.json()) ? 0 : isInstrumental(c.json()) ? 1 : 2)
+			.thenComparing(Comparator.comparingDouble(Candidate::score).reversed()));
+		return out;
+	}
+
+	/**
+	 * How well a result fits the song (higher = better), NaN if it is another song: the title must be (nearly) the same,
+	 * the artist must match if we know it, and the recording must not be more than 8 s longer or shorter (another version
+	 * like live or sped up has other timings).
+	 */
+	static double score(JsonObject o, String title, String artist, long seconds) {
+		double ts = similarity(cleanTitle(string(o, "trackName")), cleanTitle(title));
+		if (ts < 0.72) {
+			return Double.NaN;
+		}
+		double as = 1;
+		if (artist != null && !artist.isBlank()) {
+			as = artistSimilarity(string(o, "artistName"), artist);
+			if (as < 0.5) {
+				return Double.NaN;
+			}
+		}
+		double penalty = 0;
+		if (seconds > 0 && o.has("duration") && !o.get("duration").isJsonNull()) {
+			double d = Math.abs(o.get("duration").getAsDouble() - seconds);
+			if (d > 8) {
+				return Double.NaN;
+			}
+			penalty = d * 0.3;
+		}
+		double exactBonus = o.has("_exact") ? 0.5 : 0;
+		return 2 * ts + 1.5 * as - penalty + exactBonus;
+	}
+
+	/** Test hook for {@link #score}. */
+	public static double scoreForTest(JsonObject o, String title, String artist, long seconds) {
+		return score(o, title, artist, seconds);
+	}
+
+	private static void apply(Entry e, List<Candidate> ranked, String songKey) {
+		List<Candidate> synced = new ArrayList<>();
+		for (Candidate c : ranked) {
+			if (hasSynced(c.json())) {
+				synced.add(c);
+			}
+		}
+		e.candidates = List.copyOf(synced);
+		if (!synced.isEmpty()) {
+			int index = 0;
+			long chosen = MusicData.choice(songKey);
+			for (int i = 0; i < synced.size(); i++) {
+				if (synced.get(i).id() == chosen) {
+					index = i;
+				}
+			}
+			use(e, index);
+			return;
+		}
+		if (ranked.stream().anyMatch(c -> isInstrumental(c.json()))) {
+			e.track = new Track(List.of(), true);
+			e.state = State.READY;
+			return;
+		}
+		boolean plain = ranked.stream().anyMatch(c -> c.json().has("plainLyrics") && !c.json().get("plainLyrics").isJsonNull());
+		e.state = plain ? State.PLAIN_ONLY : State.MISSING;
+	}
+
+	private static void use(Entry e, int index) {
+		Track track = parse(e.candidates.get(index).json().get("syncedLyrics").getAsString());
+		e.index = index;
+		if (track.lines().isEmpty()) {
+			e.state = State.MISSING;
+			return;
+		}
+		e.track = track;
+		e.state = State.READY;
 	}
 
 	private static @Nullable JsonObject getExact(String title, String artist, long seconds) throws Exception {
@@ -217,29 +375,102 @@ public final class Lyrics {
 		return el.isJsonArray() ? el.getAsJsonArray() : null;
 	}
 
-	/** Best search result: synced lyrics first, then the same title, then the closest length. */
-	private static @Nullable JsonObject pick(@Nullable JsonArray results, String title, long seconds) {
-		if (results == null || results.isEmpty()) {
-			return null;
+	// ------------------------------------------------------------------ matching
+
+	/** Lower case, no accents, "&" = "and", only letters and digits separated by single spaces. */
+	public static String normalize(String s) {
+		if (s == null) {
+			return "";
 		}
-		String wanted = title.toLowerCase(Locale.ROOT);
-		List<JsonObject> list = new ArrayList<>();
-		for (JsonElement el : results) {
-			if (el.isJsonObject()) {
-				list.add(el.getAsJsonObject());
+		String n = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+		n = n.toLowerCase(Locale.ROOT).replace("&", " and ").replace("'", "").replace("’", "");
+		n = n.replaceAll("[^\\p{L}\\p{N}]+", " ").strip();
+		return n;
+	}
+
+	private static int levenshtein(String a, String b) {
+		int[] prev = new int[b.length() + 1];
+		int[] cur = new int[b.length() + 1];
+		for (int j = 0; j <= b.length(); j++) {
+			prev[j] = j;
+		}
+		for (int i = 1; i <= a.length(); i++) {
+			cur[0] = i;
+			for (int j = 1; j <= b.length(); j++) {
+				int cost = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
+				cur[j] = Math.min(Math.min(cur[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
+			}
+			int[] t = prev;
+			prev = cur;
+			cur = t;
+		}
+		return prev[b.length()];
+	}
+
+	/** 0..1: 1 = same text (after {@link #normalize}). */
+	public static double similarity(String a, String b) {
+		String x = normalize(a);
+		String y = normalize(b);
+		if (x.isEmpty() || y.isEmpty()) {
+			return 0;
+		}
+		if (x.equals(y)) {
+			return 1;
+		}
+		if (x.replace(" ", "").equals(y.replace(" ", ""))) {
+			return 0.98;
+		}
+		double lev = 1 - levenshtein(x, y) / (double) Math.max(x.length(), y.length());
+		// same words in another order ("the" and "a" do not count)
+		java.util.Set<String> wx = new java.util.HashSet<>(List.of(x.split(" ")));
+		java.util.Set<String> wy = new java.util.HashSet<>(List.of(y.split(" ")));
+		wx.removeAll(List.of("the", "a"));
+		wy.removeAll(List.of("the", "a"));
+		double dice = 0;
+		if (!wx.isEmpty() && !wy.isEmpty()) {
+			java.util.Set<String> both = new java.util.HashSet<>(wx);
+			both.retainAll(wy);
+			dice = 2.0 * both.size() / (wx.size() + wy.size());
+		}
+		return Math.max(lev, dice);
+	}
+
+	/** Best similarity between any artist of {@code a} and any artist of {@code b} ("A, B & C", "A feat. B"). */
+	public static double artistSimilarity(String a, String b) {
+		double best = similarity(a, b);
+		for (String x : a.split("(?i),|;|\\s&\\s|\\s(feat\\.?|ft\\.?|featuring|x|with|and|und)\\s|\\s/\\s")) {
+			for (String y : b.split("(?i),|;|\\s&\\s|\\s(feat\\.?|ft\\.?|featuring|x|with|and|und)\\s|\\s/\\s")) {
+				best = Math.max(best, similarity(x, y));
 			}
 		}
-		list.sort(Comparator.<JsonObject>comparingInt(o -> hasSynced(o) || isInstrumental(o) ? 0 : 1)
-			.thenComparingInt(o -> string(o, "trackName").toLowerCase(Locale.ROOT).equals(wanted) ? 0 : 1)
-			.thenComparingDouble(o -> seconds > 0 && o.has("duration") && !o.get("duration").isJsonNull()
-				? Math.abs(o.get("duration").getAsDouble() - seconds) : 0));
-		JsonObject best = list.isEmpty() ? null : list.get(0);
-		// a much longer/shorter recording is another version (live, remix): its timing would be wrong
-		if (best != null && seconds > 0 && best.has("duration") && !best.get("duration").isJsonNull()
-			&& Math.abs(best.get("duration").getAsDouble() - seconds) > 12) {
-			return null;
-		}
 		return best;
+	}
+
+	/**
+	 * Title and artist to search lyrics for. Video sites send things like "Artist - Song (Official Video)" with the
+	 * channel ("ArtistVEVO", "Artist - Topic") as artist; this turns them into the song and the real artist.
+	 */
+	public static String[] query(String title, String artist, String source) {
+		String t = title == null ? "" : title;
+		String a = artist == null ? "" : artist;
+		t = t.replaceAll("(?i)\\s*[(\\[][^)\\]]*(official|video|audio|lyrics?|visuali[sz]er|clip)[^)\\]]*[)\\]]", "");
+		t = t.replaceAll("(?i)\\s*[(\\[]\\s*(hd|hq|4k|mv|m/v)\\s*[)\\]]", "");
+		t = t.replaceAll("\\s+[|｜].*$", "").strip();
+		a = a.replaceAll("(?i)\\s*-\\s*topic$", "").replaceAll("(?i)\\s*vevo$", "").replaceAll("(?i)\\s+official$", "").strip();
+		java.util.regex.Matcher dash = Pattern.compile("\\s[-–—]\\s").matcher(t);
+		if (dash.find()) {
+			String left = t.substring(0, dash.start()).strip();
+			String right = t.substring(dash.end()).strip();
+			boolean video = "Browser".equals(source) || a.isEmpty() || artistSimilarity(left, a) >= 0.6;
+			if (video && !left.isEmpty() && !right.isEmpty()) {
+				a = left;
+				t = right;
+			}
+		}
+		if (t.isEmpty()) {
+			t = title == null ? "" : title.strip();
+		}
+		return new String[] {t, a};
 	}
 
 	private static HttpRequest request(String path) {

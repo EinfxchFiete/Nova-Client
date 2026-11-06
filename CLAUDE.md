@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.8.3** (96 Module), **Nova Launcher 1.5.3**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.4** (96 Module), **Nova Launcher 1.5.4**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -552,6 +552,26 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
       überblendet, „pet“ beim Schleichen in der Nähe, Größe ≈ 9/Höhe (0,35–0,85) aus der sichtbaren Idle-Pose (Teile mit Skala 0 zählen nicht).
       Laufende Cubees reiten unsichtbar auf einem **Baby-Schwein**, Baby-Ghast auf einer unsichtbaren Allay. Test-Hook
       `CompanionModule.freezeForTest`. Gametest: Nahaufnahmen ohne HUD (vorne/Seite/hinten) für 8 Pets, Laufanimation. PASSED.
+21. Nutzer: Discord-Screenshot – **Nocsy erlaubt den Otter** („Sure, you can use the models, and Claude can add them to the repo“) +
+    „Songtexte leicht versetzt, bei manchen Songs falscher Text, mehr Features für Songtexte/Songs“ → **v1.8.4** + **Launcher 1.5.4**:
+    - **Otter** (`otter`, Format 4.0, Animation `pet1` → `pet`, „pet“ wird immer geloopt), Begleiter „Otter“ (Baby-Schwein als Träger).
+    - **Sync**: `NowPlaying.smooth` – kleine Abweichungen der Player-Zeit (< 700 ms) werden nur zu 1/4 übernommen (kein Springen),
+      Sprünge/Pause/neuer Song sofort; Abfrage jetzt **jede Sekunde** (Windows-Skript `Start-Sleep -Milliseconds 1000`, playerctl/osascript).
+      Neue Zeile erscheint **250 ms vor** dem Singen (`LyricsModule.LEAD_MS`, Setting „Zeile kurz vorher einblenden“), Füllung startet pünktlich.
+      **Versatz pro Song** (`MusicData`, `config/novaclient/music.json`): Tasten „Songtext früher/später“ (0,1 s), `/songtext früher|später [s]`,
+      Musik-Menü-Buttons und **Klick auf die gerade gesungene Zeile** (setzt den Versatz so, dass diese Zeile jetzt beginnt). Vorzeichen: positiv = früher.
+      Globaler „Versatz (Sekunden)“ jetzt ±5 s in 0,05er-Schritten.
+    - **Richtiger Text**: `Lyrics.score` – Titel-Ähnlichkeit ≥ 0,72 (Levenshtein/Wörter, normalisiert), Interpret ≥ 0,5 (alle Künstler),
+      Länge ±8 s, sonst verworfen; LRCLIB-`get` mit Länge +0,5 Bonus. Alle passenden synchronisierten Texte werden gemerkt → „Anderer Songtext“
+      / `/songtext anders` (Wahl per LRCLIB-ID gespeichert). `Lyrics.query`: Videotitel „Interpret - Song (Official Video)“, Kanäle „… - Topic“/„…VEVO“.
+      Echte Abfragen im Test (geloggt): Mr. Brightside, Bohemian Rhapsody (Remastered), Blinding Lights (YouTube-Titel), Atemlos – alle richtig.
+    - **Musik-Menü** `gui/MusicScreen` (Startmenü-Karte 4 „Musik“, HUD-Editor jetzt `open(4)`): Cover, Zeit, ⏮ ⏯ ⏭, Versatz, anderer Text,
+      Text aus/an, neu laden; Tabs Songtext (ganzer Text, scrollt mit), Verlauf, Top-Songs (Hörzeit, 30 s = 1× gehört), Mitspieler (Nova-Netzwerk).
+    - **Mediensteuerung** `NowPlaying.control` (Windows: Einmal-PowerShell mit SMTC `TryTogglePlayPauseAsync/TrySkipNextAsync/TrySkipPreviousAsync`,
+      Fallback Medientaste per `WScript.Shell.SendKeys([char]179/176/177)`; Linux `playerctl play-pause|next|previous`; macOS osascript).
+      **Unter Windows nicht getestet** (PowerShell-Download zum Syntax-Check wurde in der Cloud blockiert) – Zeilen 1:1 aus dem Erkennungsskript.
+    - Musik-Modul: „Benachrichtigung bei neuem Song“, „Verlauf und Statistik speichern“, Tasten Play/Pause/Nächster/Vorheriger. Befehle `/song`, `/songtext …`.
+    - Songtext-Stile: Karaoke / Wort für Wort / Ganze Zeile; „Songtext für diesen Song ausgeblendet“.
 
 ---
 
@@ -615,8 +635,9 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 06.11.2026: v1.8.3 fertig und ausgeliefert** (Changelog 20): `nova-client-1.8.3.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
-  (Launcher 1.5.3 inkl. Nova 1.8.3). Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
+- **Stand 06.11.2026: v1.8.4 fertig und ausgeliefert** (Changelog 21): `nova-client-1.8.4.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
+  (Launcher 1.5.4 inkl. Nova 1.8.4).
+- **Rückmeldung holen:** Passt der Songtext jetzt unter Windows/Spotify? Funktionieren Play/Pause/Weiter im Musik-Menü? Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
 - Nutzer-Entscheidung (06.11.2026): **Performance-Mods testet der Nutzer selbst** (Schalter bleibt standardmäßig an); 1.8.x hat er
   **noch nicht getestet** (kann gerade nicht) und meldet sich.
 - **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?
