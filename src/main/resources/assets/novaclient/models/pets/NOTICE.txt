@@ -1,0 +1,12 @@
+Pet models in this folder (and their textures in ../../textures/pets/)
+
+blobfish.*        Blobfish by QueenOfAnts (qpack_blobfish). README of the pack: "free to use/edit ... on your projects".
+
+cubee_*.*         CUBEES (Starter 1.3, Biomes 1 1.2, Currets 1.1) by Cubes Studio, sold on MCModels.
+                  The pack license does not allow use in other products or redistribution. Cubes Studio gave
+                  Nova Client explicit permission to use the models and to publish them in this public repository
+                  (Discord, 2026-11-06: "Yes its Okay Claude can put it in a Public Reposity. Have Fun with your
+                  Client -Cubes Studio"). This permission is for Nova Client only: do not take these models from
+                  this repository for other projects.
+
+All models were converted from Blockbench (.bbmodel) with tools/assets/bbmodel_pet.py.

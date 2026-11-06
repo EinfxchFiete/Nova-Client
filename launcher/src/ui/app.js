@@ -14,6 +14,7 @@ let logLines = [];
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444', '#ec4899', '#64748b'];
 const NEWS = [
+  { t: 'Nova Client 1.8.3', title: '24 CUBEES-Begleiter', g: 'linear-gradient(135deg,#facc15,#f97316)', text: 'Neu: 24 Cubees als Begleiter (Feuer, Wasser, TNT, Kanone, Bomber-Creeper, Glitzerhexe …) mit eigenen Animationen. Modelle von Cubes Studio, mit Erlaubnis.' },
   { t: 'Nova Client 1.8.2', title: 'Blobfisch-Begleiter', g: 'linear-gradient(135deg,#f9a8d4,#60a5fa)', text: 'Neuer Begleiter: ein knuffiger Blobfisch, der neben dir durch die Luft schwimmt (Modell von QueenOfAnts).' },
   { t: 'Nova Client 1.8.1', title: 'Noch mehr Zeug', g: 'linear-gradient(135deg,#0ea5e9,#a3e635)', text: 'Pilzhut, Piratenhut, Alien-Antennen, Libellenflügel, Capes Aquarium und Wolken, Minimee-Animationen Jubeln und Kopfnicken. Neue Module: Chat-Filter, Auto-Respawn, Hunger-Warnung.' },
   { t: 'Nova Client 1.8.0', title: 'Songtext am Himmel', g: 'linear-gradient(135deg,#6366f1,#ec4899)', text: 'Der Songtext deines Songs schwebt wie Karaoke am Himmel. Dazu FPS-Boost, Performance-Mods im Launcher, 6 neue Hüte, Eisflügel, Jetpack, Gitarre und mehr.' },

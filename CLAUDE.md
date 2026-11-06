@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.8.2** (96 Module), **Nova Launcher 1.5.2**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.3** (96 Module), **Nova Launcher 1.5.3**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -536,6 +536,22 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
     wandelt .bbmodel (Per-Face-UV) in Box-UV-Textur `textures/pets/<name>.png` + `models/pets/<name>.json`; `cosmetics/PetModels`
     baut daraus ModelParts, `cosmetics/PetRenderer` (COLLECT_SUBMITS) zeichnet das Modell an einer **unsichtbaren Allay** (Begleiter-
     Logik fliegt), Animation: Schwanz wedelt, Nase atmet, Körper wippt. Credits in README. Gametest PASSED.
+20. Nutzer schickte Discord-Screenshot: **Cubes Studio erlaubt die Nutzung im öffentlichen Repo** („Yes its Okay Claude can put it in
+    a Public Reposity. Have Fun with your Client -Cubes Studio“, 06.11.2026) → **v1.8.3** + **Launcher 1.5.3**: alle **24 CUBEES**
+    (Starter, Biomes1, Currets; ohne `vfx-*`-Modelle) als Begleiter „Cubee …“ (49 Begleiter gesamt). Erlaubnis + Hinweis „nur für Nova“
+    in README (Credits) und `assets/novaclient/models/pets/NOTICE.txt`. Otter (Nocsy) weiter **nicht** eingebaut (keine Erlaubnis).
+    - **Konverter neu** (`tools/assets/bbmodel_pet.py`, Format `version: 2`): keine Box-UV mehr, sondern **Quads mit Original-UVs**
+      (Ecken in Minecrafts FaceInfo-Reihenfolge, gegen den Uhrzeigersinn), Element-Rotationen (Euler ZYX um `origin`), invertierte
+      Würfel (Outline-Hülle der Cubees), Inflate, mehrere Texturen → Atlas, **animierte Texturen** (Frames untereinander, `frame_time`),
+      Gruppen als Bones (Format 5: Daten in `groups`, Outliner nur UUIDs), **Animationen idle/walk/pet/fly** als Keyframes.
+      Blockbench-Konventionen aus dem Quellcode geprüft: Animationswerte werden direkt addiert; Dateien **< Format 5.0** haben
+      x/y-Rotation und x-Position invertiert (Blockbench konvertiert beim Öffnen genauso, Blobfisch = 4.10).
+    - `cosmetics/PetModels` (Bones, Quads, Keyframe-Auswertung wie Blockbench: step/linear/catmullrom, Loop-Nachbarn) und
+      `cosmetics/PetRenderer` (Bone-Matrizen pro Frame, Vertices vorab berechnet, `submitCustomGeometry`, `entityCutoutCull`
+      bzw. `entityTranslucentCull` – **Culling nötig**, sonst verdeckt die Outline-Hülle alles). Animation: idle/walk weich
+      überblendet, „pet“ beim Schleichen in der Nähe, Größe ≈ 9/Höhe (0,35–0,85) aus der sichtbaren Idle-Pose (Teile mit Skala 0 zählen nicht).
+      Laufende Cubees reiten unsichtbar auf einem **Baby-Schwein**, Baby-Ghast auf einer unsichtbaren Allay. Test-Hook
+      `CompanionModule.freezeForTest`. Gametest: Nahaufnahmen ohne HUD (vorne/Seite/hinten) für 8 Pets, Laufanimation. PASSED.
 
 ---
 
@@ -599,8 +615,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 06.11.2026: v1.8.2 fertig und ausgeliefert** (Changelog 19): `nova-client-1.8.2.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
-  (Launcher 1.5.2 inkl. Nova 1.8.2). Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
+- **Stand 06.11.2026: v1.8.3 fertig und ausgeliefert** (Changelog 20): `nova-client-1.8.3.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
+  (Launcher 1.5.3 inkl. Nova 1.8.3). Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
 - Nutzer-Entscheidung (06.11.2026): **Performance-Mods testet der Nutzer selbst** (Schalter bleibt standardmäßig an); 1.8.x hat er
   **noch nicht getestet** (kann gerade nicht) und meldet sich.
 - **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?
@@ -654,6 +670,7 @@ Einzige Ausnahme: `SdlGlTest.java` hieß im Chat `T.java` (Klasse `T`), nur der 
 | `tools/testing/fake-playerctl` | Fake-Song für den Linux-Musiktest | `PATH=$PWD/tools/testing:$PATH NOVA_FAKE_PLAYERCTL=1 …` |
 | `tools/testing/SdlGlTest.java` | Mini-Programm zur Diagnose von SDL/OpenGL unter Xvfb (zeigte das sRGB-Problem) | `java -cp "<lwjgl+lwjgl-sdl jars>" SdlGlTest.java` |
 | `tools/testing/glx.py` | Mini-Diagnose per ctypes: X-Display öffnen, GLX-Erweiterung und `glXChooseVisual` prüfen (erster Schritt der Xvfb-Fehlersuche) | `LIBGL_DEBUG=verbose xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX" python3 tools/testing/glx.py` |
+| `tools/assets/bbmodel_pet.py` | Blockbench-Modell → Pet (`models/pets/<name>.json` + `textures/pets/<name>.png`), Cubees: Name `cubee_<id>` | `python3 -I tools/assets/bbmodel_pet.py <datei.bbmodel> <name> src/main/resources/assets/novaclient` |
 | `tools/dev-setup.sh` | Java 25 + XDG_RUNTIME_DIR für Cloud-Sessions | `source tools/dev-setup.sh` |
 
 Geprüft: `mod_icon.py`, `launcher_assets.py` und `make_ico.py` erzeugen **bytegleich** die Dateien im Repo. `capes.py`,

@@ -5,7 +5,7 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 ## Installation
 1. Fabric Loader **0.20.1+** für Minecraft 26.3 installieren
 2. **Fabric API** (26.3) in den `mods`-Ordner legen
-3. `nova-client-1.8.2.jar` in den `mods`-Ordner legen
+3. `nova-client-1.8.3.jar` in den `mods`-Ordner legen
 4. Java 25 (bringt der offizielle Launcher automatisch mit)
 
 ## Bedienung
@@ -31,7 +31,7 @@ Jedes Modul kann eine eigene An/Aus-Taste bekommen. Profile liegen in `config/no
 - **HUD:** FPS, Ping, CPS, Koordinaten (+ Richtung, Nether-Umrechnung, Chunk), Keystrokes, Rüstungsstatus, Trankeffekte, Uhrzeit, Datum, Server-IP, Spieler online, Wetter, Geschwindigkeit, RAM, Tag-Zähler, Biom, Lichtlevel, Sättigung, Pfeile, Totem-Zähler, Item-Zähler, Spielzeit, Reichweite, Combo, Ziel-HUD, Kompassleiste, Block-Info, Inventar-Vorschau, Stoppuhr, Wegpunkt, **Musik** (Song mit Cover, Zeit und Fortschritt), **Ingame-Zeit**, **Mondphase**, **Blickrichtung**, **Erfahrung**, **Item-Haltbarkeit**, **Minimap**, **Bewegungsstatus**, **Hotbar-Nummern**, **Songtext** (Karaoke am Himmel), **TPS**, **Sitzungsstatistik**, Theme
 - **Visuals:** Zoom, Freelook, Custom Crosshair, Fullbright, No Hurt Cam, Low Fire, HUD-Tweaks, Kein Regen, Blockumrandung, Overlays (Kürbis/Pulverschnee/Unterwasser/Vignette), **Hand-Größe**, **Schadenszahlen**, **Leben über Spielern**, **Rückblick**, **Item-Physik**, **Scoreboard-Zahlen aus**, **Trefferanzeige**, **FPS-Boost**, **Kein Nebel**
 - **Utility:** Toggle Sprint, Toggle Sneak, Benachrichtigungen, Todes-Koordinaten, Haltbarkeitswarnung, Chat-Zeitstempel, Chat-Makros, Hintergrund-FPS, **Nova-Netzwerk**, **Tab-Ping in ms**, **Koordinaten teilen**, **Auto-GG**, **Fenstertitel**, **Chat-Erwähnungen**, **Kompakter Chat**, **Langer Chat-Verlauf**, **Freunde**, **Pausen-Erinnerung**, **Totem-Pops**, **Chat-Filter**, **Auto-Respawn**, **Hunger-Warnung**
-- **Cosmetics:** Cape (14 Designs + **22 animierte** + wechselnd), **Kopfschmuck in 3D** (Bandana, Krone mit einfärbbaren Steinen, Zylinder, Teufelshörner, Katzenohren, Heiligenschein, Partyhut, Cowboyhut, Hasenohren, Kopfhörer, Sonnenbrille, Wikingerhelm, Blumenkranz, Mütze, Hexenhut, Weihnachtsmütze, Kochmütze, Fuchsohren, Einhorn-Horn, Propellermütze, Pilzhut, Piratenhut, Alien-Antennen – in 11 Farben), **animierte Flügel** (Engel, Drache, Schmetterling, Fledermaus, Fee, Phönix mit Flammen, Eis, Libelle – einfärbbar), **Extras** (Rucksack, Katzen-, Fuchs- und Teufelsschwanz, Schal, Jetpack mit Flammen, Gitarre, Rückenschwert), **Minimee** (Mini-Spieler mit beliebigem Skin: Kette, Hosentasche, auf dem Kopf, auf der Schulter, Huckepack, in der Hand oder schwebend – mit 5 Animationen und 3 Größen), **Emotes**, Nametags, **25 Begleiter** (Laufwesen laufen neben dir, Flugtiere fliegen, neu: Blobfisch), Partikel-Ring, Partikel-Spur, Treffer-Partikel, **Kill-Effekt**
+- **Cosmetics:** Cape (14 Designs + **22 animierte** + wechselnd), **Kopfschmuck in 3D** (Bandana, Krone mit einfärbbaren Steinen, Zylinder, Teufelshörner, Katzenohren, Heiligenschein, Partyhut, Cowboyhut, Hasenohren, Kopfhörer, Sonnenbrille, Wikingerhelm, Blumenkranz, Mütze, Hexenhut, Weihnachtsmütze, Kochmütze, Fuchsohren, Einhorn-Horn, Propellermütze, Pilzhut, Piratenhut, Alien-Antennen – in 11 Farben), **animierte Flügel** (Engel, Drache, Schmetterling, Fledermaus, Fee, Phönix mit Flammen, Eis, Libelle – einfärbbar), **Extras** (Rucksack, Katzen-, Fuchs- und Teufelsschwanz, Schal, Jetpack mit Flammen, Gitarre, Rückenschwert), **Minimee** (Mini-Spieler mit beliebigem Skin: Kette, Hosentasche, auf dem Kopf, auf der Schulter, Huckepack, in der Hand oder schwebend – mit 5 Animationen und 3 Größen), **Emotes**, Nametags, **49 Begleiter** (Laufwesen laufen neben dir, Flugtiere fliegen, Blobfisch und neu **24 CUBEES** mit eigenen Animationen), Partikel-Ring, Partikel-Spur, Treffer-Partikel, **Kill-Effekt**
 
 ## Songtext am Himmel
 Das Modul **Songtext** (HUD) zeigt den Text deines aktuellen Songs (Spotify, Browser, … – wie beim Musik-Modul) wie Karaoke groß am Himmel
@@ -71,4 +71,10 @@ Startet Minecraft, erstellt eine Testwelt, prüft alle Module und speichert Scre
 ## Credits
 - Blobfisch-Modell: **QueenOfAnts** (qpack_blobfish, „free to use/edit … on your projects“), für Nova umgewandelt mit
   `tools/assets/bbmodel_pet.py`.
+- CUBEES-Begleiter (Starter, Biomes 1, Currets – 24 Modelle mit Texturen und Animationen): **Cubes Studio**
+  ([MCModels](https://mcmodels.net)). Die Lizenz der Pakete verbietet eigentlich die Nutzung in eigenen Produkten und die
+  Weitergabe; Cubes Studio hat Nova die Nutzung und die Veröffentlichung in diesem öffentlichen Repo am 06.11.2026 auf Discord
+  ausdrücklich erlaubt („Yes its Okay Claude can put it in a Public Reposity. Have Fun with your Client -Cubes Studio“).
+  Die Erlaubnis gilt nur für Nova Client – bitte die Modelle nicht aus diesem Repo für andere Projekte übernehmen.
+  Siehe auch `src/main/resources/assets/novaclient/models/pets/NOTICE.txt`.
 - Launcher-Schrift: [Monocraft](https://github.com/IdreesInc/Monocraft) (SIL OFL 1.1).

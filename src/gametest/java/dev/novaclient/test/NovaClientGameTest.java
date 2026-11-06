@@ -759,6 +759,12 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				} else {
 					check(dy > 1.0, "flying buddy " + buddyName + " is not in the air: dy=" + dy);
 				}
+				String petModel = ctx.computeOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).customModel());
+				if (petModel != null) {
+					check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.PetModels.get(petModel) != null
+						&& dev.novaclient.cosmetics.PetRenderer.lastSubmits() == 1 && mc.level.getEntity(-4_242_042).isInvisible()),
+						"pet model " + petModel + " not drawn");
+				}
 				ctx.takeScreenshot("38b_buddy_" + bi);
 			}
 			NovaClient.LOGGER.info("NOVA BUDDIES\n{}", buddyReport);
@@ -775,6 +781,70 @@ public class NovaClientGameTest implements FabricClientGameTest {
 			ctx.waitTicks(15);
 			ctx.takeScreenshot("38e_pet_blobfish_side");
 			ctx.runOnClient(mc -> mc.player.setYRot(mc.player.getYRot() - 90));
+			// CUBEES: close-ups (no HUD, first person, looking at the frozen pet from the front, the side and the back)
+			String[] cubees = {"Cubee Feuer", "Cubee Kanone", "Cubee Bomber-Creeper", "Cubee Glitzerhexe", "Cubee Hoodie-Fuchs", "Cubee TNT",
+				"Cubee Baby-Ghast", "Blobfisch"};
+			ctx.runOnClient(mc -> {
+				mc.options.setCameraType(CameraType.FIRST_PERSON);
+				if (!mc.gui.hud.isHidden()) {
+					mc.gui.hud.toggle();
+				}
+			});
+			for (int ci = 0; ci < cubees.length; ci++) {
+				String cubee = cubees[ci];
+				sp.getServer().runCommand("tp @a 70 -60 70 0 0");
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set(cubee));
+				ctx.waitTicks(25);
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.PetRenderer.lastSubmits() == 1
+					&& dev.novaclient.cosmetics.PetRenderer.lastQuads() > 30), cubee + " not drawn");
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).freezeForTest(true));
+				String[] views = {"front", "side", "back"};
+				for (int vi = 0; vi < views.length; vi++) {
+					final int view = vi;
+					String cmd = ctx.computeOnClient(mc -> {
+						var b = (net.minecraft.world.entity.LivingEntity) mc.level.getEntity(-4_242_042);
+						double yaw = Math.toRadians(b.yBodyRot + view * 90);
+						double dist = 1.7;
+						double x = b.getX() - Math.sin(yaw) * dist;
+						double z = b.getZ() + Math.cos(yaw) * dist;
+						double footY = mc.player.getY();
+						double dx = b.getX() - x;
+						double dz = b.getZ() - z;
+						double dy = b.getY() + 0.3 - (footY + mc.player.getEyeHeight());
+						float lookYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+						float lookPitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+						return String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.2f %.2f", x, footY, z, lookYaw, lookPitch);
+					});
+					sp.getServer().runCommand(cmd);
+					ctx.waitTicks(6);
+					ctx.takeScreenshot("38f_pet_" + ci + "_" + views[vi]);
+				}
+				ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).freezeForTest(false));
+			}
+			ctx.runOnClient(mc -> {
+				if (mc.gui.hud.isHidden()) {
+					mc.gui.hud.toggle();
+				}
+			});
+			sp.getServer().runCommand("tp @a 70 -60 70 0 30");
+			ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+			ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set("Cubee Feuer"));
+			ctx.waitTicks(15);
+			sp.getServer().runCommand("execute as @p at @s run tp @s ~5 ~ ~");
+			float maxBlend = 0;
+			for (int i = 0; i < 14; i++) {
+				ctx.waitTick();
+				maxBlend = Math.max(maxBlend, ctx.computeOnClient(mc -> dev.novaclient.cosmetics.PetRenderer.moveBlend()));
+				if (i == 5) {
+					ctx.runOnClient(mc -> mc.gui.hud.toggle());
+					ctx.takeScreenshot("38g_cubee_walking");
+					ctx.runOnClient(mc -> mc.gui.hud.toggle());
+				}
+			}
+			check(maxBlend > 0.3, "cubee did not play its walk animation: " + maxBlend);
+			ctx.waitTicks(30);
+			check(ctx.computeOnClient(mc -> mc.level.getEntity(-4_242_042).getY() - mc.player.getY()) < 0.45, "cubee is not on the ground");
+			ctx.takeScreenshot("38h_cubee_after_walk");
 			// a walker really walks after you (legs move) when you go away
 			ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CompanionModule) module("Begleiter")).type.set("Kupfergolem"));
 			ctx.waitTicks(10);

@@ -72,6 +72,32 @@ public class CompanionModule extends Module {
 		KINDS.put("Schleim", new Kind(EntityTypes.SLIME, 1.0, Motion.HOP, false));
 		// pets with their own model: an invisible allay does the flying, PetRenderer draws the model
 		KINDS.put("Blobfisch", new Kind(EntityTypes.ALLAY, 1.0, Motion.FLY, false, "blobfish"));
+		// CUBEES by Cubes Studio (MCModels), used with the permission of Cubes Studio (see README, Credits):
+		// an invisible baby pig does the walking, the baby ghast floats on an invisible allay
+		KINDS.put("Cubee Feuer", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_fire"));
+		KINDS.put("Cubee Wasser", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_water"));
+		KINDS.put("Cubee Gras", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_grass"));
+		KINDS.put("Cubee Stein", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_stone"));
+		KINDS.put("Cubee TNT", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_tnt"));
+		KINDS.put("Cubee Skelett", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_skeleton"));
+		KINDS.put("Cubee Engel", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_good"));
+		KINDS.put("Cubee Teufel", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_evil"));
+		KINDS.put("Cubee Wüste", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_desert"));
+		KINDS.put("Cubee Dschungel", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_jungle"));
+		KINDS.put("Cubee Blüte", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_lush"));
+		KINDS.put("Cubee Pilz", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_mushroom"));
+		KINDS.put("Cubee Sumpf", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_swamp"));
+		KINDS.put("Cubee Ebene", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_plains"));
+		KINDS.put("Cubee Savanne", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_savanna"));
+		KINDS.put("Cubee Schnee", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_snow"));
+		KINDS.put("Cubee Baby-Ghast", new Kind(EntityTypes.ALLAY, 1.0, Motion.FLY, false, "cubee_baby_ghast"));
+		KINDS.put("Cubee Bomber-Creeper", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_bombardier_creeper"));
+		KINDS.put("Cubee Kanone", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_cannon"));
+		KINDS.put("Cubee Hoodie-Fuchs", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_hoody_fox"));
+		KINDS.put("Cubee Lama", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_llama"));
+		KINDS.put("Cubee Steinschleuder", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_slingshot"));
+		KINDS.put("Cubee Swag-Plünderer", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_swag_pillager"));
+		KINDS.put("Cubee Glitzerhexe", new Kind(EntityTypes.PIG, 1.0, Motion.WALK, true, "cubee_twinkle_witch"));
 	}
 
 	public final ModeSetting type = add(new ModeSetting("Begleiter", "Allay", KINDS.keySet().toArray(new String[0])));
@@ -107,6 +133,18 @@ public class CompanionModule extends Module {
 		return buddy == null ? null : kind().model();
 	}
 
+	private boolean frozenForTest;
+
+	/** Test hook: the buddy stops following (for close-up screenshots). */
+	public void freezeForTest(boolean frozen) {
+		frozenForTest = frozen;
+	}
+
+	/** True if the current buddy flies (pets with their own model use the fly or walk animation). */
+	public boolean flies() {
+		return kind().motion() == Motion.FLY;
+	}
+
 	/** True if the chosen buddy walks/hops on the ground (tests). */
 	public boolean walks() {
 		return kind().motion() != Motion.FLY;
@@ -127,6 +165,9 @@ public class CompanionModule extends Module {
 			if (buddy == null) {
 				return;
 			}
+		}
+		if (frozenForTest) {
+			return;
 		}
 		Kind k = kind();
 		float yawRad = p.getYRot() * Mth.DEG_TO_RAD;
