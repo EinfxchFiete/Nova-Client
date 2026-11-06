@@ -581,12 +581,11 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 06.11.2026 (Nutzer: „stop merke dir wo du bist“): v1.8.0 fertig gebaut und getestet, aber NOCH NICHT an den Nutzer geschickt.**
-  Tests: Gametest PASSED (93 Module), `backend` npm test PASSED, Launcher UI-Test, Launch-Test und UI-Launch-Test PASSED (Launcher-Tests
-  ohne Performance-Mods, siehe Changelog 17). Die Jar 1.8.0 liegt im Repo als `launcher/resources/nova-client.jar` (Commit 178d8db).
-  **Nächste Schritte:** (1) `nova-client-1.8.0.zip` (Jar darin) und `launcher/dist/Nova-Launcher-Windows.zip` per SendUserFile schicken
-  – liegen sie nicht mehr da (neue Cloud-Session), nach Abschnitt 1 neu bauen; (2) Render-Deploy prüfen (`/health`);
-  (3) den Nutzer fragen, ob alles funktioniert (Performance-Mods, Songtext-Timing).
+- **Stand 06.11.2026: v1.8.0 fertig und ausgeliefert** (Changelog 17): `nova-client-1.8.0.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
+  (Launcher 1.5.0 inkl. Nova 1.8.0) per SendUserFile geschickt. Tests: Gametest PASSED (93 Module), `backend` npm test PASSED,
+  Launcher UI-Test, Launch-Test und UI-Launch-Test PASSED (Launcher-Tests ohne Performance-Mods, siehe Changelog 17).
+  Render online geprüft: `/health` ok, `/v1/auth/start` ok, `/v1/auth/dev` 404 (richtig). Ob der neue Server-Stand (1.4) schon
+  deployt ist, lässt sich ohne echte Anmeldung nicht direkt sehen (Auto-Deploy bei jedem Push auf `main`).
 - **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?
 - Halbfertig im Code: nichts bekannt.
 - Besprochen, aber nicht im Repo: Standard-Client-ID im Launcher vorbelegen (Idee, siehe 8), E-Mail aus Git-Historie entfernen (Angebot).
