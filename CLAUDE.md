@@ -584,8 +584,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 - **Stand 06.11.2026: v1.8.0 fertig und ausgeliefert** (Changelog 17): `nova-client-1.8.0.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
   (Launcher 1.5.0 inkl. Nova 1.8.0) per SendUserFile geschickt. Tests: Gametest PASSED (93 Module), `backend` npm test PASSED,
   Launcher UI-Test, Launch-Test und UI-Launch-Test PASSED (Launcher-Tests ohne Performance-Mods, siehe Changelog 17).
-  Render online geprüft: `/health` ok, `/v1/auth/start` ok, `/v1/auth/dev` 404 (richtig). Ob der neue Server-Stand (1.4) schon
-  deployt ist, lässt sich ohne echte Anmeldung nicht direkt sehen (Auto-Deploy bei jedem Push auf `main`).
+  Render geprüft: `/health` → `{"ok":true,"version":"1.4"}` (Server zeigt seit 1.4 seine Version auf `/` und `/health`, so sieht man,
+  ob ein Deploy live ist), `/v1/auth/start` ok, `/v1/auth/dev` 404 (richtig).
 - **Wartet auf Rückmeldung des Nutzers:** laufen die Performance-Mods (Sodium & Co.) mit Nova unter Windows, passt das Songtext-Timing?
 - Halbfertig im Code: nichts bekannt.
 - Besprochen, aber nicht im Repo: Standard-Client-ID im Launcher vorbelegen (Idee, siehe 8), E-Mail aus Git-Historie entfernen (Angebot).
