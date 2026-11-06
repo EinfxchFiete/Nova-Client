@@ -52,6 +52,8 @@ async function login(port, name, joinIt = true) {
     const bad = await login(port, 'Flipp1009', false);
     assert.strictEqual(bad.status, 403, 'unconfirmed login must fail');
 
+    const health = await (await fetch(`http://127.0.0.1:${port}/health`)).json();
+    assert.deepStrictEqual(health, { ok: true, version: '1.4' });
     const a = await login(port, 'Flipp1009');
     assert.strictEqual(a.status, 200);
     assert.strictEqual(a.json.uuid, '0c68d1f1-ba5c-4356-833b-5f1cb4e4530c');

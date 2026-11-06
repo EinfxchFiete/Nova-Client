@@ -21,6 +21,9 @@ const PENDING_TTL = 2 * 60 * 1000;
 const MAX_BODY = 32 * 1024;
 const MAX_PLAYERS_PER_SYNC = 200;
 
+/** Server version, shown on / and /health (lets you see that a deploy is live). */
+const VERSION = '1.4';
+
 const HEADS = new Set(['bandana', 'crown', 'tophat', 'horns', 'catears', 'halo',
   'partyhat', 'cowboyhat', 'bunnyears', 'headphones', 'sunglasses', 'viking', 'flowercrown', 'beanie',
   'witchhat', 'santahat', 'chefhat', 'foxears', 'unicorn', 'propeller']);
@@ -222,8 +225,8 @@ function session(req) {
 }
 
 const routes = {
-  'GET /': async (req, res) => send(res, 200, { name: 'Nova Server', ok: true, players: statuses.size }),
-  'GET /health': async (req, res) => send(res, 200, { ok: true }),
+  'GET /': async (req, res) => send(res, 200, { name: 'Nova Server', version: VERSION, ok: true, players: statuses.size }),
+  'GET /health': async (req, res) => send(res, 200, { ok: true, version: VERSION }),
 
   'POST /v1/auth/start': async (req, res) => {
     if (!allow(`start:${clientIp(req)}`, 20, 60000)) return send(res, 429, { error: 'zu viele Anfragen' });
