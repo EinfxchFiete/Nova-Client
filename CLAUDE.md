@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.8.6** (96 Module), **Nova Launcher 1.5.6**, Nova-Server 1.6 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.7** (96 Module), **Nova Launcher 1.5.7**, Nova-Server 1.6 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -600,6 +600,12 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
     **eigenen** Namen und werden **nicht** über den Nova-Server synchronisiert (wie schon die Namensfarbe). Gametest PASSED
     (Screenshots `67_name_*`; Nametags sind nur bei sichtbarem HUD zu sehen). Die FPS-Boost-Prüfung (Truhen) ist einmal an der
     Zeit gescheitert, als Build und Test gleichzeitig liefen – beim nächsten Lauf bestanden (Testumgebung, kein Code-Fehler).
+24. Nutzer-Feedback zu 1.8.6: „in der Tab-Liste ist der Username nicht animiert und der komplette Nametag ist farbig, obwohl es nur
+    der Username sein soll“ → **v1.8.7** + **Launcher 1.5.7**: `NametagModule.colorize(name, username)` läuft per `Component.visit`
+    über den Anzeigenamen und färbt/animiert **nur die Zeichen des Usernamens** (`mc.getUser().getName()`); Rang-Präfixe, Team-Farben und
+    Suffixe behalten ihren Stil (steht der Username nicht im Text, z. B. bei Nick-Plugins, wird wie bisher alles gefärbt). `Badges.decorate`
+    wendet den Effekt jetzt auch in der **Tab-Liste** an (Setting „Auch in der Tab-Liste“, Standard an). Gametest prüft Präfix/Suffix-Farben
+    und den Tab-Namen (`hud.getTabList().getNameForDisplay`); die Tab-Liste selbst ist im Einzelspieler weiter nicht im Bild prüfbar.
 
 ---
 
@@ -663,7 +669,7 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 10.11.2026: v1.8.6 fertig und ausgeliefert** (Changelog 22–23, Branch `claude/vigilant-dijkstra-xheslm`, Merge nach `main` offen).
+- **Stand 10.11.2026: v1.8.7 fertig und ausgeliefert** (Changelog 22–24, Branch `claude/vigilant-dijkstra-xheslm`, Merge nach `main` offen).
 - Stand 06.11.2026: v1.8.4 fertig und ausgeliefert (Changelog 21): `nova-client-1.8.4.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
   (Launcher 1.5.4 inkl. Nova 1.8.4).
 - **Rückmeldung holen:** Passt der Songtext jetzt unter Windows/Spotify? Funktionieren Play/Pause/Weiter im Musik-Menü? Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.

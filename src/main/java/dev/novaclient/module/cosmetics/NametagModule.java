@@ -22,6 +22,11 @@ public class NametagModule extends Module {
 		"Weiß", "Gold", "Rot", "Grün", "Blau", "Pink", "Lila", "Türkis"));
 	public final BoolSetting bold = add(new BoolSetting("Fett", false));
 	public final BoolSetting italic = add(new BoolSetting("Schräg", false));
+	public final BoolSetting inTab = add(new BoolSetting("Auch in der Tab-Liste", true));
+
+	public static boolean tabOn() {
+		return instance != null && instance.inTab.isOn();
+	}
 
 	public NametagModule() {
 		super("Nametags", "Eigener Name in der 3. Person, Nova-Symbol, Namensfarbe und animierte Effekte", Category.COSMETICS, false);
@@ -47,6 +52,15 @@ public class NametagModule extends Module {
 
 	/** Own name in the chosen colour (when the module is on). */
 	public static Component colorize(Component name) {
+		net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+		return colorize(name, mc.getUser() == null ? "" : mc.getUser().getName());
+	}
+
+	/**
+	 * Colours and animates only the user name inside the display name; everything around it (rank prefixes, team
+	 * colours, suffixes) keeps its own style. If the user name is not part of the text, the whole text is styled.
+	 */
+	public static Component colorize(Component name, String username) {
 		NametagModule n = instance;
 		if (n == null || !n.isEnabled() || name == null) {
 			return name;
@@ -54,31 +68,48 @@ public class NametagModule extends Module {
 		int c = n.nameColor();
 		String fx = n.effect.get();
 		boolean styled = n.bold.isOn() || n.italic.isOn();
-		if (fx.equals("Keiner") && !styled) {
-			return c < 0 ? name : Component.literal(name.getString()).withColor(c);
+		if (fx.equals("Keiner") && !styled && c < 0) {
+			return name;
 		}
 		String s = name.getString();
+		int from = username == null || username.isEmpty() ? -1 : s.indexOf(username);
+		int to = from < 0 ? s.length() : from + username.length();
+		if (from < 0) {
+			from = 0;
+		}
 		int base = c < 0 ? 0xFFFFFF : c;
 		if (fx.equals("Gold-Stern")) {
 			base = 0xFFD54A;
 		}
 		float t = (System.currentTimeMillis() % 3_600_000L) / 1000.0F;
-		int len = s.length();
+		int len = to - from;
+		final int start = from;
+		final int end = to;
+		final int baseColor = base;
 		net.minecraft.network.chat.MutableComponent out = Component.empty();
-		if (fx.equals("Gold-Stern")) {
-			out.append(Component.literal("★ ").withColor(mix(0xFFB300, 0xFFF59D, 0.5F + 0.5F * (float) Math.sin(t * 4.0F))));
-		}
-		for (int i = 0; i < len; i++) {
-			int col = n.letterColor(fx, base, i, len, t);
-			net.minecraft.network.chat.MutableComponent letter = Component.literal(String.valueOf(s.charAt(i))).withColor(col);
-			if (n.bold.isOn()) {
-				letter.withStyle(net.minecraft.ChatFormatting.BOLD);
+		int[] pos = {0};
+		name.visit((style, text) -> {
+			for (int k = 0; k < text.length(); k++) {
+				int i = pos[0]++;
+				String ch = String.valueOf(text.charAt(k));
+				if (i < start || i >= end) {
+					out.append(Component.literal(ch).setStyle(style));
+					continue;
+				}
+				if (i == start && fx.equals("Gold-Stern")) {
+					out.append(Component.literal("★ ").withColor(mix(0xFFB300, 0xFFF59D, 0.5F + 0.5F * (float) Math.sin(t * 4.0F))));
+				}
+				net.minecraft.network.chat.Style st = style.withColor(n.letterColor(fx, baseColor, i - start, len, t));
+				if (n.bold.isOn()) {
+					st = st.withBold(true);
+				}
+				if (n.italic.isOn()) {
+					st = st.withItalic(true);
+				}
+				out.append(Component.literal(ch).setStyle(st));
 			}
-			if (n.italic.isOn()) {
-				letter.withStyle(net.minecraft.ChatFormatting.ITALIC);
-			}
-			out.append(letter);
-		}
+			return java.util.Optional.empty();
+		}, net.minecraft.network.chat.Style.EMPTY);
 		return out;
 	}
 

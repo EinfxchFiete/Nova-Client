@@ -1911,8 +1911,25 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					check(shown.endsWith("Tester") && shown.startsWith("★") == fx.equals("Gold-Stern"), "name effect broke the name: " + fx + " -> " + shown);
 					ctx.takeScreenshot("67_name_" + fx.substring(0, 4).toLowerCase(java.util.Locale.ROOT));
 				}
-				check(ctx.computeOnClient(mc -> dev.novaclient.module.cosmetics.NametagModule.colorize(net.minecraft.network.chat.Component.literal("Tester")).getSiblings().size()) == 7,
-					"gold star style should have 7 parts");
+				// only the user name is styled: a rank prefix and suffix keep their own colours; also used in the tab list
+				String styledParts = ctx.computeOnClient(mc -> {
+					tags.effect.set("Feuer");
+					var in = net.minecraft.network.chat.Component.literal("[Admin] ").withColor(0xFF0000)
+						.append(net.minecraft.network.chat.Component.literal("Tester").withColor(0x00FF00))
+						.append(net.minecraft.network.chat.Component.literal(" ❤").withColor(0x0000FF));
+					var out = dev.novaclient.module.cosmetics.NametagModule.colorize(in, "Tester");
+					StringBuilder sb = new StringBuilder(out.getString()).append('|');
+					for (var part : out.getSiblings()) {
+						var col = part.getStyle().getColor();
+						int rgb = col == null ? -1 : col.getValue();
+						sb.append(rgb == 0xFF0000 ? 'p' : rgb == 0x0000FF ? 's' : rgb == 0x00FF00 ? 'x' : 'n');
+					}
+					var me = mc.getConnection().getPlayerInfo(mc.player.getUUID());
+					var tab = mc.gui.hud.getTabList().getNameForDisplay(me);
+					sb.append('|').append(tab.toFlatList().size() > 3);
+					return sb.toString();
+				});
+				check(styledParts.equals("[Admin] Tester ❤|ppppppppnnnnnnss|true"), "name effect must only style the user name: " + styledParts);
 				ctx.runOnClient(mc -> {
 					tags.effect.set("Keiner");
 					tags.bold.set(false);

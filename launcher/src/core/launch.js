@@ -10,7 +10,7 @@ const mods = require('./mods');
 
 const GAME_VERSION = '26.3';
 const LAUNCHER_NAME = 'NovaLauncher';
-const LAUNCHER_VERSION = '1.5.6';
+const LAUNCHER_VERSION = '1.5.7';
 
 /** group:artifact[:classifier] of a maven name, used to drop duplicate libraries. */
 function libKey(name) {

@@ -5,7 +5,7 @@ PvP- und Quality-of-Life-Client-Mod für **Minecraft 26.3** (Fabric).
 ## Installation
 1. Fabric Loader **0.20.1+** für Minecraft 26.3 installieren
 2. **Fabric API** (26.3) in den `mods`-Ordner legen
-3. `nova-client-1.8.6.jar` in den `mods`-Ordner legen
+3. `nova-client-1.8.7.jar` in den `mods`-Ordner legen
 4. Java 25 (bringt der offizielle Launcher automatisch mit)
 
 ## Bedienung

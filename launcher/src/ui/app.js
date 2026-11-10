@@ -14,6 +14,7 @@ let logLines = [];
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444', '#ec4899', '#64748b'];
 const NEWS = [
+  { t: 'Nova Client 1.8.7', title: 'Nametag-Fix', g: 'linear-gradient(135deg,#34d399,#60a5fa)', text: 'Namens-Effekte färben jetzt nur noch deinen Usernamen (Ränge und Präfixe bleiben wie sie sind) und laufen auch in der Tab-Liste.' },
   { t: 'Nova Client 1.8.6', title: 'Animierte Nametags', g: 'linear-gradient(135deg,#fb7185,#a78bfa)', text: '11 Namens-Effekte im Cosmetics-Menü (Nametags): Farbverlauf, Regenbogen-Welle, Metallic, Pulsieren, Schimmer, Blinken, Chromatisch, Feuer, Leuchten, Buchstabe für Buchstabe und Gold-Stern – dazu fett und schräg.' },
   { t: 'Nova Client 1.8.5', title: 'Neue Emotes & Cosmetics', g: 'linear-gradient(135deg,#f472b6,#facc15)', text: '11 neue Emotes: Dab, Hinsetzen, Meditieren, Schlafen, Hampelmann, T-Pose, Roboter, Lachen, Weinen, Disco, Pirouette. Dazu Doktorhut, Irokese, Cyber-Visier, Quietsche-Ente, Maske, Rückenschild, Köcher, Luftballon und 2 neue Capes.' },
   { t: 'Nova Client 1.8.4', title: 'Musik-Menü & Otter', g: 'linear-gradient(135deg,#a78bfa,#22d3ee)', text: 'Neues Musik-Menü (Startmenü → 4) mit Play/Pause, Verlauf und Top-Songs. Songtexte passen besser: Klick auf die gesungene Zeile, früher/später pro Song, anderer Text. Neu: Otter-Begleiter von Nocsy.' },
