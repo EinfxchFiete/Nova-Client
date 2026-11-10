@@ -14,9 +14,17 @@ public class NametagModule extends Module {
 	public final BoolSetting symbol = add(new BoolSetting("Nova-Symbol vor dem Namen", true));
 	public final dev.novaclient.setting.ModeSetting color = add(new dev.novaclient.setting.ModeSetting("Namensfarbe", "Normal",
 		"Normal", "Theme", "Regenbogen", "Gold", "Rot", "Grün", "Blau", "Pink"));
+	/** Animated name styles (own implementation; every letter gets its own colour each frame). */
+	public final dev.novaclient.setting.ModeSetting effect = add(new dev.novaclient.setting.ModeSetting("Effekt", "Keiner",
+		"Keiner", "Farbverlauf", "Regenbogen-Welle", "Metallic", "Pulsieren", "Schimmer", "Blinken", "Chromatisch", "Feuer", "Leuchten",
+		"Buchstabe für Buchstabe", "Gold-Stern"));
+	public final dev.novaclient.setting.ModeSetting second = add(new dev.novaclient.setting.ModeSetting("Zweite Farbe (Farbverlauf)", "Blau",
+		"Weiß", "Gold", "Rot", "Grün", "Blau", "Pink", "Lila", "Türkis"));
+	public final BoolSetting bold = add(new BoolSetting("Fett", false));
+	public final BoolSetting italic = add(new BoolSetting("Schräg", false));
 
 	public NametagModule() {
-		super("Nametags", "Eigener Name in der 3. Person, Nova-Symbol und Namensfarbe", Category.COSMETICS, false);
+		super("Nametags", "Eigener Name in der 3. Person, Nova-Symbol, Namensfarbe und animierte Effekte", Category.COSMETICS, false);
 		instance = this;
 	}
 
@@ -44,7 +52,84 @@ public class NametagModule extends Module {
 			return name;
 		}
 		int c = n.nameColor();
-		return c < 0 ? name : Component.literal(name.getString()).withColor(c);
+		String fx = n.effect.get();
+		boolean styled = n.bold.isOn() || n.italic.isOn();
+		if (fx.equals("Keiner") && !styled) {
+			return c < 0 ? name : Component.literal(name.getString()).withColor(c);
+		}
+		String s = name.getString();
+		int base = c < 0 ? 0xFFFFFF : c;
+		if (fx.equals("Gold-Stern")) {
+			base = 0xFFD54A;
+		}
+		float t = (System.currentTimeMillis() % 3_600_000L) / 1000.0F;
+		int len = s.length();
+		net.minecraft.network.chat.MutableComponent out = Component.empty();
+		if (fx.equals("Gold-Stern")) {
+			out.append(Component.literal("★ ").withColor(mix(0xFFB300, 0xFFF59D, 0.5F + 0.5F * (float) Math.sin(t * 4.0F))));
+		}
+		for (int i = 0; i < len; i++) {
+			int col = n.letterColor(fx, base, i, len, t);
+			net.minecraft.network.chat.MutableComponent letter = Component.literal(String.valueOf(s.charAt(i))).withColor(col);
+			if (n.bold.isOn()) {
+				letter.withStyle(net.minecraft.ChatFormatting.BOLD);
+			}
+			if (n.italic.isOn()) {
+				letter.withStyle(net.minecraft.ChatFormatting.ITALIC);
+			}
+			out.append(letter);
+		}
+		return out;
+	}
+
+	private int secondColor() {
+		return switch (second.get()) {
+			case "Gold" -> 0xFFC830;
+			case "Rot" -> 0xFF5050;
+			case "Grün" -> 0x55FF77;
+			case "Blau" -> 0x5599FF;
+			case "Pink" -> 0xFF77DD;
+			case "Lila" -> 0xB388FF;
+			case "Türkis" -> 0x40E0D0;
+			default -> 0xFFFFFF;
+		};
+	}
+
+	/** Colour of letter i (of len) at time t for the chosen effect. */
+	int letterColor(String fx, int base, int i, int len, float t) {
+		float p = len <= 1 ? 0 : i / (float) (len - 1);
+		// a highlight that sweeps over the name from left to right, then pauses
+		float sweep = (t * 0.7F) % 1.8F - 0.3F;
+		float shine = Math.max(0, 1 - Math.abs(p - sweep) * 4.0F);
+		return switch (fx) {
+			case "Farbverlauf" -> mix(base, secondColor(), 0.5F + 0.5F * (float) Math.sin((p * 0.8F - t * 0.35F) * Math.PI * 2));
+			case "Regenbogen-Welle" -> java.awt.Color.HSBtoRGB(frac(t * 0.4F - i * 0.07F), 0.7F, 1F) & 0xFFFFFF;
+			case "Metallic" -> mix(mix(base, 0x8A909C, 0.6F), 0xFFFFFF, shine);
+			case "Pulsieren" -> mix(base, scale(base, 0.3F), 0.5F + 0.5F * (float) Math.sin(t * 3.0F));
+			case "Schimmer" -> mix(base, 0xFFFFFF, shine * 0.75F);
+			case "Blinken" -> (long) (t * 2.0F) % 2 == 0 ? base : scale(base, 0.35F);
+			case "Chromatisch" -> mix(0xFF3B5C, 0x3BE8FF, 0.5F + 0.5F * (float) Math.sin(t * 5.0F + i * 1.3F));
+			case "Feuer" -> mix(0xFF3D00, 0xFFE24A, 0.5F + 0.5F * (float) (Math.sin(t * 9.0F + i * 2.1F) * Math.sin(t * 5.3F + i)));
+			case "Leuchten" -> mix(base, 0xFFFFFF, 0.35F + 0.35F * (float) Math.sin(t * 4.0F));
+			case "Buchstabe für Buchstabe" -> (int) (t * 8.0F) % (len + 3) == i ? 0xFFFFFF : scale(base, 0.6F);
+			default -> base;
+		};
+	}
+
+	private static float frac(float v) {
+		return v - (float) Math.floor(v);
+	}
+
+	private static int scale(int rgb, float f) {
+		return mix(0x000000, rgb, f);
+	}
+
+	private static int mix(int a, int b, float f) {
+		f = Math.max(0, Math.min(1, f));
+		int r = (int) (((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * f);
+		int g = (int) (((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * f);
+		int bl = (int) ((a & 255) + ((b & 255) - (a & 255)) * f);
+		return r << 16 | g << 8 | bl;
 	}
 
 	/** Whether the Nova symbol should be shown in front of your own name. */

@@ -1891,6 +1891,37 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				ctx.waitTicks(3);
 				ctx.takeScreenshot("66d_wheel_page3");
 				ctx.runOnClient(mc -> mc.gui.setScreen(null));
+				// 1.8.6: animated name styles
+				var tags = (dev.novaclient.module.cosmetics.NametagModule) module("Nametags");
+				ctx.runOnClient(mc -> {
+					tags.setEnabled(true);
+					tags.color.set("Pink");
+					tags.bold.set(true);
+					// name tags are only drawn while the HUD is visible
+					if (mc.gui.hud.isHidden()) {
+						mc.gui.hud.toggle();
+					}
+					module("Extras").setEnabled(false);
+				});
+				for (String fx : new String[] {"Farbverlauf", "Regenbogen-Welle", "Metallic", "Pulsieren", "Schimmer", "Blinken", "Chromatisch", "Feuer",
+					"Leuchten", "Buchstabe für Buchstabe", "Gold-Stern"}) {
+					ctx.runOnClient(mc -> tags.effect.set(fx));
+					ctx.waitTicks(4);
+					String shown = ctx.computeOnClient(mc -> dev.novaclient.module.cosmetics.NametagModule.colorize(net.minecraft.network.chat.Component.literal("Tester")).getString());
+					check(shown.endsWith("Tester") && shown.startsWith("★") == fx.equals("Gold-Stern"), "name effect broke the name: " + fx + " -> " + shown);
+					ctx.takeScreenshot("67_name_" + fx.substring(0, 4).toLowerCase(java.util.Locale.ROOT));
+				}
+				check(ctx.computeOnClient(mc -> dev.novaclient.module.cosmetics.NametagModule.colorize(net.minecraft.network.chat.Component.literal("Tester")).getSiblings().size()) == 7,
+					"gold star style should have 7 parts");
+				ctx.runOnClient(mc -> {
+					tags.effect.set("Keiner");
+					tags.bold.set(false);
+					tags.color.set("Normal");
+					if (!mc.gui.hud.isHidden()) {
+						mc.gui.hud.toggle();
+					}
+					module("Extras").setEnabled(true);
+				});
 				ctx.runOnClient(mc -> {
 					dev.novaclient.emote.Emotes.stop();
 					module("Kopfschmuck").setEnabled(false);
