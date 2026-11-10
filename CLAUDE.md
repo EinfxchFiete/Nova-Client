@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.8.7** (96 Module), **Nova Launcher 1.5.7**, Nova-Server 1.6 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.8** (96 Module), **Nova Launcher 1.5.8**, Nova-Server 1.6 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -606,6 +606,24 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
     Suffixe behalten ihren Stil (steht der Username nicht im Text, z. B. bei Nick-Plugins, wird wie bisher alles gefärbt). `Badges.decorate`
     wendet den Effekt jetzt auch in der **Tab-Liste** an (Setting „Auch in der Tab-Liste“, Standard an). Gametest prüft Präfix/Suffix-Farben
     und den Tab-Namen (`hud.getTabList().getNameForDisplay`); die Tab-Liste selbst ist im Einzelspieler weiter nicht im Bild prüfbar.
+25. Nutzer: „Füge noch hinzu, dass man Custom Icons machen kann“ + 5 Beispielbilder (je zwei Bilder untereinander, 256×512: Blitz rot/
+    Verlauf, Blitz Marmor hell/dunkel, Garfield, Bisasam grün/gold, Pommes rot/gold) → **v1.8.8** + **Launcher 1.5.8**: **Namens-Icons**.
+    - `cosmetics/NameIcons`: eigene PNGs aus **`config/novaclient/icons/`** (max. 4 MB, Name ≤ 40 Zeichen) + 5 eingebaute eigene Icons
+      (Blitz, Herz, Stern, Flamme, Diamant; `textures/icons/*.png`, Generator `tools/assets/name_icons.py`). Ist ein Bild ein Vielfaches
+      höher als breit, sind das **mehrere Bilder untereinander** (max. 16), die abwechselnd gezeigt werden. Große Bilder werden pro Bild
+      auf 36 px Höhe verkleinert (Halbierungsschritte), Pixel-Art ≤ 36 px bleibt unverändert; Upload als `DynamicTexture`.
+    - Modul „Nametags“: `IconSetting` „Icon“ (dynamische Liste, wird alle 2 s neu gelesen; unbekannte Namen bleiben gespeichert),
+      „Icon-Wechsel (mehrere Bilder)“ Aus/Langsam 2 s/Normal 1 s/Schnell 0,3 s. Befehle **`/icons`** (zeigt den Ordner, klickbar) und
+      **`/icons neu`** (neu laden nach dem Ändern einer Datei).
+    - Zeichnen: `Badges.decorate` setzt Leerzeichen vor den eigenen Namen (`Icon.spaces()`), das Bild wird darüber gezeichnet –
+      Nametag: `AvatarRendererMixin.novaclient$nameIcon` (`submitCustomGeometry`, Render-Typ `textSeeThrough`/`text` wie die Schrift;
+      `entity*`-Typen werden über die Normale schattiert und waren zu dunkel), Tab-Liste: `PlayerTabOverlayMixin` `@WrapOperation`
+      (MixinExtras, erste Nutzung) um `GuiGraphicsExtractor.text(Font, Component, …)` in `extractRenderState`, Erkennung per Identität
+      (`Badges.lastTabName`), `g.blit`. Der halbtransparente Nametag-Hintergrund liegt wie bei der Schrift darüber (25 % dunkler) – so gelassen.
+    - **Die Beispielbilder des Nutzers (Garfield, Pokémon) sind nicht im Repo** (fremde Figuren) – er kann sie lokal in seinen Ordner legen.
+      Icons sieht nur man selbst (kein Sync über den Server; eigene Bilder zu übertragen bräuchte Upload + Moderation).
+    - Gametest: schreibt `TestIcon.png` (2 Bilder) in den Ordner, prüft Liste, Frames, Tab-Leerzeichen; Screenshots `68_icon_*`. PASSED.
+      Die wackelige FPS-Boost-Prüfung wartet jetzt, bis die Truhen beim Client angekommen sind.
 
 ---
 
@@ -669,7 +687,7 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 10.11.2026: v1.8.7 fertig und ausgeliefert** (Changelog 22–24, Branch `claude/vigilant-dijkstra-xheslm`, Merge nach `main` offen).
+- **Stand 10.11.2026: v1.8.8 fertig und ausgeliefert** (Changelog 22–25, Branch `claude/vigilant-dijkstra-xheslm`, Merge nach `main` offen).
 - Stand 06.11.2026: v1.8.4 fertig und ausgeliefert (Changelog 21): `nova-client-1.8.4.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
   (Launcher 1.5.4 inkl. Nova 1.8.4).
 - **Rückmeldung holen:** Passt der Songtext jetzt unter Windows/Spotify? Funktionieren Play/Pause/Weiter im Musik-Menü? Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
@@ -720,6 +738,7 @@ Einzige Ausnahme: `SdlGlTest.java` hieß im Chat `T.java` (Klasse `T`), nur der 
 | `tools/assets/cosmetic_assets_v3.py` | 1.6: neue Kopf-Cosmetics, Extras, Flügel bat/fairy/phoenix (+ `_tint`), Capes hearts/glitch/portal | `python3 -B tools/assets/cosmetic_assets_v3.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/cosmetic_assets_v2.py` | 1.5: Graustufen-Flügel/-Hörner (`*_tint`), neue Krone + `crown_gems.png`, Kette, 7 neue animierte Capes | `python3 tools/assets/cosmetic_assets_v2.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/cosmetic_assets_v7.py` | 1.8.5: Doktorhut, Irokese, Visier, Ente, Maske, Schild, Köcher, Luftballon, Capes circuit/lavalamp | `python3 -B tools/assets/cosmetic_assets_v7.py src/main/resources/assets/novaclient/textures` |
+| `tools/assets/name_icons.py` | 1.8.8: eingebaute Namens-Icons (Blitz, Herz, Stern, Flamme, Diamant; 32×64, 2 Bilder) | `python3 -B tools/assets/name_icons.py src/main/resources/assets/novaclient/textures/icons` |
 | `tools/assets/mod_icon.py` | Mod-Icon 128×128 | im Repo-Root: `python3 tools/assets/mod_icon.py` |
 | `tools/assets/launcher_assets.py` | Launcher `default-skin.png` + `icon.png` | in `launcher/`: `python3 ../tools/assets/launcher_assets.py` |
 | `tools/assets/make_ico.py` | `icon.ico` aus `icon.png` | in `launcher/`: `python3 ../tools/assets/make_ico.py` |

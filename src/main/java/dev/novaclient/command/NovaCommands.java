@@ -127,6 +127,25 @@ public final class NovaCommands {
 			}))
 			.then(ClientCommands.literal("aus").executes(c -> hide(c.getSource(), true)))
 			.then(ClientCommands.literal("an").executes(c -> hide(c.getSource(), false))));
+		d.register(ClientCommands.literal("icons")
+			.executes(c -> {
+				java.nio.file.Path dir = dev.novaclient.cosmetics.NameIcons.folder();
+				try {
+					java.nio.file.Files.createDirectories(dir);
+				} catch (Exception e) {
+					// the path is shown below either way
+				}
+				info(c.getSource(), "Eigene Icons: PNG-Dateien in diesen Ordner legen, dann im Cosmetics-Menü unter Nametags → Icon auswählen.");
+				c.getSource().sendFeedback(prefix().append(Component.literal("[Ordner öffnen] ").withStyle(st -> st.withColor(0x55FF77)
+					.withClickEvent(new net.minecraft.network.chat.ClickEvent.OpenFile(dir.toAbsolutePath()))))
+					.append(Component.literal(dir.toAbsolutePath().toString()).withColor(0xBBBBBB)));
+				return 1;
+			})
+			.then(ClientCommands.literal("neu").executes(c -> {
+				dev.novaclient.cosmetics.NameIcons.reload();
+				info(c.getSource(), "Icons neu geladen: " + (dev.novaclient.cosmetics.NameIcons.names().size() - 1) + " verfügbar.");
+				return 1;
+			})));
 		d.register(ClientCommands.literal("playtime")
 			.executes(c -> {
 				Minecraft mc = c.getSource().getClient();

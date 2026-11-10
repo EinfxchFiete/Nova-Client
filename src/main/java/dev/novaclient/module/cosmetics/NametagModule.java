@@ -23,13 +23,35 @@ public class NametagModule extends Module {
 	public final BoolSetting bold = add(new BoolSetting("Fett", false));
 	public final BoolSetting italic = add(new BoolSetting("Schräg", false));
 	public final BoolSetting inTab = add(new BoolSetting("Auch in der Tab-Liste", true));
+	/** Icon in front of the own name: built-in ones or own PNG files from config/novaclient/icons. */
+	public final dev.novaclient.setting.IconSetting icon = add(new dev.novaclient.setting.IconSetting("Icon"));
+	public final dev.novaclient.setting.ModeSetting iconSwitch = add(new dev.novaclient.setting.ModeSetting("Icon-Wechsel (mehrere Bilder)", "Langsam",
+		"Aus", "Langsam", "Normal", "Schnell"));
+
+	/** The chosen name icon, or null (module off, none chosen, file not usable). Render thread only. */
+	public static dev.novaclient.cosmetics.NameIcons.Icon activeIcon() {
+		NametagModule n = instance;
+		return n == null || !n.isEnabled() ? null : dev.novaclient.cosmetics.NameIcons.get(n.icon.get());
+	}
+
+	/** Frame of the icon to show now. */
+	public static int iconFrame(dev.novaclient.cosmetics.NameIcons.Icon icon) {
+		NametagModule n = instance;
+		long ms = n == null ? 0 : switch (n.iconSwitch.get()) {
+			case "Langsam" -> 2000;
+			case "Normal" -> 1000;
+			case "Schnell" -> 300;
+			default -> 0;
+		};
+		return dev.novaclient.cosmetics.NameIcons.frame(icon, ms);
+	}
 
 	public static boolean tabOn() {
 		return instance != null && instance.inTab.isOn();
 	}
 
 	public NametagModule() {
-		super("Nametags", "Eigener Name in der 3. Person, Nova-Symbol, Namensfarbe und animierte Effekte", Category.COSMETICS, false);
+		super("Nametags", "Eigener Name in der 3. Person, Nova-Symbol, Namensfarbe, animierte Effekte und eigene Icons", Category.COSMETICS, false);
 		instance = this;
 	}
 

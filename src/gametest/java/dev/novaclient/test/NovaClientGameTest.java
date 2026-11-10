@@ -1734,6 +1734,17 @@ public class NovaClientGameTest implements FabricClientGameTest {
 				sp.getServer().runCommand("execute at @p run setblock ~56 ~ ~ minecraft:chest");
 				sp.getServer().runCommand("execute at @p run setblock ~6 ~ ~2 minecraft:chest");
 				ctx.waitTicks(20);
+				// the test environment is slow: wait until both chests have arrived on the client
+				for (int i = 0; i < 30; i++) {
+					boolean there = ctx.computeOnClient(mc -> {
+						var bp = mc.player.blockPosition();
+						return mc.level.getBlockEntity(bp.offset(56, 0, 0)) != null && mc.level.getBlockEntity(bp.offset(6, 0, 2)) != null;
+					});
+					if (there) {
+						break;
+					}
+					ctx.waitTicks(10);
+				}
 				String cull = ctx.computeOnClient(mc -> {
 					var cam = mc.gameRenderer.mainCamera().position();
 					String far = "?";
@@ -1930,7 +1941,52 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					return sb.toString();
 				});
 				check(styledParts.equals("[Admin] Tester ❤|ppppppppnnnnnnss|true"), "name effect must only style the user name: " + styledParts);
+				// 1.8.8: name icons - a built-in one and an own PNG with two frames from the icons folder
 				ctx.runOnClient(mc -> {
+					try {
+						var img = new java.awt.image.BufferedImage(64, 128, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+						var g2 = img.createGraphics();
+						g2.setColor(new java.awt.Color(0x22CC44));
+						g2.fillOval(4, 4, 56, 56);
+						g2.setColor(new java.awt.Color(0xFF8800));
+						g2.fillRect(8, 72, 48, 48);
+						g2.dispose();
+						java.nio.file.Files.createDirectories(dev.novaclient.cosmetics.NameIcons.folder());
+						javax.imageio.ImageIO.write(img, "png", dev.novaclient.cosmetics.NameIcons.folder().resolve("TestIcon.png").toFile());
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+					dev.novaclient.cosmetics.NameIcons.reload();
+					tags.effect.set("Keiner");
+					tags.icon.set("Blitz");
+					tags.iconSwitch.set("Aus");
+				});
+				ctx.waitTicks(4);
+				check(ctx.computeOnClient(mc -> dev.novaclient.cosmetics.NameIcons.names().contains("TestIcon")
+					&& dev.novaclient.cosmetics.NameIcons.names().contains("Blitz")), "icons not listed");
+				String iconInfo = ctx.computeOnClient(mc -> {
+					var blitz = dev.novaclient.module.cosmetics.NametagModule.activeIcon();
+					tags.icon.set("TestIcon");
+					var own = dev.novaclient.module.cosmetics.NametagModule.activeIcon();
+					var me = mc.getConnection().getPlayerInfo(mc.player.getUUID());
+					String tab = mc.gui.hud.getTabList().getNameForDisplay(me).getString();
+					tags.icon.set("Blitz");
+					return (blitz == null ? "null" : blitz.frames() + "x" + blitz.width()) + " " + (own == null ? "null" : own.frames() + "x" + own.width())
+						+ " " + tab.startsWith("   ") + " " + (dev.novaclient.cosmetics.Badges.lastTabName != null);
+				});
+				check(iconInfo.equals("2x9 2x9 true true"), "name icons wrong (built-in, own file, tab spaces, tab name): " + iconInfo);
+				ctx.takeScreenshot("68_icon_blitz");
+				ctx.runOnClient(mc -> tags.icon.set("TestIcon"));
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("68_icon_own_frame1");
+				ctx.runOnClient(mc -> {
+					tags.iconSwitch.set("Schnell");
+					tags.effect.set("Feuer");
+				});
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("68_icon_own_fire");
+				ctx.runOnClient(mc -> {
+					tags.icon.set(dev.novaclient.cosmetics.NameIcons.NONE);
 					tags.effect.set("Keiner");
 					tags.bold.set(false);
 					tags.color.set("Normal");

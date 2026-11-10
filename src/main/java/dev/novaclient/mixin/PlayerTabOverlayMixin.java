@@ -24,6 +24,23 @@ public abstract class PlayerTabOverlayMixin {
 		cir.setReturnValue(Badges.decorate(info.getProfile().id(), local, cir.getReturnValue(), false));
 	}
 
+	/** Draws the own name icon over the spaces in front of the local player's name. */
+	@com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation(method = "extractRenderState", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V"))
+	private void novaclient$tabNameIcon(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, Component text, int x, int y, int color,
+		com.llamalad7.mixinextras.injector.wrapoperation.Operation<Void> original) {
+		original.call(g, font, text, x, y, color);
+		if (text != null && text == Badges.lastTabName) {
+			dev.novaclient.cosmetics.NameIcons.Icon icon = dev.novaclient.module.cosmetics.NametagModule.activeIcon();
+			if (icon != null) {
+				int frame = dev.novaclient.module.cosmetics.NametagModule.iconFrame(icon);
+				int size = dev.novaclient.cosmetics.NameIcons.SIZE;
+				g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, icon.texture(), x, y - 1, 0, frame * icon.frameH(),
+					icon.width(), size, icon.frameW(), icon.frameH(), icon.frameW(), icon.frameH() * icon.frames());
+			}
+		}
+	}
+
 	@ModifyConstant(method = "extractRenderState", constant = @Constant(intValue = 13))
 	private int novaclient$widerPingColumn(int original) {
 		return TabPingModule.active() ? TabPingModule.SLOT_EXTRA : original;

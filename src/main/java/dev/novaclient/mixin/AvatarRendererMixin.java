@@ -37,6 +37,7 @@ public abstract class AvatarRendererMixin {
 		if (state.nameTag == null || state.nameTagAttachment == null) {
 			return;
 		}
+		novaclient$nameIcon(state, poseStack, collector, camera);
 		NowPlaying.Song song = songFor(state.id);
 		if (song == null) {
 			return;
@@ -73,6 +74,41 @@ public abstract class AvatarRendererMixin {
 			});
 			poseStack.popPose();
 		}
+		poseStack.popPose();
+	}
+
+	/** The own name icon: drawn over the spaces that {@link dev.novaclient.cosmetics.Badges} put in front of the name. */
+	private static void novaclient$nameIcon(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null || state.id != mc.player.getId() || !state.nameTag.getString().startsWith(" ")) {
+			return;
+		}
+		dev.novaclient.cosmetics.NameIcons.Icon icon = dev.novaclient.module.cosmetics.NametagModule.activeIcon();
+		if (icon == null) {
+			return;
+		}
+		int frame = dev.novaclient.module.cosmetics.NametagModule.iconFrame(icon);
+		float x0 = -mc.font.width(state.nameTag) / 2.0F;
+		float x1 = x0 + icon.width();
+		float y0 = (state.showExtraEars ? -10 : 0) - 0.5F;
+		float y1 = y0 + dev.novaclient.cosmetics.NameIcons.SIZE;
+		float v0 = frame / (float) icon.frames();
+		float v1 = (frame + 1) / (float) icon.frames();
+		var att = state.nameTagAttachment;
+		poseStack.pushPose();
+		poseStack.translate(att.x, att.y + 0.5, att.z);
+		poseStack.rotate(camera.orientation);
+		poseStack.scale(0.025F, -0.025F, 0.025F);
+		int color = state.isDiscrete ? 0x60FFFFFF : -1;
+		// the normal points straight up (world space), where the level light is brightest: the picture keeps its real colours
+		collector.submitCustomGeometry(poseStack, state.isDiscrete ? RenderTypes.text(icon.texture()) : RenderTypes.textSeeThrough(icon.texture()), (pose, buffer) -> {
+			int light = LightCoordsUtil.FULL_BRIGHT;
+			float z = -0.4F; // just in front of the name tag background (towards the camera)
+			buffer.addVertex(pose, x0, y0, z).setColor(color).setUv(0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(0, 1, 0);
+			buffer.addVertex(pose, x0, y1, z).setColor(color).setUv(0, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(0, 1, 0);
+			buffer.addVertex(pose, x1, y1, z).setColor(color).setUv(1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(0, 1, 0);
+			buffer.addVertex(pose, x1, y0, z).setColor(color).setUv(1, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(0, 1, 0);
+		});
 		poseStack.popPose();
 	}
 

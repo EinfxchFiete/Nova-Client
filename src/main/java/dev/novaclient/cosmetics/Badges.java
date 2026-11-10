@@ -57,11 +57,22 @@ public final class Badges {
 		} else if (local ? NametagModule.symbolOn() : novaBadgeVisible(uuid)) {
 			icon = novaIcon();
 		}
-		if (icon == null) {
-			return shown;
+		Component out = icon == null ? shown : Component.empty().append(icon).append(Component.literal(" ")).append(shown);
+		if (local && (forNametag || NametagModule.tabOn())) {
+			// room for the own name icon; the picture itself is drawn over these spaces (name tag / tab list mixins)
+			NameIcons.Icon custom = NametagModule.activeIcon();
+			if (custom != null) {
+				out = Component.empty().append(Component.literal(" ".repeat(custom.spaces()))).append(out);
+				if (!forNametag) {
+					lastTabName = out;
+				}
+			}
 		}
-		return Component.empty().append(icon).append(Component.literal(" ")).append(shown);
+		return out;
 	}
+
+	/** The local player's tab list name of this frame when it starts with room for a name icon (compared by identity). */
+	public static Component lastTabName;
 
 	private static boolean novaBadgeVisible(UUID uuid) {
 		NetworkModule net = NetworkModule.get();
