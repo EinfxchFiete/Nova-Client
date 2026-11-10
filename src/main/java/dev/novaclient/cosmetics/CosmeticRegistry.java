@@ -50,6 +50,11 @@ public final class CosmeticRegistry {
 		HEADS.put("mushroom", "Pilzhut");
 		HEADS.put("piratehat", "Piratenhut");
 		HEADS.put("antennae", "Alien-Antennen");
+		HEADS.put("gradcap", "Doktorhut");
+		HEADS.put("mohawk", "Irokese");
+		HEADS.put("visor", "Cyber-Visier");
+		HEADS.put("duck", "Quietsche-Ente");
+		HEADS.put("facemask", "Maske");
 
 		EXTRAS.put("backpack", "Rucksack");
 		EXTRAS.put("cattail", "Katzenschwanz");
@@ -59,6 +64,9 @@ public final class CosmeticRegistry {
 		EXTRAS.put("jetpack", "Jetpack");
 		EXTRAS.put("guitar", "Gitarre");
 		EXTRAS.put("backsword", "Rückenschwert");
+		EXTRAS.put("shield", "Rückenschild");
+		EXTRAS.put("quiver", "Köcher");
+		EXTRAS.put("balloon", "Luftballon");
 
 		WINGS.put("angel", "Engelsflügel");
 		WINGS.put("dragon", "Drachenflügel");
@@ -103,6 +111,8 @@ public final class CosmeticRegistry {
 		ANIMATED_CAPES.put("anim:meteor", "Sternschnuppen (animiert)");
 		ANIMATED_CAPES.put("anim:aquarium", "Aquarium (animiert)");
 		ANIMATED_CAPES.put("anim:clouds", "Wolken (animiert)");
+		ANIMATED_CAPES.put("anim:circuit", "Schaltkreis (animiert)");
+		ANIMATED_CAPES.put("anim:lavalamp", "Lavalampe (animiert)");
 
 		MINIMEE_MODES.put("neck", "Kette");
 		MINIMEE_MODES.put("pocket", "Hosentasche");

@@ -13,11 +13,29 @@ import net.minecraft.network.chat.Component;
 
 /** Round emote menu: click an emote to play it. */
 public class EmoteWheelScreen extends Screen {
-	private static final int RADIUS = 72;
+	private static final int RADIUS = 84;
 	private static final int ITEM_W = 76;
 	private static final int ITEM_H = 22;
 
-	private final List<String> ids = new ArrayList<>(Emotes.ALL.keySet());
+	private static final int PER_PAGE = 8;
+	private static int page;
+	private final List<String> all = new ArrayList<>(Emotes.ALL.keySet());
+	private List<String> ids = pageIds();
+
+	private int pages() {
+		return (all.size() + PER_PAGE - 1) / PER_PAGE;
+	}
+
+	private List<String> pageIds() {
+		page = Math.floorMod(page, pages());
+		return all.subList(page * PER_PAGE, Math.min(all.size(), (page + 1) * PER_PAGE));
+	}
+
+	/** Switches to the next (+1) or previous (-1) page of emotes. */
+	public void turnPage(int by) {
+		page = Math.floorMod(page + by, pages());
+		ids = pageIds();
+	}
 
 	public EmoteWheelScreen() {
 		super(Component.literal("Emotes"));
@@ -58,7 +76,7 @@ public class EmoteWheelScreen extends Screen {
 		int cx = width / 2;
 		int cy = height / 2;
 		Render.rounded(g, cx - 26, cy - 10, cx + 26, cy + 10, 0xE0101016);
-		g.centeredText(font, "Emotes", cx, cy - 4, accent);
+		g.centeredText(font, "Seite " + (page + 1) + "/" + pages(), cx, cy - 4, accent);
 		for (int i = 0; i < ids.size(); i++) {
 			int[] c = center(i);
 			Emotes.Info info = Emotes.ALL.get(ids.get(i));
@@ -70,13 +88,17 @@ public class EmoteWheelScreen extends Screen {
 			}
 			g.centeredText(font, info.name(), c[0], c[1] - 4, 0xFFFFFFFF);
 		}
-		g.centeredText(font, "Klicke ein Emote an  ·  ESC = schließen", cx, cy + RADIUS + 26, 0xFFC0C0CC);
+		g.centeredText(font, "Klicke ein Emote an  ·  Mausrad oder Mitte = nächste Seite  ·  ESC = schließen", cx, cy + RADIUS + 26, 0xFFC0C0CC);
 	}
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
 			int i = hovered(event.x(), event.y());
+			if (i < 0) {
+				turnPage(1);
+				return true;
+			}
 			if (i >= 0) {
 				minecraft.gui.setScreen(null);
 				Emotes.play(ids.get(i));
@@ -86,8 +108,16 @@ public class EmoteWheelScreen extends Screen {
 		return super.mouseClicked(event, doubleClick);
 	}
 
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		turnPage(scrollY < 0 ? 1 : -1);
+		return true;
+	}
+
 	/** Screen position of an emote button (used by tests). */
 	public int[] buttonCenter(String id) {
+		page = all.indexOf(id) / PER_PAGE;
+		ids = pageIds();
 		return center(ids.indexOf(id));
 	}
 

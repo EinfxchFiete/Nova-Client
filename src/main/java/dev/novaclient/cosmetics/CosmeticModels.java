@@ -84,6 +84,23 @@ public final class CosmeticModels {
 	public static ModelPart pirateBand;
 	public static ModelPart antennaStalk;
 	public static ModelPart antennaBall;
+	// 1.8.5
+	public static ModelPart gradCap;
+	public static ModelPart gradButton;
+	public static ModelPart gradTassel;
+	public static ModelPart mohawk;
+	public static ModelPart visorGlass;
+	public static ModelPart visorTemples;
+	public static ModelPart duckBody;
+	public static ModelPart duckBeak;
+	public static ModelPart faceMask;
+	public static ModelPart faceMaskStraps;
+	public static ModelPart shieldPlate;
+	public static ModelPart shieldBoss;
+	public static ModelPart quiverTube;
+	public static ModelPart quiverArrows;
+	public static ModelPart balloonString;
+	public static ModelPart balloonBody;
 
 	private static boolean built;
 
@@ -182,6 +199,67 @@ public final class CosmeticModels {
 		buildV16();
 		buildV18();
 		buildV181();
+		buildV185();
+	}
+
+	/** Models of the 1.8.5 cosmetics (head space for hats, body space for extras). */
+	private static void buildV185() {
+		// graduation cap: skull cap + flat board; the tassel hangs from the middle button over the edge
+		MeshDefinition m = new MeshDefinition();
+		PartDefinition r = m.getRoot();
+		r.addOrReplaceChild("cap", CubeListBuilder.create().texOffs(0, 0).addBox(-4, -9.6F, -4, 8, 2, 8, new CubeDeformation(0.3F)), PartPose.ZERO);
+		r.addOrReplaceChild("board", CubeListBuilder.create().texOffs(0, 12).addBox(-5.5F, -10.9F, -5.5F, 11, 1, 11, new CubeDeformation(0, -0.3F, 0)), PartPose.ZERO);
+		gradCap = bake(m, 64, 64);
+		gradButton = single(CubeListBuilder.create().texOffs(0, 26).addBox(-0.5F, -11.2F, -0.5F, 1, 1, 1, new CubeDeformation(0, -0.25F, 0)), 64, 64);
+		gradTassel = single(CubeListBuilder.create().texOffs(8, 26).addBox(-0.5F, 0, -0.5F, 1, 4, 1, new CubeDeformation(-0.15F, 0, -0.15F)), 64, 64);
+
+		mohawk = single(CubeListBuilder.create().texOffs(0, 0).addBox(-0.5F, -11.6F, -4.5F, 1, 4, 9), 32, 32);
+
+		visorGlass = single(CubeListBuilder.create().texOffs(0, 0).addBox(-4.5F, -5.6F, -5.0F, 9, 2, 1, new CubeDeformation(0.05F)), 64, 32);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("tl", CubeListBuilder.create().texOffs(0, 4).addBox(-4.75F, -5.1F, -4.3F, 1, 1, 5), PartPose.ZERO);
+		r.addOrReplaceChild("tr", CubeListBuilder.create().texOffs(0, 4).addBox(3.75F, -5.1F, -4.3F, 1, 1, 5), PartPose.ZERO);
+		visorTemples = bake(m, 64, 32);
+
+		// rubber duck sitting on the head (origin = where it sits, looking forward)
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("body", CubeListBuilder.create().texOffs(0, 0).addBox(-2, -3, -2.5F, 4, 3, 5), PartPose.ZERO);
+		r.addOrReplaceChild("head", CubeListBuilder.create().texOffs(0, 8).addBox(-1.5F, -5.5F, -3.5F, 3, 3, 3), PartPose.ZERO);
+		r.addOrReplaceChild("tail", CubeListBuilder.create().texOffs(8, 14).addBox(-1, -3.6F, 2.2F, 2, 1, 1), PartPose.ZERO);
+		duckBody = bake(m, 32, 32);
+		duckBeak = single(CubeListBuilder.create().texOffs(0, 14).addBox(-1, -3.9F, -4.5F, 2, 1, 1, new CubeDeformation(0, -0.15F, 0)), 32, 32);
+
+		faceMask = single(CubeListBuilder.create().texOffs(0, 0).addBox(-4, -3.6F, -4.9F, 8, 3, 1, new CubeDeformation(0.25F, 0, -0.1F)), 64, 32);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("sl", CubeListBuilder.create().texOffs(0, 4).addBox(-4.8F, -2.6F, -4.2F, 1, 1, 5, new CubeDeformation(0, -0.25F, 0)), PartPose.ZERO);
+		r.addOrReplaceChild("sr", CubeListBuilder.create().texOffs(0, 4).addBox(3.8F, -2.6F, -4.2F, 1, 1, 5, new CubeDeformation(0, -0.25F, 0)), PartPose.ZERO);
+		faceMaskStraps = bake(m, 64, 32);
+
+		// extras (body space: neck at y 0, back at z +2)
+		shieldPlate = single(CubeListBuilder.create().texOffs(0, 0).addBox(-4, 1, 2.2F, 8, 9, 1), 64, 32);
+		shieldBoss = single(CubeListBuilder.create().texOffs(20, 0).addBox(-1, 4.5F, 2.9F, 2, 2, 1, new CubeDeformation(0, 0, -0.2F)), 64, 32);
+
+		// quiver: origin = middle of the tube's back side, opening at the top (-y)
+		quiverTube = single(CubeListBuilder.create().texOffs(0, 0).addBox(-1.5F, -4.5F, 0, 3, 9, 2), 32, 32);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		float[][] arrows = {{-1.3F, -7.2F, 0.3F}, {0.3F, -7.8F, 0.6F}, {-0.5F, -6.6F, 0.9F}};
+		for (int i = 0; i < arrows.length; i++) {
+			r.addOrReplaceChild("a" + i, CubeListBuilder.create().texOffs(12, 0).addBox(arrows[i][0], arrows[i][1], arrows[i][2], 1, 3, 1,
+				new CubeDeformation(-0.15F, 0, -0.15F)), PartPose.ZERO);
+		}
+		quiverArrows = bake(m, 32, 32);
+
+		// balloon: origin = where the string is held, everything grows up (-y)
+		balloonString = single(CubeListBuilder.create().texOffs(0, 0).addBox(-0.5F, -12, -0.5F, 1, 12, 1, new CubeDeformation(-0.38F, 0, -0.38F)), 32, 32);
+		m = new MeshDefinition();
+		r = m.getRoot();
+		r.addOrReplaceChild("knot", CubeListBuilder.create().texOffs(8, 0).addBox(-0.5F, -12.6F, -0.5F, 1, 1, 1), PartPose.ZERO);
+		r.addOrReplaceChild("balloon", CubeListBuilder.create().texOffs(0, 14).addBox(-2.5F, -18.4F, -2.5F, 5, 6, 5), PartPose.ZERO);
+		balloonBody = bake(m, 32, 32);
 	}
 
 	/** Models of the 1.8.1 cosmetics (head space). */

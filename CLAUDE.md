@@ -18,7 +18,7 @@
 - Zielgruppe: der Nutzer (Minecraft-Name **EinfxchFiete**, GitHub `EinfxchFiete`) und Freunde, u. a. **Flipp1009**.
   Beide sind die „Owner“ des Clients und bekommen ein Kronen-Abzeichen.
 - Name: **„Nova Client“** (bewusst **nicht** das NoRisk-Branding kopiert). Mod-ID `novaclient`, Package `dev.novaclient`.
-- Aktuelle Versionen: **Nova Client 1.8.4** (96 Module), **Nova Launcher 1.5.4**, Nova-Server 1.5 (online: `https://nova-server-ifqq.onrender.com`,
+- Aktuelle Versionen: **Nova Client 1.8.5** (96 Module), **Nova Launcher 1.5.5**, Nova-Server 1.6 (online: `https://nova-server-ifqq.onrender.com`,
   deployt automatisch bei jedem Push auf `main`).
 - Repo: <https://github.com/EinfxchFiete/Nova-Client> (öffentlich, Branch `main`).
 
@@ -385,6 +385,7 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
 - Monocraft über jsDelivr laden → Paket > 50 MB, jsDelivr verweigert; stattdessen `raw.githubusercontent.com`.
 - Mojang-Dateien (Steve, Minecraft-Schrift) mitliefern → Urheberrecht.
 - Emote-Taste G (Konflikt Schnellaktionen), Test-Taste O (Freundesliste).
+- Dateien anderer Clients (z. B. NoRisk-Cosmetics/-Emotes aus einem ZIP) einbauen → Urheberrecht, nur mit Erlaubnis des Rechteinhabers.
 
 ---
 
@@ -573,6 +574,24 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
     - Musik-Modul: „Benachrichtigung bei neuem Song“, „Verlauf und Statistik speichern“, Tasten Play/Pause/Nächster/Vorheriger. Befehle `/song`, `/songtext …`.
     - Songtext-Stile: Karaoke / Wort für Wort / Ganze Zeile; „Songtext für diesen Song ausgeblendet“.
 
+**10.11.2026**
+22. Nutzer schickte einen Download-Link „füge solche Sachen auch noch hinzu“ → ZIP `noriskclient.zip` (400 MB, ~4400 Dateien: die
+    **Original-Cosmetics und -Emotes des NoRisk Clients**). **Nicht eingebaut und nicht entpackt** (nur Dateiliste gelesen, danach
+    gelöscht): fremde, geschützte Inhalte ohne Erlaubnis, widerspricht Entscheidung 2. Anders als bei Cubes Studio/Nocsy gibt es keine
+    Freigabe. **Nicht erneut versuchen**; nur mit schriftlicher Erlaubnis von NoRisk. Stattdessen eigene Inhalte → **v1.8.5** +
+    **Launcher 1.5.5** + **Server 1.6**:
+    - **11 Emotes** (26 gesamt): Dab, Hinsetzen, Meditieren, Schlafen (diese drei laufen, bis man sich bewegt: Dauer 600 s), Hampelmann,
+      T-Pose, Roboter, Lachen, Weinen, Disco, Pirouette. Neu: **Ganzkörper-Bewegung** über `AvatarRendererEmoteMixin`
+      (`AvatarRenderer.setupRotations` TAIL → `Emotes.transform(state, pose)`; y = oben in Blöcken, Blick nach -z; verschiebt/dreht Spieler
+      samt Cape und Cosmetics, Nametag bleibt). Emote-Rad hat jetzt **Seiten** (8 pro Seite, Mausrad oder Klick in die Mitte).
+    - **Kopf**: Doktorhut (`gradcap`, Quaste schwingt), Irokese (`mohawk`), Cyber-Visier (`visor`, leuchtet), Quietsche-Ente (`duck`),
+      Maske (`facemask`). **Extras**: Rückenschild (`shield`), Köcher (`quiver`), Luftballon (`balloon`, weht beim Laufen nach hinten).
+      **Capes**: Schaltkreis (`anim:circuit`), Lavalampe (`anim:lavalamp`). Texturen: `tools/assets/cosmetic_assets_v7.py`.
+    - Gametest PASSED (Screenshots `66_*` geprüft), Server-Test PASSED, Launcher-UI-Test PASSED. Launch-Tests des Launchers diesmal
+      **nicht** gelaufen (nur Version + Neuigkeiten geändert). Gepusht auf Branch `claude/vigilant-dijkstra-xheslm` (Vorgabe der
+      Sitzung), **noch nicht auf `main`** → Server 1.6 ist erst nach dem Merge online (bis dahin filtert der Server die neuen IDs heraus,
+      andere sehen die neuen Cosmetics/Emotes nicht).
+
 ---
 
 ## 6. BEKANNTE PROBLEME & BUGS
@@ -635,7 +654,8 @@ tools/                       Generatoren & Test-Helfer aus dem Chat (siehe Absch
      Nutzer fragen, ob Freunde Krone/Cosmetics/Song sehen.
   2. **Mojang-Freischaltung** der Azure-Client-ID (Formular wurde ausgefüllt; [UNSICHER] ob abgesendet und ob schon geantwortet).
   3. [UNSICHER] ob in Azure „Öffentliche Clientflows zulassen“ wirklich auf „Ja“ gestellt wurde (nie bestätigt).
-- **Stand 06.11.2026: v1.8.4 fertig und ausgeliefert** (Changelog 21): `nova-client-1.8.4.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
+- **Stand 10.11.2026: v1.8.5 fertig und ausgeliefert** (Changelog 22, Branch `claude/vigilant-dijkstra-xheslm`, Merge nach `main` offen).
+- Stand 06.11.2026: v1.8.4 fertig und ausgeliefert (Changelog 21): `nova-client-1.8.4.zip` (Jar darin) + `Nova-Launcher-Windows.zip`
   (Launcher 1.5.4 inkl. Nova 1.8.4).
 - **Rückmeldung holen:** Passt der Songtext jetzt unter Windows/Spotify? Funktionieren Play/Pause/Weiter im Musik-Menü? Gametest PASSED (96 Module), `backend` npm test PASSED, Launcher UI-/Launch-/UI-Launch-Test PASSED.
 - Nutzer-Entscheidung (06.11.2026): **Performance-Mods testet der Nutzer selbst** (Schalter bleibt standardmäßig an); 1.8.x hat er
@@ -684,6 +704,7 @@ Einzige Ausnahme: `SdlGlTest.java` hieß im Chat `T.java` (Klasse `T`), nur der 
 | `tools/assets/cosmetic_assets.py` | Abzeichen, Kopfschmuck-/Flügel-Texturen, 6×16 animierte Cape-Frames (seit 1.5 importierbar: Aufrufe unter `__main__`) | `python3 tools/assets/cosmetic_assets.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/cosmetic_assets_v3.py` | 1.6: neue Kopf-Cosmetics, Extras, Flügel bat/fairy/phoenix (+ `_tint`), Capes hearts/glitch/portal | `python3 -B tools/assets/cosmetic_assets_v3.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/cosmetic_assets_v2.py` | 1.5: Graustufen-Flügel/-Hörner (`*_tint`), neue Krone + `crown_gems.png`, Kette, 7 neue animierte Capes | `python3 tools/assets/cosmetic_assets_v2.py src/main/resources/assets/novaclient/textures` |
+| `tools/assets/cosmetic_assets_v7.py` | 1.8.5: Doktorhut, Irokese, Visier, Ente, Maske, Schild, Köcher, Luftballon, Capes circuit/lavalamp | `python3 -B tools/assets/cosmetic_assets_v7.py src/main/resources/assets/novaclient/textures` |
 | `tools/assets/mod_icon.py` | Mod-Icon 128×128 | im Repo-Root: `python3 tools/assets/mod_icon.py` |
 | `tools/assets/launcher_assets.py` | Launcher `default-skin.png` + `icon.png` | in `launcher/`: `python3 ../tools/assets/launcher_assets.py` |
 | `tools/assets/make_ico.py` | `icon.ico` aus `icon.png` | in `launcher/`: `python3 ../tools/assets/make_ico.py` |

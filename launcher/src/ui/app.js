@@ -14,6 +14,7 @@ let logLines = [];
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444', '#ec4899', '#64748b'];
 const NEWS = [
+  { t: 'Nova Client 1.8.5', title: 'Neue Emotes & Cosmetics', g: 'linear-gradient(135deg,#f472b6,#facc15)', text: '11 neue Emotes: Dab, Hinsetzen, Meditieren, Schlafen, Hampelmann, T-Pose, Roboter, Lachen, Weinen, Disco, Pirouette. Dazu Doktorhut, Irokese, Cyber-Visier, Quietsche-Ente, Maske, Rückenschild, Köcher, Luftballon und 2 neue Capes.' },
   { t: 'Nova Client 1.8.4', title: 'Musik-Menü & Otter', g: 'linear-gradient(135deg,#a78bfa,#22d3ee)', text: 'Neues Musik-Menü (Startmenü → 4) mit Play/Pause, Verlauf und Top-Songs. Songtexte passen besser: Klick auf die gesungene Zeile, früher/später pro Song, anderer Text. Neu: Otter-Begleiter von Nocsy.' },
   { t: 'Nova Client 1.8.3', title: '24 CUBEES-Begleiter', g: 'linear-gradient(135deg,#facc15,#f97316)', text: 'Neu: 24 Cubees als Begleiter (Feuer, Wasser, TNT, Kanone, Bomber-Creeper, Glitzerhexe …) mit eigenen Animationen. Modelle von Cubes Studio, mit Erlaubnis.' },
   { t: 'Nova Client 1.8.2', title: 'Blobfisch-Begleiter', g: 'linear-gradient(135deg,#f9a8d4,#60a5fa)', text: 'Neuer Begleiter: ein knuffiger Blobfisch, der neben dir durch die Luft schwimmt (Modell von QueenOfAnts).' },

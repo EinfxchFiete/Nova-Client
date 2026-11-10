@@ -52,6 +52,14 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 	private static final Identifier MUSHROOM = tex("mushroom");
 	private static final Identifier PIRATEHAT = tex("piratehat");
 	private static final Identifier ANTENNAE = tex("antennae");
+	private static final Identifier GRADCAP = tex("gradcap");
+	private static final Identifier MOHAWK = tex("mohawk");
+	private static final Identifier VISOR = tex("visor");
+	private static final Identifier DUCK = tex("duck");
+	private static final Identifier FACEMASK = tex("facemask");
+	private static final Identifier SHIELD = tex("shield");
+	private static final Identifier QUIVER = tex("quiver");
+	private static final Identifier BALLOON = tex("balloon");
 
 	/** Chosen colour, or the cosmetic's own default when "Normal". */
 	private static int color(String name, float time, int normal) {
@@ -124,6 +132,9 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 						case "propeller" -> -12.4F;
 						case "mushroom" -> -12.3F;
 						case "piratehat" -> -11.6F;
+						case "gradcap" -> -10.7F;
+						case "mohawk" -> -11.6F;
+						case "duck" -> -13.9F;
 						default -> -8.6F;
 					};
 				}
@@ -409,6 +420,52 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 					pose.popPose();
 				}
 			}
+			case "gradcap" -> {
+				if (helmet) {
+					return;
+				}
+				RenderType type = RenderTypes.entityCutout(GRADCAP);
+				int col = color(l.headColor(), time, 0xFFFFC107);
+				part(c, CosmeticModels.gradCap, pose, type, light, 0xFFFFFFFF);
+				part(c, CosmeticModels.gradButton, pose, type, light, col);
+				// the tassel hangs over the right edge and swings while you walk
+				float swing = Mth.sin(time * 4.0F) * (0.06F + Math.min(1.0F, state.walkAnimationSpeed) * 0.3F);
+				pose.pushPose();
+				pose.translate(5.3F / 16F, -10.5F / 16F, 1.5F / 16F);
+				pose.rotate(Axis.XP, swing);
+				pose.rotate(Axis.ZP, swing * 0.4F);
+				part(c, CosmeticModels.gradTassel, pose, type, light, col);
+				pose.popPose();
+			}
+			case "mohawk" -> {
+				if (helmet) {
+					return;
+				}
+				part(c, CosmeticModels.mohawk, pose, RenderTypes.entityCutout(MOHAWK), light, color(l.headColor(), time, 0xFFEC407A));
+			}
+			case "visor" -> {
+				part(c, CosmeticModels.visorTemples, pose, RenderTypes.entityCutout(VISOR), light, 0xFFFFFFFF);
+				part(c, CosmeticModels.visorGlass, pose, RenderTypes.entityCutout(VISOR), LightCoordsUtil.FULL_BRIGHT, color(l.headColor(), time, 0xFF18FFFF));
+			}
+			case "duck" -> {
+				if (helmet) {
+					return;
+				}
+				RenderType type = RenderTypes.entityCutout(DUCK);
+				// wobbles a little, more when you walk
+				float wobble = Mth.sin(time * 6.0F) * (0.04F + Math.min(1.0F, state.walkAnimationSpeed) * 0.14F);
+				pose.pushPose();
+				pose.translate(0, -8.0F / 16F, 0);
+				pose.rotate(Axis.ZP, wobble);
+				part(c, CosmeticModels.duckBody, pose, type, light, color(l.headColor(), time, 0xFFFFE04A));
+				part(c, CosmeticModels.duckBeak, pose, type, light, 0xFFFFFFFF);
+				pose.popPose();
+			}
+			case "facemask" -> {
+				RenderType type = RenderTypes.entityCutout(FACEMASK);
+				part(c, CosmeticModels.faceMaskStraps, pose, type, light, 0xFFFFFFFF);
+				part(c, CosmeticModels.faceMask, pose, type, light, color(l.headColor(), time, 0xFF90CAF9));
+			}
 			case "propeller" -> {
 				if (helmet) {
 					return;
@@ -509,6 +566,32 @@ public class CosmeticsLayer extends RenderLayer<AvatarRenderState, PlayerModel> 
 				pose.rotate(Axis.ZP, -0.62F);
 				part(c, CosmeticModels.guitarBody, pose, RenderTypes.entityCutout(GUITAR), light, color(l.extraColor(), time, 0xFFC27A3A));
 				part(c, CosmeticModels.guitarNeck, pose, RenderTypes.entityCutout(GUITAR), light, 0xFFFFFFFF);
+				pose.popPose();
+			}
+			case "shield" -> {
+				pose.pushPose();
+				pose.translate(0, 0, armor / 16F);
+				part(c, CosmeticModels.shieldPlate, pose, RenderTypes.entityCutout(SHIELD), light, color(l.extraColor(), time, 0xFF1E88E5));
+				part(c, CosmeticModels.shieldBoss, pose, RenderTypes.entityCutout(SHIELD), light, 0xFFFFFFFF);
+				pose.popPose();
+			}
+			case "quiver" -> {
+				pose.pushPose();
+				// diagonal on the back, opening over the right shoulder
+				pose.translate(-0.6F / 16F, 4.6F / 16F, (2.1F + armor) / 16F);
+				pose.rotate(Axis.ZP, -0.5F);
+				part(c, CosmeticModels.quiverTube, pose, RenderTypes.entityCutout(QUIVER), light, color(l.extraColor(), time, 0xFF8D5A2B));
+				part(c, CosmeticModels.quiverArrows, pose, RenderTypes.entityCutout(QUIVER), light, 0xFFFFFFFF);
+				pose.popPose();
+			}
+			case "balloon" -> {
+				pose.pushPose();
+				// tied to the left shoulder; sways in the wind and trails behind while you walk
+				pose.translate(4.5F / 16F, 0.2F / 16F, 1.0F / 16F);
+				pose.rotate(Axis.XP, -walk * 0.5F + Mth.sin(time * 1.7F) * 0.06F);
+				pose.rotate(Axis.ZP, 0.12F + Mth.sin(time * 1.3F) * 0.09F);
+				part(c, CosmeticModels.balloonString, pose, RenderTypes.entityCutout(BALLOON), light, 0xFFFFFFFF);
+				part(c, CosmeticModels.balloonBody, pose, RenderTypes.entityCutout(BALLOON), light, color(l.extraColor(), time, 0xFFE53935));
 				pose.popPose();
 			}
 			case "backsword" -> {

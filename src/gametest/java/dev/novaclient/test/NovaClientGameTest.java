@@ -1840,15 +1840,67 @@ public class NovaClientGameTest implements FabricClientGameTest {
 					})), "emote not playing: " + emote);
 					ctx.takeScreenshot("65_emote_" + emote);
 				}
+				// 1.8.5: emotes that move the whole body, new hats and extras
+				ctx.runOnClient(mc -> {
+					module("Cape").setEnabled(true);
+					module("Kopfschmuck").setEnabled(true);
+					module("Flügel").setEnabled(false);
+					module("Extras").setEnabled(true);
+				});
+				String[] newHeads = {"Doktorhut", "Irokese", "Cyber-Visier", "Quietsche-Ente", "Maske"};
+				String[] newEmotes = {"dab", "sit", "meditate", "sleep", "jumpingjack", "tpose", "robot", "laugh", "cry", "disco", "spin"};
+				for (int i = 0; i < newEmotes.length; i++) {
+					String emote = newEmotes[i];
+					String head = newHeads[i % newHeads.length];
+					ctx.runOnClient(mc -> {
+						((dev.novaclient.module.cosmetics.HeadCosmeticModule) module("Kopfschmuck")).type.set(head);
+						dev.novaclient.emote.Emotes.play(emote);
+					});
+					ctx.waitTicks(10);
+					check(emote.equals(ctx.computeOnClient(mc -> {
+						var a = dev.novaclient.emote.Emotes.localActive();
+						return a == null ? "" : a.id();
+					})), "emote not playing: " + emote);
+					ctx.takeScreenshot("66_emote_" + emote);
+				}
+				check(dev.novaclient.emote.Emotes.ALL.size() == 26, "expected 26 emotes: " + dev.novaclient.emote.Emotes.ALL.size());
 				ctx.runOnClient(mc -> {
 					dev.novaclient.emote.Emotes.stop();
+					mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+					module("Cape").setEnabled(false);
+				});
+				for (String extra : new String[] {"Rückenschild", "Köcher", "Luftballon"}) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.ExtrasModule) module("Extras")).type.set(extra));
+					ctx.waitTicks(4);
+					ctx.takeScreenshot("66b_extra_" + extra.substring(0, 2).toLowerCase(java.util.Locale.ROOT).replace("ü", "ue").replace("ö", "oe"));
+				}
+				ctx.runOnClient(mc -> {
+					mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+					((dev.novaclient.module.cosmetics.ExtrasModule) module("Extras")).type.set("Luftballon");
+				});
+				for (String head : newHeads) {
+					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.HeadCosmeticModule) module("Kopfschmuck")).type.set(head));
+					ctx.waitTicks(4);
+					ctx.takeScreenshot("66c_head_" + head.substring(0, 3).toLowerCase(java.util.Locale.ROOT));
+				}
+				// the emote wheel has pages now
+				ctx.runOnClient(mc -> mc.gui.setScreen(new dev.novaclient.emote.EmoteWheelScreen()));
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("66d_wheel_page1");
+				ctx.runOnClient(mc -> ((dev.novaclient.emote.EmoteWheelScreen) mc.gui.screen()).turnPage(2));
+				ctx.waitTicks(3);
+				ctx.takeScreenshot("66d_wheel_page3");
+				ctx.runOnClient(mc -> mc.gui.setScreen(null));
+				ctx.runOnClient(mc -> {
+					dev.novaclient.emote.Emotes.stop();
+					module("Kopfschmuck").setEnabled(false);
 					((dev.novaclient.module.cosmetics.EmotesModule) module("Emotes")).switchCamera.set(true);
 					mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
 					module("Cape").setEnabled(true);
 					module("Flügel").setEnabled(false);
 					module("Extras").setEnabled(false);
 				});
-				for (String cape : new String[] {"Feuerwerk (animiert)", "Herbstlaub (animiert)", "Blubberblasen (animiert)", "Sternschnuppen (animiert)", "Aquarium (animiert)", "Wolken (animiert)"}) {
+				for (String cape : new String[] {"Feuerwerk (animiert)", "Herbstlaub (animiert)", "Blubberblasen (animiert)", "Sternschnuppen (animiert)", "Aquarium (animiert)", "Wolken (animiert)", "Schaltkreis (animiert)", "Lavalampe (animiert)"}) {
 					ctx.runOnClient(mc -> ((dev.novaclient.module.cosmetics.CapeModule) module("Cape")).design.set(cape));
 					ctx.waitTicks(4);
 					ctx.takeScreenshot("65b_cape_" + cape.substring(0, 4).toLowerCase(java.util.Locale.ROOT).replace("ü", "ue"));

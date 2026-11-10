@@ -22,24 +22,27 @@ const MAX_BODY = 32 * 1024;
 const MAX_PLAYERS_PER_SYNC = 200;
 
 /** Server version, shown on / and /health (lets you see that a deploy is live). */
-const VERSION = '1.5';
+const VERSION = '1.6';
 
 const HEADS = new Set(['bandana', 'crown', 'tophat', 'horns', 'catears', 'halo',
   'partyhat', 'cowboyhat', 'bunnyears', 'headphones', 'sunglasses', 'viking', 'flowercrown', 'beanie',
-  'witchhat', 'santahat', 'chefhat', 'foxears', 'unicorn', 'propeller', 'mushroom', 'piratehat', 'antennae']);
-const EXTRAS = new Set(['backpack', 'cattail', 'foxtail', 'deviltail', 'scarf', 'jetpack', 'guitar', 'backsword']);
+  'witchhat', 'santahat', 'chefhat', 'foxears', 'unicorn', 'propeller', 'mushroom', 'piratehat', 'antennae',
+  'gradcap', 'mohawk', 'visor', 'duck', 'facemask']);
+const EXTRAS = new Set(['backpack', 'cattail', 'foxtail', 'deviltail', 'scarf', 'jetpack', 'guitar', 'backsword', 'shield', 'quiver', 'balloon']);
 const WINGS = new Set(['angel', 'dragon', 'butterfly', 'bat', 'fairy', 'phoenix', 'ice', 'dragonfly']);
 const COLORS = new Set(['Normal', 'Rot', 'Orange', 'Gelb', 'Grün', 'Türkis', 'Blau', 'Lila', 'Pink', 'Schwarz', 'Regenbogen']);
 const CAPES = new Set(['nova', 'galaxy', 'fire', 'ocean', 'forest', 'gold', 'ice', 'rainbow', 'cherry', 'checker', 'lava', 'night', 'sunset', 'matrix',
   'anim:nova', 'anim:galaxy', 'anim:fire', 'anim:ocean', 'anim:rainbow', 'anim:matrix',
   'anim:aurora', 'anim:lava', 'anim:storm', 'anim:sakura', 'anim:ender', 'anim:snow', 'anim:neon',
-  'anim:hearts', 'anim:glitch', 'anim:portal', 'anim:fireworks', 'anim:autumn', 'anim:bubbles', 'anim:meteor', 'anim:aquarium', 'anim:clouds']);
+  'anim:hearts', 'anim:glitch', 'anim:portal', 'anim:fireworks', 'anim:autumn', 'anim:bubbles', 'anim:meteor', 'anim:aquarium', 'anim:clouds', 'anim:circuit', 'anim:lavalamp']);
 const MINIMEE_MODES = new Set(['neck', 'pocket', 'head', 'shoulder', 'back', 'hand', 'float']);
 const MINIMEE_ANIMS = new Set(['none', 'wave', 'dance', 'kick', 'cheer', 'nod']);
 const MINIMEE_SIZES = new Set(['small', 'normal', 'big']);
 const EMOTES = new Map([['wave', 3000], ['cheer', 3000], ['dance', 6000], ['clap', 3000], ['facepalm', 2500], ['point', 2500],
   ['bow', 2500], ['salute', 2500], ['zombie', 4000], ['shrug', 2000], ['think', 3000],
-  ['headbang', 3000], ['airguitar', 4000], ['flex', 2500], ['panic', 3000]]);
+  ['headbang', 3000], ['airguitar', 4000], ['flex', 2500], ['panic', 3000],
+  ['dab', 2500], ['sit', 600000], ['meditate', 600000], ['sleep', 600000], ['jumpingjack', 4000], ['tpose', 3000], ['robot', 5000],
+  ['laugh', 3000], ['cry', 3500], ['disco', 5000], ['spin', 3000]]);
 
 const FRIEND_TTL = 24 * 60 * 60 * 1000;
 const MAX_FRIENDS = 200;
